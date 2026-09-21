@@ -113,7 +113,7 @@ flowchart TD
 
 | Hạng mục | Liên kết / Minh chứng |
 |:---|:---|
-| **1. Live Demo URL** | `https://vku-room-booking.pages.dev` *(hoặc link Cloudflare Pages được cấp)* |
+| **1. Live Demo URL** | [https://vku-room-booking-17t.pages.dev/](https://vku-room-booking-17t.pages.dev/) |
 | **2. GitHub Repository** | `https://github.com/thuong614oh65/vku-room-booking-expo` |
 | **3. Sinh viên thực hiện** | Nguyễn Thị Thương - MSSV: 23IT.B219 - Email: thuongnt.23itb@vku.udn.vn |
 | **4. Công nghệ chính** | React Native 0.86, Expo SDK 57, TypeScript, Zustand, AsyncStorage, React Navigation 7 |
