@@ -146,7 +146,7 @@ Dùng ứng dụng **Expo Go** (trên iOS hoặc Android) quét mã QR hiển th
 
 ## 🌐 7. TRIỂN KHAI LIVE DEMO & NỘP BÀI
 - **Live Demo Link (Cloudflare Pages):** [https://vku-room-booking-17t.pages.dev/](https://vku-room-booking-17t.pages.dev/)
-- **Mã nguồn GitHub:** Đang đồng bộ repository
+- **Mã nguồn GitHub:** [https://github.com/thuong614oh65/vku-room-booking-expo](https://github.com/thuong614oh65/vku-room-booking-expo)
 - **Báo cáo PDF:** Đính kèm tệp `BAO_CAO_KY_THUAT_REPORT.md` (xuất bản PDF theo mẫu chuẩn VKU 2-4 trang)
 
 ---
