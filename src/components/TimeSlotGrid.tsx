@@ -24,8 +24,8 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.headerLabel}>? Khung Gi? Ca H?c (Chu?n VKU 2 Ti?ng):</Text>
-        <Text style={styles.subInfo}>Tr?ng th�i th?i gian th?c</Text>
+        <Text style={styles.headerLabel}>⏰ Khung Giờ Ca Học (Chuẩn VKU 2 Tiếng):</Text>
+        <Text style={styles.subInfo}>Trạng thái thời gian thực</Text>
       </View>
 
       <View style={styles.grid}>
@@ -35,7 +35,7 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
 
           const handlePress = () => {
             if (booked) {
-              // K�ch ho?t gi?i quy?t xung d?t th�ng minh cho ngu?i d?n sau
+              // Kích hoạt giải quyết xung đột thông minh cho người đến sau
               onConflictDetected(slot);
             } else {
               const conflict = checkSlotConflict(roomId, selectedDate, slot.id);
@@ -63,13 +63,13 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
                 </Text>
                 <View style={[styles.badgePill, booked ? styles.badgePillBooked : styles.badgePillAvailable]}>
                   <Text style={[styles.badgePillText, booked ? styles.badgePillTextBooked : styles.badgePillTextAvailable]}>
-                    {booked ? '?? �� K�n' : '?? Tr?ng'}
+                    {booked ? '🔴 Đã Kín' : '🟢 Trống'}
                   </Text>
                 </View>
               </View>
 
               <Text style={[styles.slotHint, isSelected && styles.textWhite70, booked && styles.textBookedLight]}>
-                {booked ? 'Nh?n d? xem ph�ng thay th?' : isSelected ? '�� ch?n ca n�y' : 'Ch?m d? ch?n ca h?c'}
+                {booked ? 'Nhấn để xem phòng thay thế' : isSelected ? 'Đã chọn ca này' : 'Chạm để chọn ca học'}
               </Text>
             </Pressable>
           );

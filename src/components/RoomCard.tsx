@@ -11,15 +11,15 @@ interface RoomCardProps {
 const getEquipmentBadge = (eq: string) => {
   switch (eq) {
     case 'High-spec PC':
-      return '?? M�y tr?m PC';
+      return '🖥️ Máy trạm PC';
     case 'Projector':
-      return '??? M�y chi?u';
+      return '📽️ Máy chiếu';
     case 'AC':
-      return '?? �i?u h�a';
+      return '❄️ Điều hòa';
     case 'Whiteboard':
-      return '?? B?ng t?';
+      return '📋 Bảng từ';
     case 'Sound System':
-      return '?? �m thanh';
+      return '🔊 Âm thanh';
     default:
       return eq;
   }
@@ -53,7 +53,7 @@ export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, isAvailable
         <View style={styles.statusBadgeOverlay}>
           <View style={[styles.statusDot, { backgroundColor: isAvailableToday ? '#10b981' : '#f59e0b' }]} />
           <Text style={styles.statusText}>
-            {isAvailableToday ? 'C�n slot tr?ng h�m nay' : '�� k�n ca h?c'}
+            {isAvailableToday ? 'Còn slot trống hôm nay' : 'Đã kín ca học'}
           </Text>
         </View>
         <View style={[styles.buildingBadge, { backgroundColor: buildingStyle.bg }]}>
@@ -70,12 +70,12 @@ export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, isAvailable
             </Text>
           </View>
           <View style={styles.capacityBadge}>
-            <Text style={styles.capacityText}>?? {room.capacity} ch?</Text>
+            <Text style={styles.capacityText}>👥 {room.capacity} chỗ</Text>
           </View>
         </View>
 
         <Text style={styles.locationText}>
-          ?? {room.floor} � {room.type}
+          📍 {room.floor} • {room.type}
         </Text>
 
         <Text style={styles.descText} numberOfLines={2}>
@@ -92,11 +92,11 @@ export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, isAvailable
 
         <View style={styles.footerRow}>
           <View style={styles.timeInfo}>
-            <Text style={styles.timeLabel}>Th?i lu?ng ca h?c</Text>
-            <Text style={styles.timeValue}>2 ti?ng / slot</Text>
+            <Text style={styles.timeLabel}>Thời lượng ca học</Text>
+            <Text style={styles.timeValue}>2 tiếng / slot</Text>
           </View>
           <View style={styles.actionBtn}>
-            <Text style={styles.actionBtnText}>�?t Ph�ng ?</Text>
+            <Text style={styles.actionBtnText}>Đặt Phòng →</Text>
           </View>
         </View>
       </View>

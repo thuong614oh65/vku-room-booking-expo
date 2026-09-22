@@ -19,16 +19,16 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ visible, booking, onCl
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Th? ThÙng H‡nh Check-in PhÚng</Text>
+            <Text style={styles.headerTitle}>Th·∫ª Th√¥ng H√†nh Check-in Ph√≤ng</Text>
             <Pressable onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>?</Text>
+              <Text style={styles.closeBtnText}>‚úï</Text>
             </Pressable>
           </View>
 
           {/* Ticket Visual */}
           <View style={styles.ticketCard}>
             <View style={styles.ticketHeader}>
-              <Text style={styles.schoolName}>–?I H?C C‘NG NGH? TH‘NG TIN & TRUY?N TH‘NG VI?T - H¿N</Text>
+              <Text style={styles.schoolName}>ƒê·∫†I H·ªåC C√îNG NGH·ªÜ TH√îNG TIN & TRUY·ªÄN TH√îNG VI·ªÜT - H√ÄN</Text>
               <Text style={styles.passTitle}>VKU STUDY ROOM ACCESS PASS</Text>
             </View>
 
@@ -46,36 +46,36 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ visible, booking, onCl
                   <Text style={styles.qrCenterId}>{booking.id}</Text>
                 </View>
               </View>
-              <Text style={styles.qrCodeLabel}>M√ V…: {booking.id}</Text>
-              <Text style={styles.qrScanHint}>–ua m„ n‡y v‡o m·y quÈt t?i c?a phÚng d? m? khÛa</Text>
+              <Text style={styles.qrCodeLabel}>M√£ V√©: {booking.id}</Text>
+              <Text style={styles.qrScanHint}>ƒê∆∞a m√£ n√†y v√†o m√°y qu√©t t·∫°i c·ª≠a ph√≤ng ƒë·ªÉ m·ªü kh√≥a</Text>
             </View>
 
             {/* Details */}
             <View style={styles.detailsGrid}>
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>PH“NG H?C</Text>
+                <Text style={styles.detailLabel}>PH√íNG H·ªåC</Text>
                 <Text style={styles.detailValue} numberOfLines={1}>{booking.roomName}</Text>
               </View>
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>–?A –I?M</Text>
-                <Text style={styles.detailValue}>{booking.building} ï {booking.floor}</Text>
+                <Text style={styles.detailLabel}>ƒê·ªäA ƒêI·ªÇM</Text>
+                <Text style={styles.detailValue}>{booking.building} ‚Ä¢ {booking.floor}</Text>
               </View>
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>TH?I GIAN</Text>
+                <Text style={styles.detailLabel}>TH·ªúI GIAN</Text>
                 <Text style={styles.detailValue}>{booking.slotLabel}</Text>
               </View>
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>NG¿Y S? D?NG</Text>
+                <Text style={styles.detailLabel}>NG√ÄY S·ª¨ D·ª§NG</Text>
                 <Text style={styles.detailValue}>{booking.date}</Text>
               </View>
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>SINH VI N –?T</Text>
+                <Text style={styles.detailLabel}>SINH VI√äN ƒê·∫∂T</Text>
                 <Text style={styles.detailValue}>{booking.studentName} ({booking.studentId})</Text>
               </View>
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>TR?NG TH¡I</Text>
+                <Text style={styles.detailLabel}>TR·∫†NG TH√ÅI</Text>
                 <Text style={[styles.detailValue, isCheckedIn ? styles.statusChecked : styles.statusConfirmed]}>
-                  {isCheckedIn ? '? –√ CHECK-IN' : '?? S?N S¿NG V¿O PH“NG'}
+                  {isCheckedIn ? '‚úì ƒê√É CHECK-IN' : 'üü¢ S·∫¥N S√ÄNG V√ÄO PH√íNG'}
                 </Text>
               </View>
             </View>
@@ -90,11 +90,11 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ visible, booking, onCl
                   onCheckIn(booking.id);
                 }}
               >
-                <Text style={styles.checkInBtnText}>?? QuÈt Check-In M? C?a</Text>
+                <Text style={styles.checkInBtnText}>üì± Qu√©t Check-In M·ªü C·ª≠a</Text>
               </Pressable>
             )}
             <Pressable style={styles.dismissBtn} onPress={onClose}>
-              <Text style={styles.dismissBtnText}>–Ûng</Text>
+              <Text style={styles.dismissBtnText}>ƒê√≥ng</Text>
             </Pressable>
           </View>
         </View>

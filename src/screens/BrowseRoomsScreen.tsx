@@ -14,7 +14,7 @@ export const BrowseRoomsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { rooms, filters, bookings } = useBookingStore();
 
-  // L?c danh s�ch ph�ng theo search & chips da tham s?
+  // Lọc danh sách phòng theo search & chips đa tham số
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => {
       // 1. Search query
@@ -37,7 +37,7 @@ export const BrowseRoomsScreen: React.FC = () => {
         return false;
       }
 
-      // 4. Equipment filter (ph?i th?a m�n t?t c? trang thi?t b? du?c ch?n)
+      // 4. Equipment filter (phải thỏa mãn tất cả trang thiết bị được chọn)
       if (filters.equipment.length > 0) {
         const hasAllEq = filters.equipment.every((eq) => room.equipment.includes(eq));
         if (!hasAllEq) return false;
@@ -47,7 +47,7 @@ export const BrowseRoomsScreen: React.FC = () => {
     });
   }, [rooms, filters]);
 
-  // Ki?m tra ph�ng c� slot tr?ng h�m nay kh�ng
+  // Kiểm tra phòng có slot trống hôm nay không
   const todayStr = useMemo(() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -61,7 +61,7 @@ export const BrowseRoomsScreen: React.FC = () => {
       const todayBookingsCount = bookings.filter(
         (b) => b.roomId === roomId && b.date === todayStr && b.status !== 'CANCELLED'
       ).length;
-      return todayBookingsCount < 5; // C� 5 slot/ng�y, n?u < 5 l� c�n tr?ng
+      return todayBookingsCount < 5; // Có 5 slot/ngày, nếu < 5 là còn trống
     },
     [bookings, todayStr]
   );
@@ -91,8 +91,8 @@ export const BrowseRoomsScreen: React.FC = () => {
       {/* Header Bar */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.schoolHeader}>VKU CAMPUS � H? TH?NG �?T PH�NG H?C</Text>
-          <Text style={styles.screenTitle}>Tra C?u Ph�ng H?c & Lab</Text>
+          <Text style={styles.schoolHeader}>VKU CAMPUS • HỆ THỐNG ĐẶT PHÒNG HỌC</Text>
+          <Text style={styles.screenTitle}>Tra Cứu Phòng Học & Lab</Text>
         </View>
         <View style={styles.statusLiveBadge}>
           <View style={styles.liveDot} />
@@ -106,7 +106,7 @@ export const BrowseRoomsScreen: React.FC = () => {
       {/* Result Count Banner */}
       <View style={styles.resultBanner}>
         <Text style={styles.resultCountText}>
-          T�m th?y <Text style={styles.resultCountBold}>{filteredRooms.length}</Text> ph�ng h?c & lab kh? d?ng
+          Tìm thấy <Text style={styles.resultCountBold}>{filteredRooms.length}</Text> phòng học & lab khả dụng
         </Text>
         <Text style={styles.resultSubText}>60fps Scroll Optimized</Text>
       </View>
@@ -124,10 +124,10 @@ export const BrowseRoomsScreen: React.FC = () => {
         removeClippedSubviews={Platform.OS !== 'web'}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyIcon}>??</Text>
-            <Text style={styles.emptyTitle}>Kh�ng t�m th?y ph�ng ph� h?p</Text>
+            <Text style={styles.emptyIcon}>🔍</Text>
+            <Text style={styles.emptyTitle}>Không tìm thấy phòng phù hợp</Text>
             <Text style={styles.emptySub}>
-              Vui l�ng th? n?i l?ng b? l?c s?c ch?a ho?c trang thi?t b? d? xem th�m k?t qu?.
+              Vui lòng thử nới lỏng bộ lọc sức chứa hoặc trang thiết bị để xem thêm kết quả.
             </Text>
           </View>
         }

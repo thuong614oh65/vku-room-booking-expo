@@ -1,9 +1,16 @@
 import React from 'react';
-import { StyleSheet, Text, View, Modal, Pressable, ScrollView } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Modal,
+  ScrollView,
+  Pressable,
+} from 'react-native';
 import { ConflictResolution, Room, TimeSlot } from '../types/booking';
 import { useBookingStore } from '../store/useBookingStore';
 
-interface ConflictModalProps {
+interface ConflictResolutionModalProps {
   visible: boolean;
   roomId: string;
   date: string;
@@ -14,7 +21,7 @@ interface ConflictModalProps {
   onSelectAlternativeSlot: (slot: TimeSlot) => void;
 }
 
-export const ConflictResolutionModal: React.FC<ConflictModalProps> = ({
+export const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = ({
   visible,
   roomId,
   date,
@@ -37,23 +44,26 @@ export const ConflictResolutionModal: React.FC<ConflictModalProps> = ({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconCircle}>
-              <Text style={styles.iconText}>??</Text>
+              <Text style={styles.iconText}>⚠️</Text>
             </View>
             <View style={styles.headerTextWrap}>
-              <Text style={styles.headerTitle}>Xung �?t Khung Gi? �?t Ph�ng</Text>
-              <Text style={styles.headerSub}>Gi?i ph�p di?u ph?i th�ng minh cho sinh vi�n</Text>
+              <Text style={styles.headerTitle}>Xung Đột Lịch Đặt Phòng</Text>
+              <Text style={styles.headerSub}>Ca học này đã có người giữ chỗ trước</Text>
             </View>
             <Pressable onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>?</Text>
+              <Text style={styles.closeBtnText}>✕</Text>
             </Pressable>
           </View>
 
           <ScrollView style={styles.bodyScroll} showsVerticalScrollIndicator={false}>
-            {/* Conflict Explanation */}
+            {/* Conflict Alert Message */}
             <View style={styles.alertBox}>
-              <Text style={styles.alertText}>{conflict.message}</Text>
+              <Text style={styles.alertText}>
+                {conflict.message ||
+                  `Ca học ${slot.label} ngày ${date} vừa được hoàn tất đặt chỗ bởi một sinh viên khác.`}
+              </Text>
               <Text style={styles.alertDetail}>
-                Khung gi?: <strong>{slot.label}</strong> � Ng�y: <strong>{date}</strong>
+                Để tiết kiệm thời gian cho bạn, hệ thống VKU đề xuất các phương án tối ưu bên dưới:
               </Text>
             </View>
 
@@ -61,11 +71,11 @@ export const ConflictResolutionModal: React.FC<ConflictModalProps> = ({
             {conflict.alternativeRooms && conflict.alternativeRooms.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>?? G?i � Ph�ng Tuong �uong C�n Tr?ng:</Text>
-                  <Text style={styles.sectionBadge}>C�ng gi? {slot.label}</Text>
+                  <Text style={styles.sectionTitle}>💡 Gợi Ý Phòng Tương Đương Còn Trống:</Text>
+                  <Text style={styles.sectionBadge}>Cùng giờ {slot.label}</Text>
                 </View>
                 <Text style={styles.sectionDesc}>
-                  H? th?ng t? d?ng t�m th?y c�c ph�ng c�ng t�a nh� ho?c c�ng s?c ch?a dang tr?ng:
+                  Hệ thống tự động tìm thấy các phòng cùng tòa nhà hoặc cùng sức chứa đang trống:
                 </Text>
 
                 {conflict.alternativeRooms.map((altRoom) => (
@@ -78,11 +88,11 @@ export const ConflictResolutionModal: React.FC<ConflictModalProps> = ({
                       <Text style={styles.altRoomCode}>{altRoom.code}</Text>
                       <Text style={styles.altRoomName}>{altRoom.name}</Text>
                       <Text style={styles.altRoomMeta}>
-                        ?? {altRoom.building} � {altRoom.floor} � ?? {altRoom.capacity} ch?
+                        🏢 {altRoom.building} • {altRoom.floor} • 👥 {altRoom.capacity} chỗ
                       </Text>
                     </View>
                     <View style={styles.selectAltBtn}>
-                      <Text style={styles.selectAltBtnText}>�?i Sang Ph�ng N�y ?</Text>
+                      <Text style={styles.selectAltBtnText}>Đổi Sang Phòng Này →</Text>
                     </View>
                   </Pressable>
                 ))}
@@ -92,9 +102,9 @@ export const ConflictResolutionModal: React.FC<ConflictModalProps> = ({
             {/* Smart Solution 2: Alternative Time Slots */}
             {conflict.alternativeSlots && conflict.alternativeSlots.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>? Khung Gi? Kh�c C�n Tr?ng Trong Ng�y:</Text>
+                <Text style={styles.sectionTitle}>⏰ Khung Giờ Khác Còn Trống Trong Ngày:</Text>
                 <Text style={styles.sectionDesc}>
-                  N?u b?n v?n uu ti�n ph�ng n�y, h�y ch?n c�c ca h?c l�n c?n:
+                  Nếu bạn vẫn ưu tiên phòng này, hãy chọn các ca học lân cận:
                 </Text>
                 <View style={styles.slotRow}>
                   {conflict.alternativeSlots.map((altSlot) => (
@@ -103,7 +113,7 @@ export const ConflictResolutionModal: React.FC<ConflictModalProps> = ({
                       style={styles.altSlotChip}
                       onPress={() => onSelectAlternativeSlot(altSlot)}
                     >
-                      <Text style={styles.altSlotChipText}>?? {altSlot.label}</Text>
+                      <Text style={styles.altSlotChipText}>🟢 {altSlot.label}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -113,11 +123,11 @@ export const ConflictResolutionModal: React.FC<ConflictModalProps> = ({
             {/* Smart Solution 3: Waitlist Subscription */}
             <View style={styles.waitlistCard}>
               <View style={styles.waitlistHeader}>
-                <Text style={styles.waitlistIcon}>??</Text>
+                <Text style={styles.waitlistIcon}>🔔</Text>
                 <View style={styles.waitlistTextWrap}>
-                  <Text style={styles.waitlistTitle}>H�ng �?i Nh?n Th�ng B�o (Waitlist)</Text>
+                  <Text style={styles.waitlistTitle}>Hàng Đợi Nhận Thông Báo (Waitlist)</Text>
                   <Text style={styles.waitlistSub}>
-                    Uu ti�n th�ng b�o d?y ngay l?p t?c n?u b?n d?t tru?c h?y ph�ng
+                    Ưu tiên thông báo đẩy ngay lập tức nếu bạn đặt trước hủy phòng
                   </Text>
                 </View>
               </View>
@@ -130,7 +140,7 @@ export const ConflictResolutionModal: React.FC<ConflictModalProps> = ({
                 }}
               >
                 <Text style={[styles.waitlistBtnText, inWaitlist && styles.waitlistBtnTextActive]}>
-                  {inWaitlist ? '? �� trong danh s�ch ch? nh?n tin' : '�ang k� v�o H�ng �?i Uu Ti�n'}
+                  {inWaitlist ? '✓ Đã trong danh sách chờ nhận tin' : 'Đăng ký vào Hàng Đợi Ưu Tiên'}
                 </Text>
               </Pressable>
             </View>
@@ -139,7 +149,7 @@ export const ConflictResolutionModal: React.FC<ConflictModalProps> = ({
           {/* Footer */}
           <View style={styles.footer}>
             <Pressable style={styles.dismissBtn} onPress={onClose}>
-              <Text style={styles.dismissBtnText}>��ng & Quay l?i</Text>
+              <Text style={styles.dismissBtnText}>Đóng & Quay lại</Text>
             </Pressable>
           </View>
         </View>

@@ -43,7 +43,7 @@ class NotificationService {
     }
     this.listeners.forEach((fn) => fn([...this.inAppNotifications]));
 
-    // Web Notification n?u du?c c?p quy?n
+    // Web Notification nếu được cấp quyền
     if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'granted') {
         try {
@@ -56,14 +56,14 @@ class NotificationService {
   }
 
   /**
-   * �?t l?ch nh?c nh? 15 ph�t tru?c gi? h?c
+   * Đặt lịch nhắc nhở 15 phút trước giờ học
    */
   scheduleBookingReminder(roomName: string, date: string, startTime: string) {
-    const title = '? Nh?c nh? ca h?c t?i VKU (C�n 15 ph�t)';
-    const body = `Ph�ng ${roomName} c?a b?n s?p b?t d?u l�c ${startTime} (${date}). H�y s?n s�ng qu�t m� QR check-in!`;
+    const title = '⏰ Nhắc nhở ca học tại VKU (Còn 15 phút)';
+    const body = `Phòng ${roomName} của bạn sắp bắt đầu lúc ${startTime} (${date}). Hãy sẵn sàng quét mã QR check-in!`;
     
-    // G?i th�ng b�o x�c nh?n l?ch h?n
-    this.notify('? �� d?t ph�ng & L�n l?ch nh?c nh?', `H? th?ng s? nh?c b?n 15 ph�t tru?c ca h?c ${startTime} t?i ${roomName}.`, 'REMINDER');
+    // Gửi thông báo xác nhận lịch hẹn
+    this.notify('🔔 Đã đặt phòng & Lên lịch nhắc nhở', `Hệ thống sẽ nhắc bạn 15 phút trước ca học ${startTime} tại ${roomName}.`, 'REMINDER');
   }
 
   subscribe(listener: (notifications: AppNotification[]) => void) {

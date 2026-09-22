@@ -1,4 +1,4 @@
-export type Building = 'Khu A' | 'Khu B' | 'Khu C' | 'Khu V' | 'Thu vi?n';
+export type Building = 'Khu A' | 'Khu B' | 'Khu C' | 'Khu V' | 'Th∆∞ vi·ªán';
 
 export type Equipment = 'Projector' | 'Whiteboard' | 'High-spec PC' | 'AC' | 'Sound System';
 
@@ -19,7 +19,7 @@ export interface Room {
   equipment: Equipment[];
   image: string;
   description: string;
-  type: 'Lab m·y tÌnh' | 'PhÚng h?c nhÛm' | 'PhÚng h?i th?o' | 'PhÚng nghiÍn c?u';
+  type: 'Lab m√°y t√≠nh' | 'Ph√≤ng h·ªçc nh√≥m' | 'Ph√≤ng h·ªôi th·∫£o' | 'Ph√≤ng nghi√™n c·ª©u';
 }
 
 export type BookingStatus = 'CONFIRMED' | 'CANCELLED' | 'CHECKED_IN';

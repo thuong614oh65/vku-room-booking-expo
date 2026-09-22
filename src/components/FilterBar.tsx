@@ -3,20 +3,20 @@ import { StyleSheet, Text, View, TextInput, ScrollView, Pressable } from 'react-
 import { useBookingStore } from '../store/useBookingStore';
 import { Building, Equipment } from '../types/booking';
 
-const BUILDINGS: (Building | 'ALL')[] = ['ALL', 'Khu A', 'Khu B', 'Khu C', 'Khu V', 'Thu vi?n'];
+const BUILDINGS: (Building | 'ALL')[] = ['ALL', 'Khu A', 'Khu B', 'Khu C', 'Khu V', 'Thư viện'];
 
 const CAPACITIES: { label: string; value: number | null }[] = [
-  { label: 'T?t c? s?c ch?a', value: null },
-  { label: '= 6 ngu?i', value: 6 },
-  { label: '= 15 ngu?i', value: 15 },
-  { label: '= 20 ngu?i', value: 20 },
+  { label: 'Tất cả sức chứa', value: null },
+  { label: '≥ 6 người', value: 6 },
+  { label: '≥ 15 người', value: 15 },
+  { label: '≥ 20 người', value: 20 },
 ];
 
 const EQUIPMENTS: { label: string; value: Equipment }[] = [
-  { label: '?? High-spec PC', value: 'High-spec PC' },
-  { label: '??? M�y chi?u', value: 'Projector' },
-  { label: '?? �i?u h�a', value: 'AC' },
-  { label: '?? B?ng t?', value: 'Whiteboard' },
+  { label: '🖥️ High-spec PC', value: 'High-spec PC' },
+  { label: '📽️ Máy chiếu', value: 'Projector' },
+  { label: '❄️ Điều hòa', value: 'AC' },
+  { label: '📋 Bảng từ', value: 'Whiteboard' },
 ];
 
 export const FilterBar: React.FC = () => {
@@ -32,17 +32,17 @@ export const FilterBar: React.FC = () => {
       {/* Search Box */}
       <View style={styles.searchRow}>
         <View style={styles.searchInputWrap}>
-          <Text style={styles.searchIcon}>??</Text>
+          <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="T�m t�n ph�ng, m� ph�ng (vd: B201, AI, Lab...)"
+            placeholder="Tìm tên phòng, mã phòng (vd: B201, AI, Lab...)"
             placeholderTextColor="#94a3b8"
             value={filters.searchQuery}
             onChangeText={setSearchQuery}
           />
           {filters.searchQuery ? (
             <Pressable onPress={() => setSearchQuery('')} style={styles.clearSearchBtn}>
-              <Text style={styles.clearSearchText}>?</Text>
+              <Text style={styles.clearSearchText}>✕</Text>
             </Pressable>
           ) : null}
         </View>
@@ -51,7 +51,7 @@ export const FilterBar: React.FC = () => {
           onPress={() => setIsExpanded(!isExpanded)}
         >
           <Text style={[styles.filterToggleIcon, (isExpanded || hasActiveFilters) && styles.filterToggleIconActive]}>
-            ?? B? l?c {filters.equipment.length + (filters.building !== 'ALL' ? 1 : 0) + (filters.minCapacity ? 1 : 0) > 0 ? `(${filters.equipment.length + (filters.building !== 'ALL' ? 1 : 0) + (filters.minCapacity ? 1 : 0)})` : ''}
+            ⚡ Bộ lọc {filters.equipment.length + (filters.building !== 'ALL' ? 1 : 0) + (filters.minCapacity ? 1 : 0) > 0 ? `(${filters.equipment.length + (filters.building !== 'ALL' ? 1 : 0) + (filters.minCapacity ? 1 : 0)})` : ''}
           </Text>
         </Pressable>
       </View>
@@ -67,7 +67,7 @@ export const FilterBar: React.FC = () => {
               onPress={() => setBuildingFilter(b)}
             >
               <Text style={[styles.buildingChipText, isSelected && styles.buildingChipTextActive]}>
-                {b === 'ALL' ? '?? T?t C? T�a Nh�' : b}
+                {b === 'ALL' ? '🏢 Tất Cả Tòa Nhà' : b}
               </Text>
             </Pressable>
           );
@@ -78,7 +78,7 @@ export const FilterBar: React.FC = () => {
       {isExpanded && (
         <View style={styles.expandedPanel}>
           <View style={styles.filterSection}>
-            <Text style={styles.filterSectionTitle}>?? S?c Ch?a T?i Thi?u:</Text>
+            <Text style={styles.filterSectionTitle}>👥 Sức Chứa Tối Thiểu:</Text>
             <View style={styles.chipRow}>
               {CAPACITIES.map((cap) => {
                 const isSelected = filters.minCapacity === cap.value;
@@ -98,7 +98,7 @@ export const FilterBar: React.FC = () => {
           </View>
 
           <View style={styles.filterSection}>
-            <Text style={styles.filterSectionTitle}>? Trang Thi?t B? Y�u C?u:</Text>
+            <Text style={styles.filterSectionTitle}>🛠️ Trang Thiết Bị Yêu Cầu:</Text>
             <View style={styles.chipRow}>
               {EQUIPMENTS.map((eq) => {
                 const isSelected = filters.equipment.includes(eq.value);
@@ -119,7 +119,7 @@ export const FilterBar: React.FC = () => {
 
           {hasActiveFilters && (
             <Pressable style={styles.resetBtn} onPress={resetFilters}>
-              <Text style={styles.resetBtnText}>?? �?t l?i t?t c? b? l?c</Text>
+              <Text style={styles.resetBtnText}>🔄 Đặt lại tất cả bộ lọc</Text>
             </Pressable>
           )}
         </View>

@@ -48,13 +48,13 @@ export const NotificationToast: React.FC = () => {
   const getIcon = () => {
     switch (current.type) {
       case 'CONFLICT':
-        return '??';
+        return '⚠️';
       case 'WAITLIST_AVAILABLE':
-        return '??';
+        return '🎉';
       case 'REMINDER':
-        return '?';
+        return '⏰';
       default:
-        return '?';
+        return '✅';
     }
   };
 
@@ -84,7 +84,7 @@ export const NotificationToast: React.FC = () => {
         }}
         style={styles.closeBtn}
       >
-        <Text style={styles.closeText}>?</Text>
+        <Text style={styles.closeText}>✕</Text>
       </Pressable>
     </Animated.View>
   );

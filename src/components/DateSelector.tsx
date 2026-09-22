@@ -7,7 +7,7 @@ interface DateSelectorProps {
 }
 
 export const DateSelector: React.FC<DateSelectorProps> = ({ selectedDate, onSelectDate }) => {
-  // Sinh 7 ng�y li�n ti?p t? ng�y hi?n t?i
+  // Sinh 7 ngày liên tiếp từ ngày hiện tại
   const dates = React.useMemo(() => {
     const list: { fullDate: string; dayOfWeek: string; dayNumber: string; isToday: boolean }[] = [];
     const today = new Date();
@@ -25,7 +25,7 @@ export const DateSelector: React.FC<DateSelectorProps> = ({ selectedDate, onSele
 
       list.push({
         fullDate,
-        dayOfWeek: i === 0 ? 'H�m nay' : DAYS[d.getDay()],
+        dayOfWeek: i === 0 ? 'Hôm nay' : DAYS[d.getDay()],
         dayNumber: `${dd}/${mm}`,
         isToday: i === 0,
       });
@@ -35,7 +35,7 @@ export const DateSelector: React.FC<DateSelectorProps> = ({ selectedDate, onSele
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerLabel}>?? Ch?n ng�y d?t ph�ng (L?ch 7 ng�y t?i):</Text>
+      <Text style={styles.headerLabel}>📅 Chọn ngày đặt phòng (Lịch 7 ngày tới):</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {dates.map((item) => {
           const isSelected = selectedDate === item.fullDate;

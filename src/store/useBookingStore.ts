@@ -93,15 +93,15 @@ export const useBookingStore = create<BookingState>()(
       },
 
       /**
-       * �?NG CO KI?M TRA V� GI?I QUY?T XUNG �?T (CONFLICT RESOLUTION ENGINE)
-       * Tr? l?i tr?c ti?p 2 c�u h?i:
-       * 1. Ph�t hi?n tr�ng ph�ng / c�ng th?i di?m
-       * 2. T�m gi?i ph�p th�ng minh cho ngu?i kh�ng du?c uu ti�n (G?i � ph�ng tuong duong, khung gi? kh�c)
+       * ĐỘNG CƠ KIỂM TRA VÀ GIẢI QUYẾT XUNG ĐỘT (CONFLICT RESOLUTION ENGINE)
+       * Trả lời trực tiếp 2 câu hỏi:
+       * 1. Phát hiện trùng phòng / cùng thời điểm
+       * 2. Tìm giải pháp thông minh cho người không được ưu tiên (Gợi ý phòng tương đương, khung giờ khác)
        */
       checkSlotConflict: (roomId, date, slotId) => {
         const { bookings, rooms, currentUser } = get();
 
-        // 1. Ki?m tra xem slot n�y d� c� ai d?t chua
+        // 1. Kiểm tra xem slot này đã có ai đặt chưa
         const conflictBooking = bookings.find(
           (b) =>
             b.roomId === roomId &&
@@ -110,7 +110,7 @@ export const useBookingStore = create<BookingState>()(
             b.status !== 'CANCELLED'
         );
 
-        // 2. Ki?m tra xem ch�nh sinh vi�n n�y d� c� l?ch ? ph�ng kh�c c�ng gi? chua
+        // 2. Kiểm tra xem chính sinh viên này đã có lịch ở phòng khác cùng giờ chưa
         const studentOverlapping = bookings.find(
           (b) =>
             b.studentId === currentUser.studentId &&
@@ -127,11 +127,11 @@ export const useBookingStore = create<BookingState>()(
         const targetRoom = rooms.find((r) => r.id === roomId);
         const requiredCapacity = targetRoom?.capacity || 8;
 
-        // T�M PH�NG THAY TH? TUONG �UONG (SMART ALTERNATIVE ROOMS)
-        // Ti�u ch�: C�ng t�a nh� ho?c c�ng s?c ch?a, v� slot d� �ANG TR?NG
+        // TÌM PHÒNG THAY THẾ TƯƠNG ĐƯƠNG (SMART ALTERNATIVE ROOMS)
+        // Tiêu chí: Cùng tòa nhà hoặc cùng sức chứa, và slot đó ĐANG TRỐNG
         const alternativeRooms = rooms.filter((r) => {
           if (r.id === roomId) return false;
-          // Ki?m tra slot n�y ? ph�ng r c� tr?ng kh�ng
+          // Kiểm tra slot này ở phòng r có trống không
           const isBooked = bookings.some(
             (b) =>
               b.roomId === r.id &&
@@ -141,13 +141,13 @@ export const useBookingStore = create<BookingState>()(
           );
           if (isBooked) return false;
 
-          // Uu ti�n c�ng t�a nh� ho?c c�ng s?c ch?a ch�nh l?ch +-5
+          // Ưu tiên cùng tòa nhà hoặc cùng sức chứa chênh lệch +-10
           const sameBuilding = r.building === targetRoom?.building;
           const similarCapacity = Math.abs(r.capacity - requiredCapacity) <= 10;
           return sameBuilding || similarCapacity;
         });
 
-        // T�M KHUNG GI? KH�C TR?NG C?A CH�NH PH�NG N�Y (ALTERNATIVE TIME SLOTS)
+        // TÌM KHUNG GIỜ KHÁC TRỐNG CỦA CHÍNH PHÒNG NÀY (ALTERNATIVE TIME SLOTS)
         const alternativeSlots = TIME_SLOTS.filter((slot) => {
           if (slot.id === slotId) return false;
           const isSlotTaken = bookings.some(
@@ -162,16 +162,16 @@ export const useBookingStore = create<BookingState>()(
 
         let message = '';
         if (conflictBooking) {
-          message = `Ph�ng ${targetRoom?.name} v�o khung gi? n�y d� du?c sinh vi�n ${conflictBooking.studentName} d?t tru?c.`;
+          message = `Phòng ${targetRoom?.name} vào khung giờ này đã được sinh viên ${conflictBooking.studentName} đặt trước.`;
         } else if (studentOverlapping) {
-          message = `B?n d� c� l?ch d?t ph�ng ${studentOverlapping.roomName} trong khung gi? n�y. M?i sinh vi�n ch? du?c gi? 1 ph�ng t?i 1 th?i di?m!`;
+          message = `Bạn đã có lịch đặt phòng ${studentOverlapping.roomName} trong khung giờ này. Mỗi sinh viên chỉ được giữ 1 phòng tại 1 thời điểm!`;
         }
 
         return {
           hasConflict: true,
           conflictingBooking: conflictBooking || studentOverlapping,
           message,
-          alternativeRooms: alternativeRooms.slice(0, 3), // L?y t?i da 3 ph�ng t?i uu nh?t
+          alternativeRooms: alternativeRooms.slice(0, 3), // Lấy tối đa 3 phòng tối ưu nhất
           alternativeSlots,
         };
       },
@@ -180,8 +180,8 @@ export const useBookingStore = create<BookingState>()(
         const conflict = get().checkSlotConflict(data.roomId, data.date, data.slotId);
         if (conflict.hasConflict) {
           notificationService.notify(
-            '?? Ph�t hi?n xung d?t ph�ng h?c',
-            conflict.message || 'Khung gi? n�y v?a c� ngu?i d?t. Vui l�ng xem g?i � ph�ng thay th?.',
+            '⚠️ Phát hiện xung đột phòng học',
+            conflict.message || 'Khung giờ này vừa có người đặt. Vui lòng xem gợi ý phòng thay thế.',
             'CONFLICT'
           );
           return { success: false, conflict };
@@ -211,14 +211,14 @@ export const useBookingStore = create<BookingState>()(
 
         set((state) => ({
           bookings: [newBooking, ...state.bookings],
-          // X�a kh?i waitlist n?u dang ch? slot n�y
+          // Xóa khỏi waitlist nếu đang chờ slot này
           waitlist: state.waitlist.filter(
             (w) =>
               !(w.roomId === data.roomId && w.date === data.date && w.slotId === data.slotId)
           ),
         }));
 
-        // K�ch ho?t l?ch nh?c nh? 15 ph�t tru?c gi? b?t d?u
+        // Kích hoạt lịch nhắc nhở 15 phút trước giờ bắt đầu
         notificationService.scheduleBookingReminder(
           data.roomName,
           data.date,
@@ -239,12 +239,12 @@ export const useBookingStore = create<BookingState>()(
         }));
 
         notificationService.notify(
-          '�� h?y d?t ph�ng',
-          `L?ch d?t ph�ng ${targetBooking.roomName} (${targetBooking.date}) d� du?c h?y th�nh c�ng.`,
+          'Đã hủy đặt phòng',
+          `Lịch đặt phòng ${targetBooking.roomName} (${targetBooking.date}) đã được hủy thành công.`,
           'REMINDER'
         );
 
-        // KI?M TRA H�NG �?I WAITLIST V� B�O CHO NGU?I CH?
+        // KIỂM TRA HÀNG ĐỢI WAITLIST VÀ BÁO CHO NGƯỜI CHỜ
         const waitingUsers = get().waitlist.filter(
           (w) =>
             w.roomId === targetBooking.roomId &&
@@ -253,10 +253,9 @@ export const useBookingStore = create<BookingState>()(
         );
 
         if (waitingUsers.length > 0) {
-          const firstWaiting = waitingUsers[0];
           notificationService.notify(
-            '?? Ph�ng b?n ch? d� tr?ng!',
-            `Ph�ng ${targetBooking.roomName} v?a c� b?n h?y l�c ${targetBooking.slotLabel}. H�y v�o d?t ngay!`,
+            '🔔 Phòng bạn chờ đã trống!',
+            `Phòng ${targetBooking.roomName} vừa có bạn hủy lúc ${targetBooking.slotLabel}. Hãy vào đặt ngay!`,
             'WAITLIST_AVAILABLE'
           );
         }
@@ -269,8 +268,8 @@ export const useBookingStore = create<BookingState>()(
           ),
         }));
         notificationService.notify(
-          'Check-in Th�nh C�ng!',
-          'B?n d� x�c th?c QR th�nh c�ng. Ch�c b?n c� bu?i h?c t?p hi?u qu? t?i VKU!',
+          'Check-in Thành Công!',
+          'Bạn đã xác thực QR thành công. Chúc bạn có buổi học tập hiệu quả tại VKU!',
           'SUCCESS'
         );
       },
@@ -298,8 +297,8 @@ export const useBookingStore = create<BookingState>()(
 
         set((state) => ({ waitlist: [...state.waitlist, item] }));
         notificationService.notify(
-          '�� v�o H�ng �?i (Waitlist)',
-          'H? th?ng s? uu ti�n g?i th�ng b�o ngay khi c� sinh vi�n h?y khung gi? n�y.',
+          'Đã vào Hàng Đợi (Waitlist)',
+          'Hệ thống sẽ ưu tiên gửi thông báo ngay khi có sinh viên hủy khung giờ này.',
           'REMINDER'
         );
       },
