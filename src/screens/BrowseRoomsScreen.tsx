@@ -6,6 +6,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useBookingStore } from '../store/useBookingStore';
 import { RoomCard } from '../components/RoomCard';
 import { FilterBar } from '../components/FilterBar';
+import { AccountSwitcherBar } from '../components/AccountSwitcherBar';
 import { Room } from '../types/booking';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -87,6 +88,9 @@ export const BrowseRoomsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+
+      {/* Account Switcher Bar */}
+      <AccountSwitcherBar />
 
       {/* Header Bar */}
       <View style={styles.header}>

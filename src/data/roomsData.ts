@@ -1,4 +1,4 @@
-import { Room, TimeSlot, UserProfile } from '../types/booking';
+import { Booking, Room, TimeSlot, UserProfile } from '../types/booking';
 
 export const TIME_SLOTS: TimeSlot[] = [
   { id: 'slot-1', startTime: '07:30', endTime: '09:30', label: '07:30 - 09:30' },
@@ -7,6 +7,130 @@ export const TIME_SLOTS: TimeSlot[] = [
   { id: 'slot-4', startTime: '15:00', endTime: '17:00', label: '15:00 - 17:00' },
   { id: 'slot-5', startTime: '17:30', endTime: '19:30', label: '17:30 - 19:30' },
 ];
+
+export const DEMO_USERS: UserProfile[] = [
+  {
+    name: 'Nguyễn Thị Thương',
+    studentId: '23IT.B219',
+    email: 'thuongnt.23itb@vku.udn.vn',
+    major: 'Kỹ Thuật Phần Mềm & Ứng Dụng Đa Nền Tảng (Lớp 23ITB)',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    name: 'Trần Văn Nam',
+    studentId: '23IT.B105',
+    email: 'namtv.23itb@vku.udn.vn',
+    major: 'Công Nghệ Thông Tin (Lớp 23ITB - Nhóm Nghiên cứu AI)',
+    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    name: 'Lê Hoàng Minh Anh',
+    studentId: '23IT.B088',
+    email: 'anhlhm.23itb@vku.udn.vn',
+    major: 'An Toàn Thông Tin & Mạng (Lớp 23SE1)',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
+  },
+];
+
+export const CURRENT_USER: UserProfile = DEMO_USERS[0];
+
+export const getTodayString = (): string => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+export const getSeedBookings = (): Booking[] => {
+  const today = getTodayString();
+  return [
+    {
+      id: 'BK-SEED-101',
+      roomId: 'ROOM-B201',
+      roomName: 'Lab AI & Trí Tuệ Nhân Tạo B201',
+      roomCode: 'LAB-B201',
+      building: 'Khu B',
+      floor: 'Tầng 2',
+      date: today,
+      slotId: 'slot-2',
+      slotLabel: '09:30 - 11:30',
+      studentName: 'Trần Văn Nam',
+      studentId: '23IT.B105',
+      studentEmail: 'namtv.23itb@vku.udn.vn',
+      groupSize: 12,
+      purpose: 'Thực hành huấn luyện mô hình Computer Vision',
+      status: 'CONFIRMED',
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
+      qrCodeData: JSON.stringify({
+        bookingId: 'BK-SEED-101',
+        code: 'VKU-8821',
+        roomId: 'ROOM-B201',
+        roomCode: 'LAB-B201',
+        date: today,
+        slot: '09:30 - 11:30',
+        student: 'Trần Văn Nam',
+        studentId: '23IT.B105',
+      }),
+    },
+    {
+      id: 'BK-SEED-102',
+      roomId: 'ROOM-B201',
+      roomName: 'Lab AI & Trí Tuệ Nhân Tạo B201',
+      roomCode: 'LAB-B201',
+      building: 'Khu B',
+      floor: 'Tầng 2',
+      date: today,
+      slotId: 'slot-1',
+      slotLabel: '07:30 - 09:30',
+      studentName: 'Nguyễn Thị Thương',
+      studentId: '23IT.B219',
+      studentEmail: 'thuongnt.23itb@vku.udn.vn',
+      groupSize: 6,
+      purpose: 'Họp nhóm hoàn thiện Mini-Project #2 Lập trình đa nền tảng',
+      status: 'CONFIRMED',
+      createdAt: new Date(Date.now() - 7200000).toISOString(),
+      qrCodeData: JSON.stringify({
+        bookingId: 'BK-SEED-102',
+        code: 'VKU-2319',
+        roomId: 'ROOM-B201',
+        roomCode: 'LAB-B201',
+        date: today,
+        slot: '07:30 - 09:30',
+        student: 'Nguyễn Thị Thương',
+        studentId: '23IT.B219',
+      }),
+    },
+    {
+      id: 'BK-SEED-103',
+      roomId: 'ROOM-A101',
+      roomName: 'Phòng Thảo Luận Nhóm A101',
+      roomCode: 'ROOM-A101',
+      building: 'Khu A',
+      floor: 'Tầng 1',
+      date: today,
+      slotId: 'slot-3',
+      slotLabel: '13:00 - 15:00',
+      studentName: 'Lê Hoàng Minh Anh',
+      studentId: '23IT.B088',
+      studentEmail: 'anhlhm.23itb@vku.udn.vn',
+      groupSize: 5,
+      purpose: 'Thảo luận chuyên đề An toàn mạng',
+      status: 'CONFIRMED',
+      createdAt: new Date(Date.now() - 5400000).toISOString(),
+      qrCodeData: JSON.stringify({
+        bookingId: 'BK-SEED-103',
+        code: 'VKU-4092',
+        roomId: 'ROOM-A101',
+        roomCode: 'ROOM-A101',
+        date: today,
+        slot: '13:00 - 15:00',
+        student: 'Lê Hoàng Minh Anh',
+        studentId: '23IT.B088',
+      }),
+    },
+  ];
+};
 
 export const INITIAL_ROOMS: Room[] = [
   {
@@ -130,11 +254,3 @@ export const INITIAL_ROOMS: Room[] = [
     type: 'Phòng học nhóm',
   },
 ];
-
-export const CURRENT_USER: UserProfile = {
-  name: 'Nguyễn Thị Thương',
-  studentId: '23IT.B219',
-  email: 'thuongnt.23itb@vku.udn.vn',
-  major: 'Kỹ Thuật Phần Mềm & Ứng Dụng Đa Nền Tảng (VKU)',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-};

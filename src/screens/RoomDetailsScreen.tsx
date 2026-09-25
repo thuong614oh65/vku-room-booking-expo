@@ -16,6 +16,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useBookingStore } from '../store/useBookingStore';
 import { TimeSlot, ConflictResolution, Room } from '../types/booking';
 import { DateSelector } from '../components/DateSelector';
+import { AccountSwitcherBar } from '../components/AccountSwitcherBar';
 import { TimeSlotGrid } from '../components/TimeSlotGrid';
 import { ConflictResolutionModal } from '../components/ConflictResolutionModal';
 
@@ -122,6 +123,7 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <AccountSwitcherBar />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header Image & Back Button */}
         <View style={styles.imageContainer}>

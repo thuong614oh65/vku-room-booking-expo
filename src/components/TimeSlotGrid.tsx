@@ -19,23 +19,57 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
   onSelectSlot,
   onConflictDetected,
 }) => {
-  const { isSlotBooked, checkSlotConflict } = useBookingStore();
+  const { getSlotBooking, bookings, currentUser, checkSlotConflict } = useBookingStore();
 
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.headerLabel}>⏰ Khung Giờ Ca Học (Chuẩn VKU 2 Tiếng):</Text>
-        <Text style={styles.subInfo}>Trạng thái thời gian thực</Text>
+        <Text style={styles.subInfo}>Định danh theo: {currentUser.studentId}</Text>
+      </View>
+
+      {/* Legend giải thích trực quan */}
+      <View style={styles.legendRow}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#16a34a' }]} />
+          <Text style={styles.legendText}>Trống</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#0284c7' }]} />
+          <Text style={styles.legendText}>Bạn đã đặt</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#f59e0b' }]} />
+          <Text style={styles.legendText}>Trùng giờ của bạn</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#dc2626' }]} />
+          <Text style={styles.legendText}>SV khác đã đặt</Text>
+        </View>
       </View>
 
       <View style={styles.grid}>
         {TIME_SLOTS.map((slot) => {
-          const booked = isSlotBooked(roomId, selectedDate, slot.id);
+          const slotBooking = getSlotBooking(roomId, selectedDate, slot.id);
+          const isBookedByMe = Boolean(slotBooking && slotBooking.studentId === currentUser.studentId);
+          const isBookedByOther = Boolean(slotBooking && slotBooking.studentId !== currentUser.studentId);
+
+          // Kiểm tra xem chính sinh viên đang đăng nhập có bị trùng lịch ở một phòng khác cùng ca này không
+          const myOtherRoomBooking = !slotBooking
+            ? bookings.find(
+                (b) =>
+                  b.studentId === currentUser.studentId &&
+                  b.date === selectedDate &&
+                  b.slotId === slot.id &&
+                  b.status !== 'CANCELLED' &&
+                  b.roomId !== roomId
+              )
+            : undefined;
+
           const isSelected = selectedSlot?.id === slot.id;
 
           const handlePress = () => {
-            if (booked) {
-              // Kích hoạt giải quyết xung đột thông minh cho người đến sau
+            if (isBookedByOther || isBookedByMe || myOtherRoomBooking) {
               onConflictDetected(slot);
             } else {
               const conflict = checkSlotConflict(roomId, selectedDate, slot.id);
@@ -47,29 +81,81 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
             }
           };
 
+          let badgeLabel = '🟢 Trống';
+          let hintText = isSelected ? '✓ Đang chọn ca này để đặt' : 'Chạm để chọn ca học này';
+
+          if (isBookedByMe && slotBooking) {
+            badgeLabel = '🔵 Lịch Của Bạn';
+            hintText = `✓ Chính bạn (${slotBooking.studentName} - ${slotBooking.studentId}) đã đặt ca này • Mục đích: ${slotBooking.purpose}`;
+          } else if (isBookedByOther && slotBooking) {
+            badgeLabel = `🔴 Đã Kín (${slotBooking.studentId})`;
+            hintText = `🔒 Đặt bởi: ${slotBooking.studentName} (${slotBooking.studentId}) • Nhấn để xem phòng thay thế / vào Hàng đợi`;
+          } else if (myOtherRoomBooking) {
+            badgeLabel = '🟠 Trùng Giờ Của Bạn';
+            hintText = `⚠️ Bạn đã đặt ${myOtherRoomBooking.roomCode} (${myOtherRoomBooking.roomName}) ở khung giờ này rồi!`;
+          }
+
           return (
             <Pressable
               key={slot.id}
               style={[
                 styles.slotCard,
-                booked && styles.slotCardBooked,
+                isBookedByOther && styles.slotCardBookedOther,
+                isBookedByMe && styles.slotCardBookedMe,
+                myOtherRoomBooking && styles.slotCardOverlap,
                 isSelected && styles.slotCardSelected,
               ]}
               onPress={handlePress}
             >
               <View style={styles.slotHeader}>
-                <Text style={[styles.slotTimeText, isSelected && styles.textWhite, booked && styles.textBooked]}>
+                <Text
+                  style={[
+                    styles.slotTimeText,
+                    isSelected && styles.textWhite,
+                    isBookedByOther && styles.textBookedOther,
+                    isBookedByMe && styles.textBookedMe,
+                  ]}
+                >
                   {slot.label}
                 </Text>
-                <View style={[styles.badgePill, booked ? styles.badgePillBooked : styles.badgePillAvailable]}>
-                  <Text style={[styles.badgePillText, booked ? styles.badgePillTextBooked : styles.badgePillTextAvailable]}>
-                    {booked ? '🔴 Đã Kín' : '🟢 Trống'}
+                <View
+                  style={[
+                    styles.badgePill,
+                    isBookedByOther
+                      ? styles.badgePillBookedOther
+                      : isBookedByMe
+                      ? styles.badgePillBookedMe
+                      : myOtherRoomBooking
+                      ? styles.badgePillOverlap
+                      : styles.badgePillAvailable,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.badgePillText,
+                      isBookedByOther
+                        ? styles.badgePillTextBookedOther
+                        : isBookedByMe
+                        ? styles.badgePillTextBookedMe
+                        : myOtherRoomBooking
+                        ? styles.badgePillTextOverlap
+                        : styles.badgePillTextAvailable,
+                    ]}
+                  >
+                    {badgeLabel}
                   </Text>
                 </View>
               </View>
 
-              <Text style={[styles.slotHint, isSelected && styles.textWhite70, booked && styles.textBookedLight]}>
-                {booked ? 'Nhấn để xem phòng thay thế' : isSelected ? 'Đã chọn ca này' : 'Chạm để chọn ca học'}
+              <Text
+                style={[
+                  styles.slotHint,
+                  isSelected && styles.textWhite70,
+                  isBookedByOther && styles.textBookedLight,
+                  isBookedByMe && styles.textBookedMeLight,
+                ]}
+              >
+                {hintText}
               </Text>
             </Pressable>
           );
@@ -88,7 +174,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   headerLabel: {
     fontSize: 13,
@@ -97,7 +183,34 @@ const styles = StyleSheet.create({
   },
   subInfo: {
     fontSize: 11,
-    color: '#64748b',
+    fontWeight: '700',
+    color: '#0284c7',
+  },
+  legendRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 10,
+    backgroundColor: '#f8fafc',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 5,
+  },
+  legendText: {
+    fontSize: 11,
+    color: '#475569',
+    fontWeight: '600',
   },
   grid: {
     gap: 8,
@@ -113,15 +226,18 @@ const styles = StyleSheet.create({
   slotCardSelected: {
     backgroundColor: '#0284c7',
     borderColor: '#0284c7',
-    shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
   },
-  slotCardBooked: {
+  slotCardBookedOther: {
     backgroundColor: '#fef2f2',
     borderColor: '#fca5a5',
+  },
+  slotCardBookedMe: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#60a5fa',
+  },
+  slotCardOverlap: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#fcd34d',
   },
   slotHeader: {
     flexDirection: 'row',
@@ -146,29 +262,53 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  badgePillBooked: {
+  badgePillBookedOther: {
     backgroundColor: '#fee2e2',
   },
-  badgePillTextBooked: {
+  badgePillTextBookedOther: {
     color: '#b91c1c',
     fontSize: 11,
     fontWeight: '700',
   },
-  slotHint: {
+  badgePillBookedMe: {
+    backgroundColor: '#dbeafe',
+  },
+  badgePillTextBookedMe: {
+    color: '#1d4ed8',
     fontSize: 11,
+    fontWeight: '800',
+  },
+  badgePillOverlap: {
+    backgroundColor: '#fef3c7',
+  },
+  badgePillTextOverlap: {
+    color: '#b45309',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  slotHint: {
+    fontSize: 11.5,
     color: '#64748b',
-    marginTop: 4,
+    marginTop: 5,
+    lineHeight: 16,
   },
   textWhite: {
     color: '#ffffff',
   },
   textWhite70: {
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  textBooked: {
+  textBookedOther: {
     color: '#991b1b',
+  },
+  textBookedMe: {
+    color: '#1e40af',
   },
   textBookedLight: {
     color: '#b91c1c',
+  },
+  textBookedMeLight: {
+    color: '#1d4ed8',
+    fontWeight: '600',
   },
 });

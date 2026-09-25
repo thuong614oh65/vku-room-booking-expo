@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Booking, ConflictResolution, Equipment, FilterState, Room, UserProfile, Building, TimeSlot } from '../types/booking';
-import { INITIAL_ROOMS, CURRENT_USER, TIME_SLOTS } from '../data/roomsData';
+import { Booking, ConflictResolution, Equipment, FilterState, Room, UserProfile, Building } from '../types/booking';
+import { INITIAL_ROOMS, CURRENT_USER, DEMO_USERS, TIME_SLOTS, getSeedBookings } from '../data/roomsData';
 import { notificationService } from '../services/notificationService';
 
 interface WaitlistItem {
@@ -19,8 +19,13 @@ interface BookingState {
   rooms: Room[];
   bookings: Booking[];
   currentUser: UserProfile;
+  availableUsers: UserProfile[];
   filters: FilterState;
   waitlist: WaitlistItem[];
+
+  // Account switching / Login
+  switchUser: (studentId: string) => void;
+  loginCustomUser: (name: string, studentId: string, email?: string) => void;
 
   // Filter actions
   setSearchQuery: (query: string) => void;
@@ -32,6 +37,7 @@ interface BookingState {
   // Conflict detection & resolution engine
   checkSlotConflict: (roomId: string, date: string, slotId: string) => ConflictResolution;
   isSlotBooked: (roomId: string, date: string, slotId: string) => boolean;
+  getSlotBooking: (roomId: string, date: string, slotId: string) => Booking | undefined;
 
   // Booking actions
   addBooking: (
@@ -57,10 +63,51 @@ export const useBookingStore = create<BookingState>()(
   persist(
     (set, get) => ({
       rooms: INITIAL_ROOMS,
-      bookings: [],
+      bookings: getSeedBookings(),
       currentUser: CURRENT_USER,
+      availableUsers: DEMO_USERS,
       filters: INITIAL_FILTERS,
       waitlist: [],
+
+      switchUser: (studentId) => {
+        const found = get().availableUsers.find((u) => u.studentId === studentId);
+        if (found) {
+          set({ currentUser: found });
+          notificationService.notify(
+            `👤 Đã chuyển tài khoản: ${found.name}`,
+            `Đang phiên đăng nhập MSSV: ${found.studentId}. Mọi thao tác đặt phòng & kiểm tra trùng lịch sẽ tính theo tài khoản này.`,
+            'SUCCESS'
+          );
+        }
+      },
+
+      loginCustomUser: (name, studentId, email) => {
+        const cleanId = studentId.trim().toUpperCase();
+        const cleanName = name.trim();
+        if (!cleanId || !cleanName) return;
+        const newUser: UserProfile = {
+          name: cleanName,
+          studentId: cleanId,
+          email: email?.trim() || `${cleanId.toLowerCase().replace('.', '')}@vku.udn.vn`,
+          major: 'Sinh viên VKU (Phiên đăng nhập trực tiếp)',
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+        };
+        set((state) => {
+          const exists = state.availableUsers.some((u) => u.studentId === cleanId);
+          const updatedList = exists
+            ? state.availableUsers.map((u) => (u.studentId === cleanId ? newUser : u))
+            : [...state.availableUsers, newUser];
+          return {
+            currentUser: newUser,
+            availableUsers: updatedList,
+          };
+        });
+        notificationService.notify(
+          `✅ Đăng nhập thành công: ${cleanName}`,
+          `Mã SV: ${cleanId}. Bạn có thể đặt phòng hoặc kiểm tra xung đột lịch ngay.`,
+          'SUCCESS'
+        );
+      },
 
       setSearchQuery: (searchQuery) =>
         set((state) => ({ filters: { ...state.filters, searchQuery } })),
@@ -81,9 +128,9 @@ export const useBookingStore = create<BookingState>()(
 
       resetFilters: () => set({ filters: INITIAL_FILTERS }),
 
-      isSlotBooked: (roomId, date, slotId) => {
+      getSlotBooking: (roomId, date, slotId) => {
         const { bookings } = get();
-        return bookings.some(
+        return bookings.find(
           (b) =>
             b.roomId === roomId &&
             b.date === date &&
@@ -92,16 +139,14 @@ export const useBookingStore = create<BookingState>()(
         );
       },
 
-      /**
-       * ĐỘNG CƠ KIỂM TRA VÀ GIẢI QUYẾT XUNG ĐỘT (CONFLICT RESOLUTION ENGINE)
-       * Trả lời trực tiếp 2 câu hỏi:
-       * 1. Phát hiện trùng phòng / cùng thời điểm
-       * 2. Tìm giải pháp thông minh cho người không được ưu tiên (Gợi ý phòng tương đương, khung giờ khác)
-       */
+      isSlotBooked: (roomId, date, slotId) => {
+        return Boolean(get().getSlotBooking(roomId, date, slotId));
+      },
+
       checkSlotConflict: (roomId, date, slotId) => {
         const { bookings, rooms, currentUser } = get();
 
-        // 1. Kiểm tra xem slot này đã có ai đặt chưa
+        // 1. Kiểm tra xem slot này ở phòng này đã có ai đặt chưa
         const conflictBooking = bookings.find(
           (b) =>
             b.roomId === roomId &&
@@ -110,7 +155,7 @@ export const useBookingStore = create<BookingState>()(
             b.status !== 'CANCELLED'
         );
 
-        // 2. Kiểm tra xem chính sinh viên này đã có lịch ở phòng khác cùng giờ chưa
+        // 2. Kiểm tra xem chính sinh viên đang đăng nhập đã đặt phòng khác cùng khung giờ này chưa
         const studentOverlapping = bookings.find(
           (b) =>
             b.studentId === currentUser.studentId &&
@@ -127,11 +172,9 @@ export const useBookingStore = create<BookingState>()(
         const targetRoom = rooms.find((r) => r.id === roomId);
         const requiredCapacity = targetRoom?.capacity || 8;
 
-        // TÌM PHÒNG THAY THẾ TƯƠNG ĐƯƠNG (SMART ALTERNATIVE ROOMS)
-        // Tiêu chí: Cùng tòa nhà hoặc cùng sức chứa, và slot đó ĐANG TRỐNG
+        // Tìm phòng thay thế tương đương còn trống cùng giờ
         const alternativeRooms = rooms.filter((r) => {
           if (r.id === roomId) return false;
-          // Kiểm tra slot này ở phòng r có trống không
           const isBooked = bookings.some(
             (b) =>
               b.roomId === r.id &&
@@ -141,13 +184,12 @@ export const useBookingStore = create<BookingState>()(
           );
           if (isBooked) return false;
 
-          // Ưu tiên cùng tòa nhà hoặc cùng sức chứa chênh lệch +-10
           const sameBuilding = r.building === targetRoom?.building;
           const similarCapacity = Math.abs(r.capacity - requiredCapacity) <= 10;
           return sameBuilding || similarCapacity;
         });
 
-        // TÌM KHUNG GIỜ KHÁC TRỐNG CỦA CHÍNH PHÒNG NÀY (ALTERNATIVE TIME SLOTS)
+        // Tìm khung giờ khác còn trống của chính phòng này
         const alternativeSlots = TIME_SLOTS.filter((slot) => {
           if (slot.id === slotId) return false;
           const isSlotTaken = bookings.some(
@@ -162,16 +204,20 @@ export const useBookingStore = create<BookingState>()(
 
         let message = '';
         if (conflictBooking) {
-          message = `Phòng ${targetRoom?.name} vào khung giờ này đã được sinh viên ${conflictBooking.studentName} đặt trước.`;
+          if (conflictBooking.studentId === currentUser.studentId) {
+            message = `Chính bạn (${currentUser.name} - ${currentUser.studentId}) đã đặt phòng này ở ca ${conflictBooking.slotLabel} rồi! Bạn có thể vào mục "Lịch Đặt" để lấy mã QR Check-in.`;
+          } else {
+            message = `Phòng ${targetRoom?.name} vào khung giờ này đã được sinh viên ${conflictBooking.studentName} (MSSV: ${conflictBooking.studentId}) đặt trước.`;
+          }
         } else if (studentOverlapping) {
-          message = `Bạn đã có lịch đặt phòng ${studentOverlapping.roomName} trong khung giờ này. Mỗi sinh viên chỉ được giữ 1 phòng tại 1 thời điểm!`;
+          message = `Trùng lịch cá nhân: Bạn (${currentUser.name}) đã có lịch đặt tại ${studentOverlapping.roomName} trong cùng khung giờ ${studentOverlapping.slotLabel} ngày ${date}. Mỗi sinh viên chỉ được giữ 1 phòng tại 1 thời điểm!`;
         }
 
         return {
           hasConflict: true,
           conflictingBooking: conflictBooking || studentOverlapping,
           message,
-          alternativeRooms: alternativeRooms.slice(0, 3), // Lấy tối đa 3 phòng tối ưu nhất
+          alternativeRooms: alternativeRooms.slice(0, 3),
           alternativeSlots,
         };
       },
@@ -180,7 +226,7 @@ export const useBookingStore = create<BookingState>()(
         const conflict = get().checkSlotConflict(data.roomId, data.date, data.slotId);
         if (conflict.hasConflict) {
           notificationService.notify(
-            '⚠️ Phát hiện xung đột phòng học',
+            '⚠️ Phát hiện xung đột lịch đặt phòng',
             conflict.message || 'Khung giờ này vừa có người đặt. Vui lòng xem gợi ý phòng thay thế.',
             'CONFLICT'
           );
@@ -211,14 +257,12 @@ export const useBookingStore = create<BookingState>()(
 
         set((state) => ({
           bookings: [newBooking, ...state.bookings],
-          // Xóa khỏi waitlist nếu đang chờ slot này
           waitlist: state.waitlist.filter(
             (w) =>
               !(w.roomId === data.roomId && w.date === data.date && w.slotId === data.slotId)
           ),
         }));
 
-        // Kích hoạt lịch nhắc nhở 15 phút trước giờ bắt đầu
         notificationService.scheduleBookingReminder(
           data.roomName,
           data.date,
@@ -240,11 +284,10 @@ export const useBookingStore = create<BookingState>()(
 
         notificationService.notify(
           'Đã hủy đặt phòng',
-          `Lịch đặt phòng ${targetBooking.roomName} (${targetBooking.date}) đã được hủy thành công.`,
+          `Lịch đặt phòng ${targetBooking.roomName} (${targetBooking.slotLabel} • ${targetBooking.date}) đã được hủy.`,
           'REMINDER'
         );
 
-        // KIỂM TRA HÀNG ĐỢI WAITLIST VÀ BÁO CHO NGƯỜI CHỜ
         const waitingUsers = get().waitlist.filter(
           (w) =>
             w.roomId === targetBooking.roomId &&
@@ -254,8 +297,8 @@ export const useBookingStore = create<BookingState>()(
 
         if (waitingUsers.length > 0) {
           notificationService.notify(
-            '🔔 Phòng bạn chờ đã trống!',
-            `Phòng ${targetBooking.roomName} vừa có bạn hủy lúc ${targetBooking.slotLabel}. Hãy vào đặt ngay!`,
+            '🔔 Phòng trong Hàng Đợi vừa trống!',
+            `Phòng ${targetBooking.roomName} ca ${targetBooking.slotLabel} vừa được hủy. Bạn (${waitingUsers[0].studentName}) được ưu tiên vào đặt ngay!`,
             'WAITLIST_AVAILABLE'
           );
         }
@@ -298,7 +341,7 @@ export const useBookingStore = create<BookingState>()(
         set((state) => ({ waitlist: [...state.waitlist, item] }));
         notificationService.notify(
           'Đã vào Hàng Đợi (Waitlist)',
-          'Hệ thống sẽ ưu tiên gửi thông báo ngay khi có sinh viên hủy khung giờ này.',
+          `Tài khoản ${currentUser.name} (${currentUser.studentId}) sẽ nhận được thông báo đẩy ngay khi ca này trống.`,
           'REMINDER'
         );
       },
@@ -315,11 +358,13 @@ export const useBookingStore = create<BookingState>()(
       },
     }),
     {
-      name: 'vku-booking-storage',
+      name: 'vku-booking-storage-v2',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         bookings: state.bookings,
         waitlist: state.waitlist,
+        currentUser: state.currentUser,
+        availableUsers: state.availableUsers,
       }),
     }
   )
