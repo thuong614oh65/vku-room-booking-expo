@@ -25,46 +25,32 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.headerLabel}>⏰ Khung Giờ Ca Học (Chuẩn VKU 2 Tiếng):</Text>
-        <Text style={styles.subInfo}>Định danh theo: {currentUser.studentId}</Text>
-      </View>
-
-      {/* Legend giải thích trực quan */}
-      <View style={styles.legendRow}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#16a34a' }]} />
-          <Text style={styles.legendText}>Trống</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#0284c7' }]} />
-          <Text style={styles.legendText}>Bạn đã đặt</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#f59e0b' }]} />
-          <Text style={styles.legendText}>Trùng giờ của bạn</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#dc2626' }]} />
-          <Text style={styles.legendText}>SV khác đã đặt</Text>
-        </View>
+        <Text style={styles.subInfo}>
+          {currentUser ? `Tài khoản: ${currentUser.studentId}` : 'Trạng thái thời gian thực'}
+        </Text>
       </View>
 
       <View style={styles.grid}>
         {TIME_SLOTS.map((slot) => {
           const slotBooking = getSlotBooking(roomId, selectedDate, slot.id);
-          const isBookedByMe = Boolean(slotBooking && slotBooking.studentId === currentUser.studentId);
-          const isBookedByOther = Boolean(slotBooking && slotBooking.studentId !== currentUser.studentId);
+          const isBookedByMe = Boolean(
+            currentUser && slotBooking && slotBooking.studentId === currentUser.studentId
+          );
+          const isBookedByOther = Boolean(
+            slotBooking && (!currentUser || slotBooking.studentId !== currentUser.studentId)
+          );
 
-          // Kiểm tra xem chính sinh viên đang đăng nhập có bị trùng lịch ở một phòng khác cùng ca này không
-          const myOtherRoomBooking = !slotBooking
-            ? bookings.find(
-                (b) =>
-                  b.studentId === currentUser.studentId &&
-                  b.date === selectedDate &&
-                  b.slotId === slot.id &&
-                  b.status !== 'CANCELLED' &&
-                  b.roomId !== roomId
-              )
-            : undefined;
+          const myOtherRoomBooking =
+            currentUser && !slotBooking
+              ? bookings.find(
+                  (b) =>
+                    b.studentId === currentUser.studentId &&
+                    b.date === selectedDate &&
+                    b.slotId === slot.id &&
+                    b.status !== 'CANCELLED' &&
+                    b.roomId !== roomId
+                )
+              : undefined;
 
           const isSelected = selectedSlot?.id === slot.id;
 
@@ -82,17 +68,17 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
           };
 
           let badgeLabel = '🟢 Trống';
-          let hintText = isSelected ? '✓ Đang chọn ca này để đặt' : 'Chạm để chọn ca học này';
+          let hintText = isSelected ? '✓ Đã chọn ca này' : 'Chạm để chọn ca học';
 
           if (isBookedByMe && slotBooking) {
             badgeLabel = '🔵 Lịch Của Bạn';
-            hintText = `✓ Chính bạn (${slotBooking.studentName} - ${slotBooking.studentId}) đã đặt ca này • Mục đích: ${slotBooking.purpose}`;
+            hintText = `✓ Bạn (${slotBooking.studentName} - ${slotBooking.studentId}) đã đặt ca này`;
           } else if (isBookedByOther && slotBooking) {
             badgeLabel = `🔴 Đã Kín (${slotBooking.studentId})`;
-            hintText = `🔒 Đặt bởi: ${slotBooking.studentName} (${slotBooking.studentId}) • Nhấn để xem phòng thay thế / vào Hàng đợi`;
+            hintText = `Đã đặt bởi: ${slotBooking.studentName} (${slotBooking.studentId}) • Nhấn để xem phòng thay thế`;
           } else if (myOtherRoomBooking) {
             badgeLabel = '🟠 Trùng Giờ Của Bạn';
-            hintText = `⚠️ Bạn đã đặt ${myOtherRoomBooking.roomCode} (${myOtherRoomBooking.roomName}) ở khung giờ này rồi!`;
+            hintText = `⚠️ Bạn đã đặt phòng ${myOtherRoomBooking.roomCode} ở khung giờ này rồi`;
           }
 
           return (
@@ -174,7 +160,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   headerLabel: {
     fontSize: 13,
@@ -183,34 +169,7 @@ const styles = StyleSheet.create({
   },
   subInfo: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#0284c7',
-  },
-  legendRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 10,
-    backgroundColor: '#f8fafc',
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 5,
-  },
-  legendText: {
-    fontSize: 11,
-    color: '#475569',
-    fontWeight: '600',
+    color: '#64748b',
   },
   grid: {
     gap: 8,
@@ -287,16 +246,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   slotHint: {
-    fontSize: 11.5,
+    fontSize: 11,
     color: '#64748b',
-    marginTop: 5,
-    lineHeight: 16,
+    marginTop: 4,
   },
   textWhite: {
     color: '#ffffff',
   },
   textWhite70: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   textBookedOther: {
     color: '#991b1b',

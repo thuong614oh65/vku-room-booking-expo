@@ -1,24 +1,21 @@
 import React, { useMemo, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, SafeAreaView, StatusBar, Platform } from 'react-native';
+import { StyleSheet, Text, View, FlatList, SafeAreaView, StatusBar, Platform, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { useBookingStore } from '../store/useBookingStore';
 import { RoomCard } from '../components/RoomCard';
 import { FilterBar } from '../components/FilterBar';
-import { AccountSwitcherBar } from '../components/AccountSwitcherBar';
 import { Room } from '../types/booking';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const BrowseRoomsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { rooms, filters, bookings } = useBookingStore();
+  const { rooms, filters, bookings, currentUser, setAuthModalVisible, logout } = useBookingStore();
 
-  // Lọc danh sách phòng theo search & chips đa tham số
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => {
-      // 1. Search query
       if (filters.searchQuery.trim()) {
         const query = filters.searchQuery.toLowerCase().trim();
         const matchName = room.name.toLowerCase().includes(query);
@@ -28,17 +25,14 @@ export const BrowseRoomsScreen: React.FC = () => {
         if (!matchName && !matchCode && !matchDesc && !matchBuilding) return false;
       }
 
-      // 2. Building filter
       if (filters.building !== 'ALL' && room.building !== filters.building) {
         return false;
       }
 
-      // 3. Capacity filter
       if (filters.minCapacity !== null && room.capacity < filters.minCapacity) {
         return false;
       }
 
-      // 4. Equipment filter (phải thỏa mãn tất cả trang thiết bị được chọn)
       if (filters.equipment.length > 0) {
         const hasAllEq = filters.equipment.every((eq) => room.equipment.includes(eq));
         if (!hasAllEq) return false;
@@ -48,7 +42,6 @@ export const BrowseRoomsScreen: React.FC = () => {
     });
   }, [rooms, filters]);
 
-  // Kiểm tra phòng có slot trống hôm nay không
   const todayStr = useMemo(() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -62,7 +55,7 @@ export const BrowseRoomsScreen: React.FC = () => {
       const todayBookingsCount = bookings.filter(
         (b) => b.roomId === roomId && b.date === todayStr && b.status !== 'CANCELLED'
       ).length;
-      return todayBookingsCount < 5; // Có 5 slot/ngày, nếu < 5 là còn trống
+      return todayBookingsCount < 5;
     },
     [bookings, todayStr]
   );
@@ -89,19 +82,30 @@ export const BrowseRoomsScreen: React.FC = () => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      {/* Account Switcher Bar */}
-      <AccountSwitcherBar />
-
       {/* Header Bar */}
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={styles.schoolHeader}>VKU CAMPUS • HỆ THỐNG ĐẶT PHÒNG HỌC</Text>
           <Text style={styles.screenTitle}>Tra Cứu Phòng Học & Lab</Text>
         </View>
-        <View style={styles.statusLiveBadge}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>Real-time</Text>
-        </View>
+
+        {currentUser ? (
+          <View style={styles.userAuthRow}>
+            <Pressable style={styles.loggedInPill} onPress={() => setAuthModalVisible(true)}>
+              <View style={styles.liveDot} />
+              <Text style={styles.loggedInText} numberOfLines={1}>
+                {currentUser.name} ({currentUser.studentId})
+              </Text>
+            </Pressable>
+            <Pressable style={styles.logoutSmallBtn} onPress={logout}>
+              <Text style={styles.logoutSmallText}>Thoát</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable style={styles.loginHeaderBtn} onPress={() => setAuthModalVisible(true)}>
+            <Text style={styles.loginHeaderBtnText}>🔑 Đăng nhập / Đăng ký</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Multi-parameter Filter Bar */}
@@ -112,7 +116,9 @@ export const BrowseRoomsScreen: React.FC = () => {
         <Text style={styles.resultCountText}>
           Tìm thấy <Text style={styles.resultCountBold}>{filteredRooms.length}</Text> phòng học & lab khả dụng
         </Text>
-        <Text style={styles.resultSubText}>60fps Scroll Optimized</Text>
+        <Text style={styles.resultSubText}>
+          {currentUser ? `Đang đăng nhập: ${currentUser.studentId}` : 'Chế độ Khách (Chưa đăng nhập)'}
+        </Text>
       </View>
 
       {/* High-performance FlatList Feed */}
@@ -168,25 +174,53 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     marginTop: 1,
   },
-  statusLiveBadge: {
+  loginHeaderBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  loginHeaderBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  userAuthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  loggedInPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f0fdf4',
     borderWidth: 1,
     borderColor: '#86efac',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 20,
+    maxWidth: 190,
   },
   liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: '#16a34a',
-    marginRight: 5,
+    marginRight: 6,
   },
-  liveText: {
+  loggedInText: {
     color: '#15803d',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  logoutSmallBtn: {
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  logoutSmallText: {
+    color: '#dc2626',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -208,7 +242,7 @@ const styles = StyleSheet.create({
   },
   resultSubText: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: '#64748b',
     fontWeight: '600',
   },
   listContent: {

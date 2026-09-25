@@ -16,7 +16,6 @@ import { RootStackParamList } from '../navigation/types';
 import { useBookingStore } from '../store/useBookingStore';
 import { TimeSlot, ConflictResolution, Room } from '../types/booking';
 import { DateSelector } from '../components/DateSelector';
-import { AccountSwitcherBar } from '../components/AccountSwitcherBar';
 import { TimeSlotGrid } from '../components/TimeSlotGrid';
 import { ConflictResolutionModal } from '../components/ConflictResolutionModal';
 
@@ -24,11 +23,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RoomDetails'>;
 
 export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { roomId } = route.params;
-  const { rooms, currentUser, addBooking, checkSlotConflict } = useBookingStore();
+  const { rooms, currentUser, setAuthModalVisible, addBooking, checkSlotConflict } = useBookingStore();
 
   const room = useMemo(() => rooms.find((r) => r.id === roomId), [rooms, roomId]);
 
-  // Sinh ngày mặc định hôm nay YYYY-MM-DD
   const todayStr = useMemo(() => {
     const d = new Date();
     const yyyy = d.getFullYear();
@@ -40,33 +38,27 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [groupSize, setGroupSize] = useState<number>(4);
-  const [purpose, setPurpose] = useState<string>('Học nhóm môn Lập trình đa nền tảng');
+  const [purpose, setPurpose] = useState<string>('Họp nhóm đồ án Lập trình đa nền tảng');
 
-  // Trạng thái modal giải quyết xung đột
   const [conflictModalVisible, setConflictModalVisible] = useState<boolean>(false);
-  const [conflictInfo, setConflictInfo] = useState<ConflictResolution | null>(null);
   const [conflictedSlot, setConflictedSlot] = useState<TimeSlot | null>(null);
+  const [conflictInfo, setConflictInfo] = useState<ConflictResolution | null>(null);
 
   if (!room) {
     return (
       <SafeAreaView style={styles.notFoundContainer}>
-        <Text style={styles.notFoundTitle}>Không tìm thấy phòng!</Text>
+        <Text style={styles.notFoundTitle}>Không tìm thấy thông tin phòng học</Text>
         <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>← Quay lại danh sách</Text>
+          <Text style={styles.backButtonText}>Quay lại</Text>
         </Pressable>
       </SafeAreaView>
     );
   }
 
-  const handleSelectDate = (date: string) => {
-    setSelectedDate(date);
-    setSelectedSlot(null); // Reset ca học đã chọn khi đổi ngày
-  };
-
   const handleConflictDetected = (slot: TimeSlot) => {
-    const conflict = checkSlotConflict(room.id, selectedDate, slot.id);
-    setConflictInfo(conflict);
+    const resolution = checkSlotConflict(room.id, selectedDate, slot.id);
     setConflictedSlot(slot);
+    setConflictInfo(resolution);
     setConflictModalVisible(true);
   };
 
@@ -76,23 +68,18 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleSelectAlternativeSlot = (altSlot: TimeSlot) => {
-    setSelectedSlot(altSlot);
     setConflictModalVisible(false);
+    setSelectedSlot(altSlot);
   };
 
   const handleConfirmBooking = () => {
+    if (!currentUser) {
+      setAuthModalVisible(true);
+      return;
+    }
+
     if (!selectedSlot) {
-      Alert.alert('Chưa chọn ca học', 'Vui lòng chọn 1 khung giờ còn trống trong ngày.');
-      return;
-    }
-
-    if (!purpose.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập mục đích mượn phòng học.');
-      return;
-    }
-
-    if (groupSize > room.capacity) {
-      Alert.alert('Vượt sức chứa', `Số lượng người (${groupSize}) vượt quá sức chứa tối đa của phòng (${room.capacity}).`);
+      Alert.alert('Chưa chọn ca học', 'Vui lòng chọn một khung giờ ca học còn trống phía trên!');
       return;
     }
 
@@ -108,24 +95,27 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       studentName: currentUser.name,
       studentId: currentUser.studentId,
       studentEmail: currentUser.email,
-      groupSize,
-      purpose,
+      groupSize: Math.min(groupSize, room.capacity),
+      purpose: purpose.trim() || 'Học nhóm & Nghiên cứu tại VKU',
     });
 
-    if (result.success && result.booking) {
-      navigation.replace('BookingConfirmationPass', { bookingId: result.booking.id });
-    } else if (result.conflict) {
-      setConflictInfo(result.conflict);
+    if (!result.success && result.conflict) {
       setConflictedSlot(selectedSlot);
+      setConflictInfo(result.conflict);
       setConflictModalVisible(true);
+      return;
+    }
+
+    if (result.success && result.booking) {
+      setSelectedSlot(null);
+      navigation.navigate('BookingConfirmationPass', { bookingId: result.booking.id });
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <AccountSwitcherBar />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header Image & Back Button */}
+        {/* Top Image Banner */}
         <View style={styles.imageContainer}>
           <Image source={{ uri: room.image }} style={styles.roomImage} resizeMode="cover" />
           <View style={styles.imageOverlay} />
@@ -138,7 +128,7 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Room Main Header */}
+        {/* Room Info Card */}
         <View style={styles.mainInfoCard}>
           <View style={styles.titleRow}>
             <Text style={styles.roomName}>{room.name}</Text>
@@ -153,11 +143,10 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <Text style={styles.description}>{room.description}</Text>
 
-          {/* Trang thiết bị */}
           <Text style={styles.sectionHeader}>🛠️ Trang Thiết Bị Phòng Học:</Text>
           <View style={styles.equipmentsList}>
-            {room.equipment.map((eq, idx) => (
-              <View key={idx} style={styles.equipItem}>
+            {room.equipment.map((eq) => (
+              <View key={eq} style={styles.equipItem}>
                 <Text style={styles.equipDot}>✓</Text>
                 <Text style={styles.equipLabel}>{eq}</Text>
               </View>
@@ -165,15 +154,21 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Date Selector (7 Days) */}
-        <DateSelector selectedDate={selectedDate} onSelectDate={handleSelectDate} />
+        {/* 7-Day Date Selector */}
+        <DateSelector
+          selectedDate={selectedDate}
+          onSelectDate={(d) => {
+            setSelectedDate(d);
+            setSelectedSlot(null);
+          }}
+        />
 
-        {/* 2-Hour Time Slots Grid */}
+        {/* Time Slot Grid */}
         <TimeSlotGrid
           roomId={room.id}
           selectedDate={selectedDate}
           selectedSlot={selectedSlot}
-          onSelectSlot={(slot) => setSelectedSlot(slot)}
+          onSelectSlot={setSelectedSlot}
           onConflictDetected={handleConflictDetected}
         />
 
@@ -181,16 +176,28 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.bookingFormCard}>
           <Text style={styles.sectionHeader}>📝 Thông Tin Người Đặt (VKU Student):</Text>
 
-          <View style={styles.studentInfoRow}>
-            <View style={styles.studentInfoItem}>
-              <Text style={styles.inputLabel}>Họ và tên:</Text>
-              <Text style={styles.inputValueStatic}>{currentUser.name}</Text>
+          {currentUser ? (
+            <View style={styles.studentInfoRow}>
+              <View style={styles.studentInfoItem}>
+                <Text style={styles.inputLabel}>Họ và tên:</Text>
+                <Text style={styles.inputValueStatic}>{currentUser.name}</Text>
+              </View>
+              <View style={styles.studentInfoItem}>
+                <Text style={styles.inputLabel}>Mã sinh viên:</Text>
+                <Text style={styles.inputValueStatic}>{currentUser.studentId}</Text>
+              </View>
             </View>
-            <View style={styles.studentInfoItem}>
-              <Text style={styles.inputLabel}>Mã sinh viên:</Text>
-              <Text style={styles.inputValueStatic}>{currentUser.studentId}</Text>
+          ) : (
+            <View style={styles.guestNoticeBox}>
+              <Text style={styles.guestNoticeTitle}>🔒 Bạn chưa đăng nhập tài khoản sinh viên</Text>
+              <Text style={styles.guestNoticeSub}>
+                Vui lòng Đăng nhập hoặc Đăng ký tài khoản để hệ thống ghi nhận lịch đặt phòng và kiểm tra trùng lịch cho bạn.
+              </Text>
+              <Pressable style={styles.guestLoginBtn} onPress={() => setAuthModalVisible(true)}>
+                <Text style={styles.guestLoginBtnText}>🔑 Đăng Nhập / Đăng Ký Ngay</Text>
+              </Pressable>
             </View>
-          </View>
+          )}
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Số lượng sinh viên tham gia (Tối đa {room.capacity}):</Text>
@@ -228,12 +235,14 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Pressable
             style={[
               styles.submitBtn,
-              !selectedSlot && styles.submitBtnDisabled,
+              (!selectedSlot && currentUser) && styles.submitBtnDisabled,
             ]}
             onPress={handleConfirmBooking}
           >
             <Text style={styles.submitBtnText}>
-              {selectedSlot
+              {!currentUser
+                ? '🔑 Đăng Nhập / Đăng Ký Để Đặt Phòng'
+                : selectedSlot
                 ? `⚡ Xác Nhận Giữ Chỗ: ${selectedSlot.label}`
                 : '👈 Vui lòng chọn ca học phía trên'}
             </Text>
@@ -301,16 +310,12 @@ const styles = StyleSheet.create({
   },
   floatingBackBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 16 : 16,
+    top: 16,
     left: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
   },
   floatingBackText: {
     color: '#0f172a',
@@ -343,11 +348,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
   },
   titleRow: {
     flexDirection: 'row',
@@ -446,6 +446,37 @@ const styles = StyleSheet.create({
   studentInfoItem: {
     flex: 1,
   },
+  guestNoticeBox: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  guestNoticeTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  guestNoticeSub: {
+    fontSize: 11.5,
+    color: '#3b82f6',
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  guestLoginBtn: {
+    backgroundColor: '#0284c7',
+    paddingVertical: 9,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  guestLoginBtnText: {
+    color: '#ffffff',
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
   inputLabel: {
     fontSize: 11.5,
     fontWeight: '700',
@@ -505,16 +536,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 14,
     alignItems: 'center',
-    shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   submitBtnDisabled: {
     backgroundColor: '#94a3b8',
-    shadowOpacity: 0,
-    elevation: 0,
   },
   submitBtnText: {
     color: '#ffffff',

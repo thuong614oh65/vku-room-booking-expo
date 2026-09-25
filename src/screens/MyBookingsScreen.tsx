@@ -23,13 +23,14 @@ type Props = CompositeScreenProps<
 type FilterType = 'ALL' | BookingStatus;
 
 export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
-  const { bookings, waitlist, cancelBooking, checkInBooking, currentUser } = useBookingStore();
+  const { bookings, waitlist, cancelBooking, checkInBooking, currentUser, setAuthModalVisible } = useBookingStore();
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('ALL');
 
   // Lọc danh sách đặt phòng của sinh viên hiện tại
   const myBookings = useMemo(() => {
+    if (!currentUser) return [];
     return bookings.filter((b) => b.studentId === currentUser.studentId);
-  }, [bookings, currentUser.studentId]);
+  }, [bookings, currentUser]);
 
   const filteredBookings = useMemo(() => {
     if (selectedFilter === 'ALL') return myBookings;
@@ -56,7 +57,29 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
     const isCancelled = item.status === 'CANCELLED';
     const isConfirmed = item.status === 'CONFIRMED';
 
+    if (!currentUser) {
     return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 28 }}>
+          <Text style={{ fontSize: 48, marginBottom: 12 }}>🔒</Text>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 6, textAlign: 'center' }}>
+            Bạn chưa đăng nhập tài khoản
+          </Text>
+          <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginBottom: 20, lineHeight: 19 }}>
+            Vui lòng Đăng nhập hoặc Đăng ký tài khoản sinh viên VKU để xem danh sách các phòng bạn đã đặt và lấy mã QR Check-in.
+          </Text>
+          <Pressable
+            style={{ backgroundColor: '#0284c7', paddingHorizontal: 22, paddingVertical: 13, borderRadius: 12 }}
+            onPress={() => setAuthModalVisible(true)}
+          >
+            <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '800' }}>🔑 Đăng Nhập / Đăng Ký Ngay</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View>
