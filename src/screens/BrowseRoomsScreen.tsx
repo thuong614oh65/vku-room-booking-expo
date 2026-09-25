@@ -12,7 +12,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const BrowseRoomsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { rooms, filters, bookings, currentUser, setAuthModalVisible, logout } = useBookingStore();
+  const { rooms, filters, bookings, currentUser, setAuthModalVisible, setInstallModalVisible, logout } = useBookingStore();
 
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => {
@@ -89,23 +89,29 @@ export const BrowseRoomsScreen: React.FC = () => {
           <Text style={styles.screenTitle}>Tra Cứu Phòng Học & Lab</Text>
         </View>
 
-        {currentUser ? (
-          <View style={styles.userAuthRow}>
-            <Pressable style={styles.loggedInPill} onPress={() => setAuthModalVisible(true)}>
-              <View style={styles.liveDot} />
-              <Text style={styles.loggedInText} numberOfLines={1}>
-                {currentUser.name} ({currentUser.studentId})
-              </Text>
-            </Pressable>
-            <Pressable style={styles.logoutSmallBtn} onPress={logout}>
-              <Text style={styles.logoutSmallText}>Thoát</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable style={styles.loginHeaderBtn} onPress={() => setAuthModalVisible(true)}>
-            <Text style={styles.loginHeaderBtnText}>🔑 Đăng nhập / Đăng ký</Text>
+        <View style={styles.headerRightActions}>
+          <Pressable style={styles.installAppBtn} onPress={() => setInstallModalVisible(true)}>
+            <Text style={styles.installAppBtnText}>📲 Cài Đặt</Text>
           </Pressable>
-        )}
+
+          {currentUser ? (
+            <View style={styles.userAuthRow}>
+              <Pressable style={styles.loggedInPill} onPress={() => setAuthModalVisible(true)}>
+                <View style={styles.liveDot} />
+                <Text style={styles.loggedInText} numberOfLines={1}>
+                  {currentUser.name} ({currentUser.studentId})
+                </Text>
+              </Pressable>
+              <Pressable style={styles.logoutSmallBtn} onPress={logout}>
+                <Text style={styles.logoutSmallText}>Thoát</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable style={styles.loginHeaderBtn} onPress={() => setAuthModalVisible(true)}>
+              <Text style={styles.loginHeaderBtnText}>🔑 Đăng nhập / Đăng ký</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
 
       {/* Multi-parameter Filter Bar */}
@@ -173,6 +179,24 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0f172a',
     marginTop: 1,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  installAppBtn: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1.5,
+    borderColor: '#0284c7',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  installAppBtnText: {
+    color: '#0284c7',
+    fontSize: 12,
+    fontWeight: '800',
   },
   loginHeaderBtn: {
     backgroundColor: '#0284c7',

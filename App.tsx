@@ -6,6 +6,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { NotificationToast } from './src/components/NotificationToast';
 import { AuthModal } from './src/components/AuthModal';
+import { InstallAppModal } from './src/components/InstallAppModal';
 import { initializeRealtimeSync, useBookingStore } from './src/store/useBookingStore';
 
 // ── Sync Status Banner ────────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ export default function App() {
         <SyncStatusBanner />
         <NotificationToast />
         <AuthModal />
+        <InstallAppModal />
       </NavigationContainer>
     </SafeAreaProvider>
   );

@@ -1,25 +1,44 @@
 {
   "expo": {
-    "name": "Tuan_05_06_MiniProject2_VKU_RoomBooking",
-    "slug": "Tuan_05_06_MiniProject2_VKU_RoomBooking",
+    "name": "VKU Room Booking",
+    "slug": "vku-room-booking",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0284c7"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "vn.edu.vku.roombooking"
     },
     "android": {
+      "package": "vn.edu.vku.roombooking",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4d0aa5e3-181e-4e0f-ae53-a6ec7f303edb"
+      }
+    },
+    "owner": "thuong221332"
   }
 }

@@ -12,7 +12,7 @@ import { useBookingStore } from '../store/useBookingStore';
 import { notificationService } from '../services/notificationService';
 
 export const ProfileScreen: React.FC = () => {
-  const { currentUser, bookings, setAuthModalVisible, logout } = useBookingStore();
+  const { currentUser, bookings, setAuthModalVisible, setInstallModalVisible, logout } = useBookingStore();
 
   const myBookings = currentUser
     ? bookings.filter((b) => b.studentId === currentUser.studentId)
@@ -97,6 +97,20 @@ export const ProfileScreen: React.FC = () => {
             <Text style={[styles.statNumber, { color: '#dc2626' }]}>{cancelledCount}</Text>
             <Text style={styles.statLabel}>Đã huỷ</Text>
           </View>
+        </View>
+
+        {/* Install & Download Package Card */}
+        <View style={[styles.settingCard, { borderColor: '#bfdbfe', backgroundColor: '#f0f9ff' }]}>
+          <Text style={styles.settingTitle}>📲 Cài Đặt & Đóng Gói Ứng Dụng (APK / PWA)</Text>
+          <Text style={styles.settingSub}>
+            Tải trực tiếp tệp cài đặt Android APK (~38 MB) hoặc thêm ứng dụng PWA độc lập vào màn hình chính điện thoại (iOS & Android).
+          </Text>
+          <Pressable
+            style={[styles.testNotifBtn, { backgroundColor: '#0284c7' }]}
+            onPress={() => setInstallModalVisible(true)}
+          >
+            <Text style={styles.testNotifBtnText}>📦 Mở Menu Cài Đặt & Tải APK</Text>
+          </Pressable>
         </View>
 
         {/* Notification Test */}

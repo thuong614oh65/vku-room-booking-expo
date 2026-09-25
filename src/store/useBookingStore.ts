@@ -35,6 +35,7 @@ interface BookingState {
   currentUser: UserProfile | null;
   availableUsers: UserProfile[];
   authModalVisible: boolean;
+  installModalVisible: boolean;
   filters: FilterState;
   waitlist: WaitlistItem[];
   syncStatus: SyncStatus;
@@ -43,8 +44,9 @@ interface BookingState {
   _setBookingsFromFirestore: (bookings: Booking[]) => void;
   _setSyncStatus: (status: Partial<SyncStatus>) => void;
 
-  // Auth actions
+  // Modal actions
   setAuthModalVisible: (visible: boolean) => void;
+  setInstallModalVisible: (visible: boolean) => void;
   login: (identifier: string, password?: string) => { success: boolean; message: string };
   register: (
     name: string,
@@ -102,6 +104,7 @@ export const useBookingStore = create<BookingState>()(
       currentUser: null, // Guest mode mặc định
       availableUsers: DEMO_USERS,
       authModalVisible: false,
+      installModalVisible: false,
       filters: INITIAL_FILTERS,
       waitlist: [],
       syncStatus: INITIAL_SYNC,
@@ -115,8 +118,9 @@ export const useBookingStore = create<BookingState>()(
         set((state) => ({ syncStatus: { ...state.syncStatus, ...status } }));
       },
 
-      // ── Auth ───────────────────────────────────────────────────────────────
+      // ── Modals ─────────────────────────────────────────────────────────────
       setAuthModalVisible: (visible) => set({ authModalVisible: visible }),
+      setInstallModalVisible: (visible) => set({ installModalVisible: visible }),
 
       login: (identifier, _password) => {
         const q = identifier.trim().toLowerCase();
