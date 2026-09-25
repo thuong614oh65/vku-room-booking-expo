@@ -1,4 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+const fs = require('fs');
+const path = require('path');
+
+// 1. Update src/screens/RoomDetailsScreen.tsx with seamless inline form + AuthModal integration
+const roomDetailsContent = `import React, { useState, useMemo, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -39,14 +43,13 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return \`\${yyyy}-\${mm}-\${dd}\`;
   }, []);
 
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [groupSize, setGroupSize] = useState<number>(4);
   const [purpose, setPurpose] = useState<string>('Họp nhóm đồ án Lập trình đa nền tảng');
-  const [isBooking, setIsBooking] = useState<boolean>(false);
 
   // Inline quick student credentials if currentUser is null
   const [guestName, setGuestName] = useState<string>('');
@@ -91,7 +94,7 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     setSelectedSlot(altSlot);
   };
 
-  const handleConfirmBooking = async () => {
+  const handleConfirmBooking = () => {
     setFormError('');
 
     if (!selectedSlot) {
@@ -115,7 +118,7 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           register(
             guestName.trim(),
             cleanId,
-            `${cleanId.toLowerCase().replace('.', '')}@vku.udn.vn`,
+            \`\${cleanId.toLowerCase().replace('.', '')}@vku.udn.vn\`,
             'Sinh viên VKU'
           );
         }
@@ -131,37 +134,32 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    setIsBooking(true);
-    try {
-      const result = await addBooking({
-        roomId: room.id,
-        roomName: room.name,
-        roomCode: room.code,
-        building: room.building,
-        floor: room.floor,
-        date: selectedDate,
-        slotId: selectedSlot.id,
-        slotLabel: selectedSlot.label,
-        studentName: activeUser.name,
-        studentId: activeUser.studentId,
-        studentEmail: activeUser.email,
-        groupSize: Math.min(groupSize, room.capacity),
-        purpose: purpose.trim() || 'Học nhóm & Nghiên cứu tại VKU',
-      });
+    const result = addBooking({
+      roomId: room.id,
+      roomName: room.name,
+      roomCode: room.code,
+      building: room.building,
+      floor: room.floor,
+      date: selectedDate,
+      slotId: selectedSlot.id,
+      slotLabel: selectedSlot.label,
+      studentName: activeUser.name,
+      studentId: activeUser.studentId,
+      studentEmail: activeUser.email,
+      groupSize: Math.min(groupSize, room.capacity),
+      purpose: purpose.trim() || 'Học nhóm & Nghiên cứu tại VKU',
+    });
 
-      if (!result.success && result.conflict) {
-        setConflictedSlot(selectedSlot);
-        setConflictInfo(result.conflict);
-        setConflictModalVisible(true);
-        return;
-      }
+    if (!result.success && result.conflict) {
+      setConflictedSlot(selectedSlot);
+      setConflictInfo(result.conflict);
+      setConflictModalVisible(true);
+      return;
+    }
 
-      if (result.success && result.booking) {
-        setSelectedSlot(null);
-        navigation.navigate('BookingConfirmationPass', { bookingId: result.booking.id });
-      }
-    } finally {
-      setIsBooking(false);
+    if (result.success && result.booking) {
+      setSelectedSlot(null);
+      navigation.navigate('BookingConfirmationPass', { bookingId: result.booking.id });
     }
   };
 
@@ -323,16 +321,10 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Submit Booking Button */}
         <View style={styles.bottomBar}>
-          <Pressable
-            style={[styles.submitBtn, isBooking && { opacity: 0.65 }]}
-            onPress={handleConfirmBooking}
-            disabled={isBooking}
-          >
+          <Pressable style={styles.submitBtn} onPress={handleConfirmBooking}>
             <Text style={styles.submitBtnText}>
-              {isBooking
-                ? '⏳ Đang kiểm tra xung đột & đồng bộ...'
-                : selectedSlot
-                ? `⚡ Xác Nhận Đặt Phòng (${room.code} • ${selectedSlot.label})`
+              {selectedSlot
+                ? \`⚡ Xác Nhận Đặt Phòng (\${room.code} • \${selectedSlot.label})\`
                 : '⏰ Chạm Chọn Ca Học Phía Trên Để Đặt Phòng'}
             </Text>
           </Pressable>
@@ -394,7 +386,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   imageOverlay: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(15, 23, 42, 0.35)',
   },
   floatingBackBtn: {
@@ -653,3 +645,28 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
+`;
+fs.writeFileSync(path.join(__dirname, 'src/screens/RoomDetailsScreen.tsx'), roomDetailsContent, 'utf8');
+console.log('✓ Updated src/screens/RoomDetailsScreen.tsx');
+
+// 2. Fix Alert.alert in BookingConfirmationPassScreen.tsx so cancel works on web & mobile
+let passContent = fs.readFileSync(path.join(__dirname, 'src/screens/BookingConfirmationPassScreen.tsx'), 'utf8');
+passContent = passContent.replace(
+  /const handleCancel = \(\) => \{[\s\S]*?\};/,
+  `const handleCancel = () => {
+    cancelBooking(booking.id);
+  };`
+);
+fs.writeFileSync(path.join(__dirname, 'src/screens/BookingConfirmationPassScreen.tsx'), passContent, 'utf8');
+console.log('✓ Fixed cancel button in BookingConfirmationPassScreen.tsx');
+
+// 3. Fix Alert.alert in MyBookingsScreen.tsx so cancel works on web & mobile
+let myBookingsContent = fs.readFileSync(path.join(__dirname, 'src/screens/MyBookingsScreen.tsx'), 'utf8');
+myBookingsContent = myBookingsContent.replace(
+  /const handleCancel = \(booking: Booking\) => \{[\s\S]*?\};/,
+  `const handleCancel = (booking: Booking) => {
+    cancelBooking(booking.id);
+  };`
+);
+fs.writeFileSync(path.join(__dirname, 'src/screens/MyBookingsScreen.tsx'), myBookingsContent, 'utf8');
+console.log('✓ Fixed cancel button in MyBookingsScreen.tsx');

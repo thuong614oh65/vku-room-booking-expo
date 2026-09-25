@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TextInput, ScrollView, Pressable } from 'react-
 import { useBookingStore } from '../store/useBookingStore';
 import { Building, Equipment } from '../types/booking';
 
-const BUILDINGS: (Building | 'ALL')[] = ['ALL', 'Khu A', 'Khu B', 'Khu C', 'Khu V', 'Thư viện'];
+const BUILDINGS: (Building | 'ALL')[] = ['ALL', 'Khu V', 'Khu K', 'Khu B', 'Khu A', 'Khu C', 'Thư viện'];
 
 const CAPACITIES: { label: string; value: number | null }[] = [
   { label: 'Tất cả sức chứa', value: null },
@@ -35,7 +35,7 @@ export const FilterBar: React.FC = () => {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm tên phòng, mã phòng (vd: B201, AI, Lab...)"
+            placeholder="Tìm mã phòng VKU (VD: V.A201, K.A203, B.201, LIB...)"
             placeholderTextColor="#94a3b8"
             value={filters.searchQuery}
             onChangeText={setSearchQuery}

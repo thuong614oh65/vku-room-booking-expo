@@ -44,18 +44,7 @@ export const BookingConfirmationPassScreen: React.FC<Props> = ({ route, navigati
   };
 
   const handleCancel = () => {
-    Alert.alert(
-      'Xác nhận huỷ phòng',
-      `Bạn có chắc chắn muốn huỷ lịch đặt phòng ${booking.roomName} (${booking.slotLabel}) không? Phòng sẽ được giải phóng ngay lập tức cho các bạn khác trong danh sách chờ.`,
-      [
-        { text: 'Không', style: 'cancel' },
-        {
-          text: 'Huỷ đặt phòng',
-          style: 'destructive',
-          onPress: () => cancelBooking(booking.id),
-        },
-      ]
-    );
+    cancelBooking(booking.id);
   };
 
   return (

@@ -118,14 +118,14 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
                 >
                   <Text
                     style={[
-                      styles.badgePillText,
+                      styles.badgePill,
                       isBookedByOther
-                        ? styles.badgePillTextBookedOther
+                        ? styles.badgePillBookedOther
                         : isBookedByMe
-                        ? styles.badgePillTextBookedMe
+                        ? styles.badgePillBookedMe
                         : myOtherRoomBooking
-                        ? styles.badgePillTextOverlap
-                        : styles.badgePillTextAvailable,
+                        ? styles.badgePillOverlap
+                        : styles.badgePillAvailable,
                     ]}
                   >
                     {badgeLabel}

@@ -34,7 +34,9 @@ const getBuildingColor = (b: string) => {
     case 'Khu C':
       return { bg: '#dcfce7', text: '#15803d' };
     case 'Khu V':
-      return { bg: '#f3e8ff', text: '#7e22ce' };
+      return { bg: '#dbeafe', text: '#1d4ed8' };
+    case 'Khu K':
+      return { bg: '#fce7f3', text: '#be185d' };
     default:
       return { bg: '#ede9fe', text: '#6d28d9' };
   }

@@ -38,18 +38,7 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
   }, [myBookings, selectedFilter]);
 
   const handleCancel = (booking: Booking) => {
-    Alert.alert(
-      'Xác nhận huỷ phòng',
-      `Bạn có chắc chắn muốn huỷ lịch đặt phòng ${booking.roomName} (${booking.slotLabel}) không? Phòng sẽ được giải phóng ngay lập tức cho các bạn khác trong danh sách chờ.`,
-      [
-        { text: 'Không', style: 'cancel' },
-        {
-          text: 'Huỷ đặt phòng',
-          style: 'destructive',
-          onPress: () => cancelBooking(booking.id),
-        },
-      ]
-    );
+    cancelBooking(booking.id);
   };
 
   const renderBookingItem = ({ item }: { item: Booking }) => {
@@ -161,8 +150,8 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const myWaitlist = useMemo(() => {
-    return waitlist.filter((w) => w.studentId === currentUser.studentId);
-  }, [waitlist, currentUser.studentId]);
+    return waitlist.filter((w) => w.studentId === currentUser?.studentId);
+  }, [waitlist, currentUser?.studentId]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -170,7 +159,7 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Lịch Đặt Phòng Của Tôi</Text>
         <Text style={styles.headerSub}>
-          {currentUser.name} • {currentUser.studentId}
+          {currentUser?.name} • {currentUser?.studentId}
         </Text>
       </View>
 

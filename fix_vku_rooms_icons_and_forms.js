@@ -1,4 +1,83 @@
-import { Booking, Room, TimeSlot, UserProfile } from '../types/booking';
+const fs = require('fs');
+const path = require('path');
+
+console.log('Applying full fix for App.tsx, AppNavigator icons, VKU real rooms, and Booking/Cancel forms...');
+
+// 1. src/types/booking.ts
+const bookingTypesContent = `export type Building = 'Khu V' | 'Khu K' | 'Khu B' | 'Khu A' | 'Khu C' | 'Thư viện';
+
+export type Equipment = 'Projector' | 'Whiteboard' | 'High-spec PC' | 'AC' | 'Sound System';
+
+export interface TimeSlot {
+  id: string;
+  startTime: string;
+  endTime: string;
+  label: string;
+}
+
+export interface Room {
+  id: string;
+  name: string;
+  code: string;
+  building: Building;
+  floor: string;
+  capacity: number;
+  equipment: Equipment[];
+  image: string;
+  description: string;
+  type: 'Lab máy tính' | 'Phòng học nhóm' | 'Phòng hội thảo' | 'Phòng nghiên cứu';
+}
+
+export type BookingStatus = 'CONFIRMED' | 'CANCELLED' | 'CHECKED_IN';
+
+export interface Booking {
+  id: string;
+  roomId: string;
+  roomName: string;
+  roomCode: string;
+  building: Building;
+  floor: string;
+  date: string; // YYYY-MM-DD
+  slotId: string;
+  slotLabel: string;
+  studentName: string;
+  studentId: string;
+  studentEmail: string;
+  groupSize: number;
+  purpose: string;
+  status: BookingStatus;
+  createdAt: string;
+  qrCodeData: string;
+}
+
+export interface ConflictResolution {
+  hasConflict: boolean;
+  conflictingBooking?: Booking;
+  message?: string;
+  alternativeRooms?: Room[];
+  alternativeSlots?: TimeSlot[];
+}
+
+export interface FilterState {
+  searchQuery: string;
+  building: Building | 'ALL';
+  minCapacity: number | null;
+  equipment: Equipment[];
+}
+
+export interface UserProfile {
+  name: string;
+  studentId: string;
+  email: string;
+  major: string;
+  avatar: string;
+}
+`;
+fs.writeFileSync(path.join(__dirname, 'src/types/booking.ts'), bookingTypesContent, 'utf8');
+console.log('✓ Updated src/types/booking.ts');
+
+// 2. src/data/roomsData.ts (Chuẩn phòng học & Lab thực tế tại VKU: Khu V, Khu K, Khu B, Khu A, Khu C, Thư viện)
+const roomsDataContent = `import { Booking, Room, TimeSlot, UserProfile } from '../types/booking';
 
 export const TIME_SLOTS: TimeSlot[] = [
   { id: 'slot-1', startTime: '07:30', endTime: '09:30', label: '07:30 - 09:30' },
@@ -39,7 +118,7 @@ export const getTodayString = (): string => {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return \`\${yyyy}-\${mm}-\${dd}\`;
 };
 
 export const getSeedBookings = (): Booking[] => {
@@ -250,3 +329,183 @@ export const INITIAL_ROOMS: Room[] = [
     type: 'Phòng học nhóm',
   },
 ];
+`;
+fs.writeFileSync(path.join(__dirname, 'src/data/roomsData.ts'), roomsDataContent, 'utf8');
+console.log('✓ Updated src/data/roomsData.ts with 12 authentic VKU rooms');
+
+// 3. Update App.tsx (Restore NavigationContainer!)
+const appTsxContent = `import React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { AppNavigator } from './src/navigation/AppNavigator';
+import { NotificationToast } from './src/components/NotificationToast';
+import { AuthModal } from './src/components/AuthModal';
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <StatusBar style="dark" />
+        <AppNavigator />
+        <NotificationToast />
+        <AuthModal />
+      </NavigationContainer>
+    </SafeAreaProvider>
+  );
+}
+`;
+fs.writeFileSync(path.join(__dirname, 'App.tsx'), appTsxContent, 'utf8');
+console.log('✓ Restored NavigationContainer in App.tsx');
+
+// 4. Update src/navigation/AppNavigator.tsx (Fix null currentUser bug AND replace broken Ionicons with crisp cross-platform icons)
+const appNavigatorContent = `import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { RootStackParamList, BottomTabParamList } from './types';
+import { BrowseRoomsScreen } from '../screens/BrowseRoomsScreen';
+import { RoomDetailsScreen } from '../screens/RoomDetailsScreen';
+import { BookingConfirmationPassScreen } from '../screens/BookingConfirmationPassScreen';
+import { MyBookingsScreen } from '../screens/MyBookingsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
+import { useBookingStore } from '../store/useBookingStore';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<BottomTabParamList>();
+
+const TabBadgeIcon: React.FC<{ symbol: string; focused: boolean }> = ({ symbol, focused }) => (
+  <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+    <Text style={styles.iconSymbol}>{symbol}</Text>
+  </View>
+);
+
+const BottomTabs = () => {
+  const { bookings, currentUser } = useBookingStore();
+  const activeBookingsCount = currentUser
+    ? bookings.filter((b) => b.studentId === currentUser.studentId && b.status === 'CONFIRMED').length
+    : 0;
+
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#0284c7',
+        tabBarInactiveTintColor: '#64748b',
+        tabBarStyle: {
+          backgroundColor: '#ffffff',
+          borderTopColor: '#e2e8f0',
+          borderTopWidth: 1,
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11.5,
+          fontWeight: '700',
+        },
+      }}
+    >
+      <Tab.Screen
+        name="BrowseRooms"
+        component={BrowseRoomsScreen}
+        options={{
+          tabBarLabel: 'Tìm Phòng VKU',
+          tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="🏫" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="MyBookings"
+        component={MyBookingsScreen}
+        options={{
+          tabBarLabel: 'Lịch Đã Đặt',
+          tabBarBadge: activeBookingsCount > 0 ? activeBookingsCount : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: '#0284c7',
+            color: '#ffffff',
+            fontSize: 10,
+            fontWeight: '800',
+          },
+          tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="📅" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Tài Khoản SV',
+          tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="🎓" focused={focused} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
+
+export const AppNavigator = () => {
+  return (
+    <Stack.Navigator
+      initialRouteName="MainTabs"
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="MainTabs" component={BottomTabs} />
+      <Stack.Screen
+        name="RoomDetails"
+        component={RoomDetailsScreen}
+        options={{
+          animation: 'fade_from_bottom',
+        }}
+      />
+      <Stack.Screen
+        name="BookingConfirmationPass"
+        component={BookingConfirmationPassScreen}
+        options={{
+          animation: 'slide_from_bottom',
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
+
+const styles = StyleSheet.create({
+  iconWrap: {
+    width: 34,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  iconWrapActive: {
+    backgroundColor: '#e0f2fe',
+  },
+  iconSymbol: {
+    fontSize: 17,
+  },
+});
+`;
+fs.writeFileSync(path.join(__dirname, 'src/navigation/AppNavigator.tsx'), appNavigatorContent, 'utf8');
+console.log('✓ Fixed src/navigation/AppNavigator.tsx (null-safe + crisp icons)');
+
+// 5. Update src/components/FilterBar.tsx & src/components/RoomCard.tsx to include Khu V & Khu K colors and filter chips
+let filterBarContent = fs.readFileSync(path.join(__dirname, 'src/components/FilterBar.tsx'), 'utf8');
+filterBarContent = filterBarContent.replace(
+  "const BUILDINGS: (Building | 'ALL')[] = ['ALL', 'Khu A', 'Khu B', 'Khu C', 'Khu V', 'Thư viện'];",
+  "const BUILDINGS: (Building | 'ALL')[] = ['ALL', 'Khu V', 'Khu K', 'Khu B', 'Khu A', 'Khu C', 'Thư viện'];"
+);
+filterBarContent = filterBarContent.replace(
+  'placeholder="Tìm tên phòng, mã phòng (vd: B201, AI, Lab...)"',
+  'placeholder="Tìm mã phòng VKU (VD: V.A201, K.A203, B.201, LIB...)"'
+);
+fs.writeFileSync(path.join(__dirname, 'src/components/FilterBar.tsx'), filterBarContent, 'utf8');
+console.log('✓ Updated src/components/FilterBar.tsx');
+
+let roomCardContent = fs.readFileSync(path.join(__dirname, 'src/components/RoomCard.tsx'), 'utf8');
+roomCardContent = roomCardContent.replace(
+  "    case 'Khu V':\n      return { bg: '#f3e8ff', text: '#7e22ce' };",
+  "    case 'Khu V':\n      return { bg: '#dbeafe', text: '#1d4ed8' };\n    case 'Khu K':\n      return { bg: '#fce7f3', text: '#be185d' };"
+);
+fs.writeFileSync(path.join(__dirname, 'src/components/RoomCard.tsx'), roomCardContent, 'utf8');
+console.log('✓ Updated src/components/RoomCard.tsx');

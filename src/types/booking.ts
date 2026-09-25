@@ -1,4 +1,4 @@
-export type Building = 'Khu A' | 'Khu B' | 'Khu C' | 'Khu V' | 'Thư viện';
+export type Building = 'Khu V' | 'Khu K' | 'Khu B' | 'Khu A' | 'Khu C' | 'Thư viện';
 
 export type Equipment = 'Projector' | 'Whiteboard' | 'High-spec PC' | 'AC' | 'Sound System';
 
@@ -41,7 +41,9 @@ export interface Booking {
   purpose: string;
   status: BookingStatus;
   createdAt: string;
+  checkedInAt?: string;
   qrCodeData: string;
+  serverTimestampMs?: number; // Firestore sync: millisecond timestamp for conflict arbitration
 }
 
 export interface ConflictResolution {

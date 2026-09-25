@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList, BottomTabParamList } from './types';
 import { BrowseRoomsScreen } from '../screens/BrowseRoomsScreen';
 import { RoomDetailsScreen } from '../screens/RoomDetailsScreen';
@@ -14,28 +13,34 @@ import { useBookingStore } from '../store/useBookingStore';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
+const TabBadgeIcon: React.FC<{ symbol: string; focused: boolean }> = ({ symbol, focused }) => (
+  <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+    <Text style={styles.iconSymbol}>{symbol}</Text>
+  </View>
+);
+
 const BottomTabs = () => {
   const { bookings, currentUser } = useBookingStore();
-  const activeBookingsCount = bookings.filter(
-    (b) => b.studentId === currentUser.studentId && b.status === 'CONFIRMED'
-  ).length;
+  const activeBookingsCount = currentUser
+    ? bookings.filter((b) => b.studentId === currentUser.studentId && b.status === 'CONFIRMED').length
+    : 0;
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#0284c7',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarInactiveTintColor: '#64748b',
         tabBarStyle: {
           backgroundColor: '#ffffff',
-          borderTopColor: '#f1f5f9',
+          borderTopColor: '#e2e8f0',
           borderTopWidth: 1,
-          height: 60,
+          height: 64,
           paddingBottom: 8,
           paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 11.5,
           fontWeight: '700',
         },
       }}
@@ -44,21 +49,15 @@ const BottomTabs = () => {
         name="BrowseRooms"
         component={BrowseRoomsScreen}
         options={{
-          tabBarLabel: 'Tìm Phòng',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'business' : 'business-outline'}
-              size={size}
-              color={color}
-            />
-          ),
+          tabBarLabel: 'Tìm Phòng VKU',
+          tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="🏫" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="MyBookings"
         component={MyBookingsScreen}
         options={{
-          tabBarLabel: 'Lịch Đặt',
+          tabBarLabel: 'Lịch Đã Đặt',
           tabBarBadge: activeBookingsCount > 0 ? activeBookingsCount : undefined,
           tabBarBadgeStyle: {
             backgroundColor: '#0284c7',
@@ -66,27 +65,15 @@ const BottomTabs = () => {
             fontSize: 10,
             fontWeight: '800',
           },
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'calendar' : 'calendar-outline'}
-              size={size}
-              color={color}
-            />
-          ),
+          tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="📅" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Cá Nhân',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={size}
-              color={color}
-            />
-          ),
+          tabBarLabel: 'Tài Khoản SV',
+          tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="🎓" focused={focused} />,
         }}
       />
     </Tab.Navigator>
@@ -120,3 +107,20 @@ export const AppNavigator = () => {
     </Stack.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  iconWrap: {
+    width: 34,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  iconWrapActive: {
+    backgroundColor: '#e0f2fe',
+  },
+  iconSymbol: {
+    fontSize: 17,
+  },
+});
