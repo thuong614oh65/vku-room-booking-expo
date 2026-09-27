@@ -48,9 +48,6 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [purpose, setPurpose] = useState<string>('Họp nhóm đồ án Lập trình đa nền tảng');
   const [isBooking, setIsBooking] = useState<boolean>(false);
 
-  // Inline quick student credentials if currentUser is null
-  const [guestName, setGuestName] = useState<string>('');
-  const [guestStudentId, setGuestStudentId] = useState<string>('');
   const [formError, setFormError] = useState<string>('');
 
   const [conflictModalVisible, setConflictModalVisible] = useState<boolean>(false);
@@ -94,6 +91,18 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleConfirmBooking = async () => {
     setFormError('');
 
+    // 1. Bắt buộc phải đăng nhập trước khi đặt phòng
+    if (!currentUser) {
+      setAuthModalVisible(true);
+      notificationService.notify(
+        '🔑 Yêu cầu đăng nhập',
+        'Vui lòng đăng nhập tài khoản sinh viên VKU trước khi đặt phòng học!',
+        'REMINDER'
+      );
+      return;
+    }
+
+    // 2. Bắt buộc chọn ca học
     if (!selectedSlot) {
       setFormError('Vui lòng chạm chọn 1 khung giờ ca học còn trống (màu xanh lá) ở mục trên trước khi xác nhận!');
       notificationService.notify(
@@ -101,33 +110,6 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         'Hãy chạm vào một ca học còn trống (🟢 Trống) phía trên để đặt phòng.',
         'CONFLICT'
       );
-      return;
-    }
-
-    let activeUser = currentUser;
-
-    // Nếu chưa đăng nhập nhưng người dùng đã điền Họ tên & MSSV trực tiếp vào form -> tự động đăng nhập/đăng ký luôn
-    if (!activeUser) {
-      if (guestStudentId.trim() && guestName.trim()) {
-        const cleanId = guestStudentId.trim().toUpperCase();
-        const loginRes = login(cleanId);
-        if (!loginRes.success) {
-          register(
-            guestName.trim(),
-            cleanId,
-            `${cleanId.toLowerCase().replace('.', '')}@vku.udn.vn`,
-            'Sinh viên VKU'
-          );
-        }
-        activeUser = useBookingStore.getState().currentUser;
-      } else {
-        setAuthModalVisible(true);
-        return;
-      }
-    }
-
-    if (!activeUser) {
-      setAuthModalVisible(true);
       return;
     }
 
@@ -142,9 +124,9 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         date: selectedDate,
         slotId: selectedSlot.id,
         slotLabel: selectedSlot.label,
-        studentName: activeUser.name,
-        studentId: activeUser.studentId,
-        studentEmail: activeUser.email,
+        studentName: currentUser.name,
+        studentId: currentUser.studentId,
+        studentEmail: currentUser.email,
         groupSize: Math.min(groupSize, room.capacity),
         purpose: purpose.trim() || 'Học nhóm & Nghiên cứu tại VKU',
       });
@@ -251,36 +233,19 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             </View>
           ) : (
-            <View style={styles.guestFormWrap}>
-              <View style={styles.guestBanner}>
-                <Text style={styles.guestBannerText}>
-                  💡 Bạn đang ở chế độ Khách (Tài khoản rỗng). Bạn có thể bấm nút{' '}
-                  <Text style={{ fontWeight: '800' }}>"🔑 Đăng nhập / Đăng ký"</Text> hoặc nhập trực tiếp Họ tên & MSSV bên dưới để đặt phòng:
-                </Text>
-              </View>
-              <View style={styles.inlineInputsRow}>
+            <View style={styles.guestLockedCard}>
+              <View style={styles.guestLockedHeader}>
+                <Text style={styles.guestLockedIcon}>🔒</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Họ và tên sinh viên *</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="VD: Nguyễn Thị Thương"
-                    placeholderTextColor="#94a3b8"
-                    value={guestName}
-                    onChangeText={setGuestName}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Mã sinh viên (MSSV) *</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="VD: 23IT.B219"
-                    placeholderTextColor="#94a3b8"
-                    value={guestStudentId}
-                    onChangeText={setGuestStudentId}
-                    autoCapitalize="characters"
-                  />
+                  <Text style={styles.guestLockedTitle}>Yêu Cầu Đăng Nhập Tài Khoản</Text>
+                  <Text style={styles.guestLockedDesc}>
+                    Họ tên và Mã sinh viên sẽ được hệ thống tự động lấy từ tài khoản đã đăng nhập để cấp Thẻ thông hành đặt phòng.
+                  </Text>
                 </View>
               </View>
+              <Pressable style={styles.guestLoginActionBtn} onPress={() => setAuthModalVisible(true)}>
+                <Text style={styles.guestLoginActionBtnText}>🔑 Đăng Nhập / Đăng Ký Để Đặt Phòng</Text>
+              </Pressable>
             </View>
           )}
 
@@ -554,21 +519,49 @@ const styles = StyleSheet.create({
   studentInfoItem: {
     flex: 1,
   },
-  guestFormWrap: {
+  guestLockedCard: {
+    backgroundColor: '#fffbeb',
+    borderWidth: 1.5,
+    borderColor: '#fcd34d',
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 12,
   },
-  guestBanner: {
-    backgroundColor: '#eff6ff',
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
+  guestLockedHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 12,
   },
-  guestBannerText: {
-    fontSize: 11.5,
-    color: '#1e40af',
+  guestLockedIcon: {
+    fontSize: 26,
+  },
+  guestLockedTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#92400e',
+    marginBottom: 4,
+  },
+  guestLockedDesc: {
+    fontSize: 12,
+    color: '#78350f',
     lineHeight: 17,
+  },
+  guestLoginActionBtn: {
+    backgroundColor: '#0284c7',
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  guestLoginActionBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
   },
   inlineInputsRow: {
     flexDirection: 'row',
