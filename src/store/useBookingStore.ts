@@ -1,15 +1,31 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Booking, ConflictResolution, Equipment, FilterState, Room, UserProfile, Building } from '../types/booking';
-import { INITIAL_ROOMS, DEMO_USERS, TIME_SLOTS, getSeedBookings } from '../data/roomsData';
+
+import {
+  Booking,
+  ConflictResolution,
+  Equipment,
+  FilterState,
+  Room,
+  UserProfile,
+  Building,
+} from '../types/booking';
+
+import {
+  INITIAL_ROOMS,
+  DEMO_USERS,
+  TIME_SLOTS,
+  getSeedBookings,
+} from '../data/roomsData';
+
 import { notificationService } from '../services/notificationService';
+
 import {
   subscribeToBookings,
   atomicAddBooking,
   atomicCancelBooking,
   atomicCheckInBooking,
-  seedFirestoreIfEmpty,
 } from '../services/realtimeBookingService';
 
 interface WaitlistItem {
@@ -40,24 +56,33 @@ interface BookingState {
   waitlist: WaitlistItem[];
   syncStatus: SyncStatus;
 
-  // Sync actions (internal)
   _setBookingsFromFirestore: (bookings: Booking[]) => void;
   _setSyncStatus: (status: Partial<SyncStatus>) => void;
 
-  // Modal actions
   setAuthModalVisible: (visible: boolean) => void;
   setInstallModalVisible: (visible: boolean) => void;
-  login: (identifier: string, password?: string) => { success: boolean; message: string };
+
+  login: (
+    identifier: string,
+    password?: string
+  ) => {
+    success: boolean;
+    message: string;
+  };
+
   register: (
     name: string,
     studentId: string,
     email: string,
     major: string,
     password?: string
-  ) => { success: boolean; message: string };
+  ) => {
+    success: boolean;
+    message: string;
+  };
+
   logout: () => void;
 
-  // Filter actions
   setSearchQuery: (query: string) => void;
   setBuildingFilter: (building: Building | 'ALL') => void;
   setMinCapacityFilter: (capacity: number | null) => void;
@@ -66,22 +91,50 @@ interface BookingState {
   setSlotFilter: (slotId: string | null) => void;
   resetFilters: () => void;
 
-  // Conflict detection & resolution engine
-  checkSlotConflict: (roomId: string, date: string, slotId: string) => ConflictResolution;
-  isSlotBooked: (roomId: string, date: string, slotId: string) => boolean;
-  getSlotBooking: (roomId: string, date: string, slotId: string) => Booking | undefined;
+  checkSlotConflict: (
+    roomId: string,
+    date: string,
+    slotId: string
+  ) => ConflictResolution;
 
-  // Booking actions (now async with Firestore)
+  isSlotBooked: (
+    roomId: string,
+    date: string,
+    slotId: string
+  ) => boolean;
+
+  getSlotBooking: (
+    roomId: string,
+    date: string,
+    slotId: string
+  ) => Booking | undefined;
+
   addBooking: (
-    data: Omit<Booking, 'id' | 'createdAt' | 'status' | 'qrCodeData'>
-  ) => Promise<{ success: boolean; booking?: Booking; conflict?: ConflictResolution }>;
+    data: Omit<
+      Booking,
+      'id' | 'createdAt' | 'status' | 'qrCodeData'
+    >
+  ) => Promise<{
+    success: boolean;
+    booking?: Booking;
+    conflict?: ConflictResolution;
+  }>;
 
   cancelBooking: (id: string) => Promise<void>;
+
   checkInBooking: (id: string) => Promise<void>;
 
-  // Waitlist actions
-  joinWaitlist: (roomId: string, date: string, slotId: string) => void;
-  isUserInWaitlist: (roomId: string, date: string, slotId: string) => boolean;
+  joinWaitlist: (
+    roomId: string,
+    date: string,
+    slotId: string
+  ) => void;
+
+  isUserInWaitlist: (
+    roomId: string,
+    date: string,
+    slotId: string
+  ) => boolean;
 }
 
 const INITIAL_FILTERS: FilterState = {
@@ -95,499 +148,1111 @@ const INITIAL_FILTERS: FilterState = {
 
 const INITIAL_SYNC: SyncStatus = {
   isOnline: false,
-  isConnecting: true,
+  isConnecting: false,
   lastSyncedAt: null,
   error: null,
 };
 
-export const useBookingStore = create<BookingState>()(
-  persist(
-    (set, get) => ({
-      rooms: INITIAL_ROOMS,
-      bookings: getSeedBookings(),
-      currentUser: null, // Guest mode mặc định
-      availableUsers: DEMO_USERS,
-      authModalVisible: false,
-      installModalVisible: false,
-      filters: INITIAL_FILTERS,
-      waitlist: [],
-      syncStatus: INITIAL_SYNC,
+export const useBookingStore =
+  create<BookingState>()(
+    persist(
+      (set, get) => ({
+        rooms: INITIAL_ROOMS,
 
-      // ── Internal sync actions ──────────────────────────────────────────────
-      _setBookingsFromFirestore: (bookings) => {
-        set({ bookings });
-      },
+        /*
+         * Không dùng getSeedBookings() làm dữ liệu runtime.
+         *
+         * Khi app mở:
+         * - Nếu đã có dữ liệu trong AsyncStorage → Zustand persist khôi phục.
+         * - Nếu chưa có → bookings = [].
+         */
+        bookings: [],
 
-      _setSyncStatus: (status) => {
-        set((state) => ({ syncStatus: { ...state.syncStatus, ...status } }));
-      },
+        currentUser: null,
 
-      // ── Modals ─────────────────────────────────────────────────────────────
-      setAuthModalVisible: (visible) => set({ authModalVisible: visible }),
-      setInstallModalVisible: (visible) => set({ installModalVisible: visible }),
+        availableUsers: DEMO_USERS,
 
-      login: (identifier, _password) => {
-        const q = identifier.trim().toLowerCase();
-        const found = get().availableUsers.find(
-          (u) =>
-            u.studentId.toLowerCase() === q ||
-            u.email.toLowerCase() === q ||
-            u.name.toLowerCase() === q
-        );
+        authModalVisible: false,
 
-        if (!found) {
-          return {
-            success: false,
-            message: 'Không tìm thấy tài khoản với MSSV/Email này. Vui lòng chuyển sang tab "Đăng Ký Mới"!',
-          };
-        }
+        installModalVisible: false,
 
-        set({ currentUser: found, authModalVisible: false });
-        notificationService.notify(
-          `👋 Xin chào ${found.name}!`,
-          `Đăng nhập thành công (MSSV: ${found.studentId}). Bây giờ bạn có thể đặt phòng học.`,
-          'SUCCESS'
-        );
-        return { success: true, message: 'Đăng nhập thành công' };
-      },
+        filters: INITIAL_FILTERS,
 
-      register: (name, studentId, email, major, _password) => {
-        const cleanId = studentId.trim().toUpperCase();
-        const cleanName = name.trim();
-        const cleanEmail = email.trim() || `${cleanId.toLowerCase().replace('.', '')}@vku.udn.vn`;
+        waitlist: [],
 
-        const exists = get().availableUsers.some(
-          (u) => u.studentId.toUpperCase() === cleanId
-        );
-        if (exists) {
-          return {
-            success: false,
-            message: `Mã sinh viên ${cleanId} đã được đăng ký. Vui lòng chuyển sang tab Đăng Nhập!`,
-          };
-        }
+        syncStatus: INITIAL_SYNC,
 
-        const newUser: UserProfile = {
-          name: cleanName,
-          studentId: cleanId,
-          email: cleanEmail,
-          major: major.trim() || 'Sinh viên VKU',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-        };
+        // ============================================================
+        // INTERNAL SYNC
+        // ============================================================
 
-        set((state) => ({
-          availableUsers: [newUser, ...state.availableUsers],
-          currentUser: newUser,
-          authModalVisible: false,
-        }));
+        _setBookingsFromFirestore: (
+          firestoreBookings
+        ) => {
+          /*
+           * CHỈ cập nhật từ Firestore khi Firestore
+           * thực sự có dữ liệu.
+           *
+           * Nếu Firestore trả [] thì KHÔNG được
+           * xóa dữ liệu local.
+           */
+          if (firestoreBookings.length === 0) {
+            console.log(
+              '[Firestore] Không có dữ liệu -> giữ dữ liệu local.'
+            );
 
-        notificationService.notify(
-          `🎉 Đăng ký thành công: ${cleanName}`,
-          `Tài khoản MSSV ${cleanId} đã được kích hoạt và tự động đăng nhập.`,
-          'SUCCESS'
-        );
-        return { success: true, message: 'Đăng ký thành công' };
-      },
+            return;
+          }
 
-      logout: () => {
-        const prev = get().currentUser;
-        set({ currentUser: null });
-        if (prev) {
+          console.log(
+            '[Firestore] Nhận',
+            firestoreBookings.length,
+            'booking.'
+          );
+
+          set({
+            bookings: firestoreBookings,
+          });
+        },
+
+        _setSyncStatus: (status) => {
+          set((state) => ({
+            syncStatus: {
+              ...state.syncStatus,
+              ...status,
+            },
+          }));
+        },
+
+        // ============================================================
+        // MODAL
+        // ============================================================
+
+        setAuthModalVisible: (visible) =>
+          set({
+            authModalVisible: visible,
+          }),
+
+        setInstallModalVisible: (visible) =>
+          set({
+            installModalVisible: visible,
+          }),
+
+        // ============================================================
+        // LOGIN
+        // ============================================================
+
+        login: (
+          identifier,
+          _password
+        ) => {
+          const q =
+            identifier
+              .trim()
+              .toLowerCase();
+
+          const found =
+            get().availableUsers.find(
+              (u) =>
+                u.studentId.toLowerCase() ===
+                  q ||
+                u.email.toLowerCase() ===
+                  q ||
+                u.name.toLowerCase() ===
+                  q
+            );
+
+          if (!found) {
+            return {
+              success: false,
+
+              message:
+                'Không tìm thấy tài khoản với MSSV/Email này. Vui lòng chuyển sang tab "Đăng Ký Mới"!',
+            };
+          }
+
+          set({
+            currentUser: found,
+
+            authModalVisible: false,
+          });
+
           notificationService.notify(
-            '🚪 Đã đăng xuất',
-            `Bạn đã đăng xuất khỏi tài khoản ${prev.name} (${prev.studentId}).`,
-            'REMINDER'
+            `👋 Xin chào ${found.name}!`,
+
+            `Đăng nhập thành công (MSSV: ${found.studentId}). Bây giờ bạn có thể đặt phòng học.`,
+
+            'SUCCESS'
           );
-        }
-      },
 
-      // ── Filters ────────────────────────────────────────────────────────────
-      setSearchQuery: (searchQuery) =>
-        set((state) => ({ filters: { ...state.filters, searchQuery } })),
+          return {
+            success: true,
 
-      setBuildingFilter: (building) =>
-        set((state) => ({ filters: { ...state.filters, building } })),
+            message:
+              'Đăng nhập thành công',
+          };
+        },
 
-      setMinCapacityFilter: (minCapacity) =>
-        set((state) => ({ filters: { ...state.filters, minCapacity } })),
+        // ============================================================
+        // REGISTER
+        // ============================================================
 
-      toggleEquipmentFilter: (equipment) =>
-        set((state) => {
-          const current = state.filters.equipment;
-          const exists = current.includes(equipment);
-          const next = exists ? current.filter((e) => e !== equipment) : [...current, equipment];
-          return { filters: { ...state.filters, equipment: next } };
-        }),
+        register: (
+          name,
+          studentId,
+          email,
+          major,
+          _password
+        ) => {
+          const cleanId =
+            studentId
+              .trim()
+              .toUpperCase();
 
-      setDateFilter: (date) =>
-        set((state) => ({ filters: { ...state.filters, date } })),
+          const cleanName =
+            name.trim();
 
-      setSlotFilter: (slotId) =>
-        set((state) => ({ filters: { ...state.filters, slotId } })),
+          const cleanEmail =
+            email.trim() ||
+            `${cleanId
+              .toLowerCase()
+              .replace(
+                '.',
+                ''
+              )}@vku.udn.vn`;
 
-      resetFilters: () => set({ filters: INITIAL_FILTERS }),
+          const exists =
+            get().availableUsers.some(
+              (u) =>
+                u.studentId.toUpperCase() ===
+                cleanId
+            );
 
-      // ── Conflict detection (local cache check — Firestore transaction là final arbiter) ───
-      getSlotBooking: (roomId, date, slotId) => {
-        const { bookings } = get();
-        return bookings.find(
-          (b) =>
-            b.roomId === roomId &&
-            b.date === date &&
-            b.slotId === slotId &&
-            b.status !== 'CANCELLED'
-        );
-      },
+          if (exists) {
+            return {
+              success: false,
 
-      isSlotBooked: (roomId, date, slotId) => {
-        return Boolean(get().getSlotBooking(roomId, date, slotId));
-      },
+              message:
+                `Mã sinh viên ${cleanId} đã được đăng ký. Vui lòng chuyển sang tab Đăng Nhập!`,
+            };
+          }
 
-      checkSlotConflict: (roomId, date, slotId) => {
-        const { bookings, rooms, currentUser } = get();
+          const newUser: UserProfile = {
+            name: cleanName,
 
-        const conflictBooking = bookings.find(
-          (b) =>
-            b.roomId === roomId &&
-            b.date === date &&
-            b.slotId === slotId &&
-            b.status !== 'CANCELLED'
-        );
+            studentId: cleanId,
 
-        const studentOverlapping = currentUser
-          ? bookings.find(
-              (b) =>
-                b.studentId === currentUser.studentId &&
-                b.date === date &&
-                b.slotId === slotId &&
-                b.status !== 'CANCELLED' &&
-                b.roomId !== roomId
-            )
-          : undefined;
+            email: cleanEmail,
 
-        if (!conflictBooking && !studentOverlapping) {
-          return { hasConflict: false };
-        }
+            major:
+              major.trim() ||
+              'Sinh viên VKU',
 
-        const targetRoom = rooms.find((r) => r.id === roomId);
-        const requiredCapacity = targetRoom?.capacity || 8;
+            avatar:
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+          };
 
-        const alternativeRooms = rooms.filter((r) => {
-          if (r.id === roomId) return false;
-          const isBooked = bookings.some(
-            (b) =>
-              b.roomId === r.id &&
-              b.date === date &&
-              b.slotId === slotId &&
-              b.status !== 'CANCELLED'
+          set((state) => ({
+            availableUsers: [
+              newUser,
+              ...state.availableUsers,
+            ],
+
+            currentUser: newUser,
+
+            authModalVisible: false,
+          }));
+
+          notificationService.notify(
+            `🎉 Đăng ký thành công: ${cleanName}`,
+
+            `Tài khoản MSSV ${cleanId} đã được kích hoạt và tự động đăng nhập.`,
+
+            'SUCCESS'
           );
-          if (isBooked) return false;
 
-          const sameBuilding = r.building === targetRoom?.building;
-          const similarCapacity = Math.abs(r.capacity - requiredCapacity) <= 10;
-          return sameBuilding || similarCapacity;
-        });
+          return {
+            success: true,
 
-        const alternativeSlots = TIME_SLOTS.filter((slot) => {
-          if (slot.id === slotId) return false;
-          const isSlotTaken = bookings.some(
+            message:
+              'Đăng ký thành công',
+          };
+        },
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+
+        logout: () => {
+          const prev =
+            get().currentUser;
+
+          set({
+            currentUser: null,
+          });
+
+          if (prev) {
+            notificationService.notify(
+              '🚪 Đã đăng xuất',
+
+              `Bạn đã đăng xuất khỏi tài khoản ${prev.name} (${prev.studentId}).`,
+
+              'REMINDER'
+            );
+          }
+        },
+
+        // ============================================================
+        // FILTERS
+        // ============================================================
+
+        setSearchQuery: (
+          searchQuery
+        ) =>
+          set((state) => ({
+            filters: {
+              ...state.filters,
+              searchQuery,
+            },
+          })),
+
+        setBuildingFilter: (
+          building
+        ) =>
+          set((state) => ({
+            filters: {
+              ...state.filters,
+              building,
+            },
+          })),
+
+        setMinCapacityFilter: (
+          minCapacity
+        ) =>
+          set((state) => ({
+            filters: {
+              ...state.filters,
+              minCapacity,
+            },
+          })),
+
+        toggleEquipmentFilter: (
+          equipment
+        ) =>
+          set((state) => {
+            const current =
+              state.filters.equipment;
+
+            const exists =
+              current.includes(
+                equipment
+              );
+
+            const next = exists
+              ? current.filter(
+                  (e) =>
+                    e !== equipment
+                )
+              : [
+                  ...current,
+                  equipment,
+                ];
+
+            return {
+              filters: {
+                ...state.filters,
+                equipment: next,
+              },
+            };
+          }),
+
+        setDateFilter: (date) =>
+          set((state) => ({
+            filters: {
+              ...state.filters,
+              date,
+            },
+          })),
+
+        setSlotFilter: (slotId) =>
+          set((state) => ({
+            filters: {
+              ...state.filters,
+              slotId,
+            },
+          })),
+
+        resetFilters: () =>
+          set({
+            filters:
+              INITIAL_FILTERS,
+          }),
+
+        // ============================================================
+        // BOOKING CHECK
+        // ============================================================
+
+        getSlotBooking: (
+          roomId,
+          date,
+          slotId
+        ) => {
+          const {
+            bookings,
+          } = get();
+
+          return bookings.find(
             (b) =>
               b.roomId === roomId &&
               b.date === date &&
-              b.slotId === slot.id &&
-              b.status !== 'CANCELLED'
+              b.slotId === slotId &&
+              b.status !==
+                'CANCELLED'
           );
-          return !isSlotTaken;
-        });
+        },
 
-        let message = '';
-        if (conflictBooking) {
-          if (currentUser && conflictBooking.studentId === currentUser.studentId) {
-            message = `Chính bạn (${currentUser.name} - ${currentUser.studentId}) đã đặt phòng này ở ca ${conflictBooking.slotLabel} rồi!`;
-          } else {
-            message = `Phòng ${targetRoom?.name} vào khung giờ này đã được sinh viên ${conflictBooking.studentName} (MSSV: ${conflictBooking.studentId}) đặt trước.`;
+        isSlotBooked: (
+          roomId,
+          date,
+          slotId
+        ) => {
+          return Boolean(
+            get().getSlotBooking(
+              roomId,
+              date,
+              slotId
+            )
+          );
+        },
+
+        // ============================================================
+        // CONFLICT
+        // ============================================================
+
+        checkSlotConflict: (
+          roomId,
+          date,
+          slotId
+        ) => {
+          const {
+            bookings,
+            rooms,
+            currentUser,
+          } = get();
+
+          const conflictBooking =
+            bookings.find(
+              (b) =>
+                b.roomId === roomId &&
+                b.date === date &&
+                b.slotId === slotId &&
+                b.status !==
+                  'CANCELLED'
+            );
+
+          const studentOverlapping =
+            currentUser
+              ? bookings.find(
+                  (b) =>
+                    b.studentId ===
+                      currentUser.studentId &&
+                    b.date === date &&
+                    b.slotId === slotId &&
+                    b.status !==
+                      'CANCELLED' &&
+                    b.roomId !== roomId
+                )
+              : undefined;
+
+          if (
+            !conflictBooking &&
+            !studentOverlapping
+          ) {
+            return {
+              hasConflict: false,
+            };
           }
-        } else if (studentOverlapping && currentUser) {
-          message = `Trùng lịch cá nhân: Bạn (${currentUser.name}) đã có lịch đặt tại ${studentOverlapping.roomName} trong cùng khung giờ ${studentOverlapping.slotLabel} ngày ${date}.`;
-        }
 
-        return {
-          hasConflict: true,
-          conflictingBooking: conflictBooking || studentOverlapping,
-          message,
-          alternativeRooms: alternativeRooms.slice(0, 3),
-          alternativeSlots,
-        };
-      },
+          const targetRoom =
+            rooms.find(
+              (r) =>
+                r.id === roomId
+            );
 
-      // ── Booking: Firestore atomic write với local-first fallback ──────────
-      addBooking: async (data) => {
-        // Bước 1: Check local cache trước (UI nhanh hơn)
-        const localConflict = get().checkSlotConflict(data.roomId, data.date, data.slotId);
-        if (localConflict.hasConflict) {
-          notificationService.notify(
-            '⚠️ Phát hiện xung đột lịch đặt phòng',
-            localConflict.message || 'Khung giờ này đã có người đặt.',
-            'CONFLICT'
-          );
-          return { success: false, conflict: localConflict };
-        }
+          const requiredCapacity =
+            targetRoom?.capacity ||
+            8;
 
-        // Bước 2: Tạo booking object
-        const uniqueCode = 'VKU-' + Math.floor(1000 + Math.random() * 9000);
-        const bookingId = `${data.roomId}__${data.date}__${data.slotId}`;
-        const qrData = JSON.stringify({
-          bookingId,
-          code: uniqueCode,
-          roomId: data.roomId,
-          roomCode: data.roomCode,
-          date: data.date,
-          slot: data.slotLabel,
-          student: data.studentName,
-          studentId: data.studentId,
-          vku_auth: 'VERIFIED_STUDENT_PASS',
-        });
+          const alternativeRooms =
+            rooms.filter((r) => {
+              if (r.id === roomId) {
+                return false;
+              }
 
-        const newBooking: Booking = {
-          ...data,
-          id: bookingId,
-          status: 'CONFIRMED',
-          createdAt: new Date().toISOString(),
-          qrCodeData: qrData,
-        };
+              const isBooked =
+                bookings.some(
+                  (b) =>
+                    b.roomId ===
+                      r.id &&
+                    b.date === date &&
+                    b.slotId ===
+                      slotId &&
+                    b.status !==
+                      'CANCELLED'
+                );
 
-        // Bước 3: Optimistic update (UI phản hồi ngay)
-        set((state) => ({
-          bookings: [newBooking, ...state.bookings],
-          waitlist: state.waitlist.filter(
-            (w) =>
-              !(w.roomId === data.roomId && w.date === data.date && w.slotId === data.slotId)
-          ),
-        }));
+              if (isBooked) {
+                return false;
+              }
 
-        const { syncStatus } = get();
+              const sameBuilding =
+                r.building ===
+                targetRoom?.building;
 
-        if (syncStatus.isOnline) {
-          // Bước 4: Atomic Firestore transaction (final arbiter)
-          const result = await atomicAddBooking(newBooking);
+              const similarCapacity =
+                Math.abs(
+                  r.capacity -
+                    requiredCapacity
+                ) <= 10;
 
-          if (!result.success) {
-            // ROLLBACK optimistic update nếu Firestore từ chối (race condition)
-            set((state) => ({
-              bookings: state.bookings.filter((b) => b.id !== bookingId),
-            }));
+              return (
+                sameBuilding ||
+                similarCapacity
+              );
+            });
 
-            // Fetch lại để đảm bảo UI đồng bộ
-            const conflictResolution = get().checkSlotConflict(data.roomId, data.date, data.slotId);
+          const alternativeSlots =
+            TIME_SLOTS.filter(
+              (slot) => {
+                if (
+                  slot.id ===
+                  slotId
+                ) {
+                  return false;
+                }
 
+                const isSlotTaken =
+                  bookings.some(
+                    (b) =>
+                      b.roomId ===
+                        roomId &&
+                      b.date ===
+                        date &&
+                      b.slotId ===
+                        slot.id &&
+                      b.status !==
+                        'CANCELLED'
+                  );
+
+                return !isSlotTaken;
+              }
+            );
+
+          let message = '';
+
+          if (conflictBooking) {
+            if (
+              currentUser &&
+              conflictBooking.studentId ===
+                currentUser.studentId
+            ) {
+              message =
+                `Chính bạn (${currentUser.name} - ${currentUser.studentId}) đã đặt phòng này ở ca ${conflictBooking.slotLabel} rồi!`;
+            } else {
+              message =
+                `Phòng ${targetRoom?.name} vào khung giờ này đã được sinh viên ${conflictBooking.studentName} (MSSV: ${conflictBooking.studentId}) đặt trước.`;
+            }
+          } else if (
+            studentOverlapping &&
+            currentUser
+          ) {
+            message =
+              `Trùng lịch cá nhân: Bạn (${currentUser.name}) đã có lịch đặt tại ${studentOverlapping.roomName} trong cùng khung giờ ${studentOverlapping.slotLabel} ngày ${date}.`;
+          }
+
+          return {
+            hasConflict: true,
+
+            conflictingBooking:
+              conflictBooking ||
+              studentOverlapping,
+
+            message,
+
+            alternativeRooms:
+              alternativeRooms.slice(
+                0,
+                3
+              ),
+
+            alternativeSlots,
+          };
+        },
+
+        // ============================================================
+        // ADD BOOKING
+        // ============================================================
+
+        addBooking: async (
+          data
+        ) => {
+          const localConflict =
+            get().checkSlotConflict(
+              data.roomId,
+              data.date,
+              data.slotId
+            );
+
+          if (
+            localConflict.hasConflict
+          ) {
             notificationService.notify(
-              '⚡ Xung đột thời gian thực!',
-              result.message || 'Có người khác vừa đặt phòng này cùng lúc. Vui lòng chọn ca khác.',
+              '⚠️ Phát hiện xung đột lịch đặt phòng',
+
+              localConflict.message ||
+                'Khung giờ này đã có người đặt.',
+
               'CONFLICT'
             );
 
             return {
               success: false,
-              conflict: {
-                ...conflictResolution,
-                hasConflict: true,
-                message: result.message || 'Đặt phòng thất bại — xung đột đồng thời',
-              },
+
+              conflict:
+                localConflict,
             };
           }
-        }
-        // Nếu offline → lưu local, sẽ sync khi có mạng (offline-first)
 
-        notificationService.scheduleBookingReminder(
-          data.roomName,
-          data.date,
-          data.slotLabel.split(' - ')[0]
-        );
+          const uniqueCode =
+            'VKU-' +
+            Math.floor(
+              1000 +
+                Math.random() *
+                  9000
+            );
 
-        notificationService.notify(
-          '✅ Đặt phòng thành công!',
-          `Phòng ${data.roomName} | Ca ${data.slotLabel} | ${data.date}${syncStatus.isOnline ? '\n🔴 Đã đồng bộ real-time với tất cả thiết bị.' : '\n⚠️ Đang offline — sẽ đồng bộ khi có mạng.'}`,
-          'SUCCESS'
-        );
+          const bookingId =
+            `${data.roomId}__${data.date}__${data.slotId}`;
 
-        return { success: true, booking: newBooking };
-      },
+          const qrData =
+            JSON.stringify({
+              bookingId,
 
-      // ── Cancel: Firestore update ─────────────────────────────────────────
-      cancelBooking: async (id) => {
-        const targetBooking = get().bookings.find((b) => b.id === id);
-        if (!targetBooking) return;
+              code: uniqueCode,
 
-        // Optimistic update
-        set((state) => ({
-          bookings: state.bookings.map((b) =>
-            b.id === id ? { ...b, status: 'CANCELLED' as const } : b
-          ),
-        }));
+              roomId: data.roomId,
 
-        notificationService.notify(
-          'Đã hủy đặt phòng',
-          `Lịch đặt phòng ${targetBooking.roomName} (${targetBooking.slotLabel} • ${targetBooking.date}) đã được hủy.`,
-          'REMINDER'
-        );
+              roomCode:
+                data.roomCode,
 
-        if (get().syncStatus.isOnline) {
-          try {
-            await atomicCancelBooking(id);
-          } catch {
-            // Revert nếu Firestore fail
-            set((state) => ({
-              bookings: state.bookings.map((b) =>
-                b.id === id ? { ...b, status: 'CONFIRMED' as const } : b
+              date: data.date,
+
+              slot:
+                data.slotLabel,
+
+              student:
+                data.studentName,
+
+              studentId:
+                data.studentId,
+
+              vku_auth:
+                'VERIFIED_STUDENT_PASS',
+            });
+
+          const newBooking: Booking =
+            {
+              ...data,
+
+              id: bookingId,
+
+              status: 'CONFIRMED',
+
+              createdAt:
+                new Date().toISOString(),
+
+              qrCodeData: qrData,
+            };
+
+          /*
+           * Lưu ngay vào Zustand.
+           *
+           * persist middleware sẽ tự động
+           * lưu bookings vào AsyncStorage.
+           */
+          set((state) => ({
+            bookings: [
+              newBooking,
+              ...state.bookings,
+            ],
+
+            waitlist:
+              state.waitlist.filter(
+                (w) =>
+                  !(
+                    w.roomId ===
+                      data.roomId &&
+                    w.date ===
+                      data.date &&
+                    w.slotId ===
+                      data.slotId
+                  )
               ),
-            }));
+          }));
+
+          /*
+           * Firebase chỉ được gọi khi thực sự online.
+           *
+           * Hiện tại initializeRealtimeSync()
+           * không tự bật online nếu Firebase chưa
+           * hoạt động.
+           */
+          const {
+            syncStatus,
+          } = get();
+
+          if (
+            syncStatus.isOnline
+          ) {
+            const result =
+              await atomicAddBooking(
+                newBooking
+              );
+
+            if (
+              !result.success
+            ) {
+              set((state) => ({
+                bookings:
+                  state.bookings.filter(
+                    (b) =>
+                      b.id !==
+                      bookingId
+                  ),
+              }));
+
+              const conflictResolution =
+                get().checkSlotConflict(
+                  data.roomId,
+                  data.date,
+                  data.slotId
+                );
+
+              notificationService.notify(
+                '⚡ Xung đột thời gian thực!',
+
+                result.message ||
+                  'Có người khác vừa đặt phòng này cùng lúc. Vui lòng chọn ca khác.',
+
+                'CONFLICT'
+              );
+
+              return {
+                success: false,
+
+                conflict: {
+                  ...conflictResolution,
+
+                  hasConflict: true,
+
+                  message:
+                    result.message ||
+                    'Đặt phòng thất bại — xung đột đồng thời',
+                },
+              };
+            }
           }
-        }
 
-        const waitingUsers = get().waitlist.filter(
-          (w) =>
-            w.roomId === targetBooking.roomId &&
-            w.date === targetBooking.date &&
-            w.slotId === targetBooking.slotId
-        );
-
-        if (waitingUsers.length > 0) {
-          notificationService.notify(
-            '🔔 Phòng trong Hàng Đợi vừa trống!',
-            `Phòng ${targetBooking.roomName} ca ${targetBooking.slotLabel} vừa được hủy. Bạn (${waitingUsers[0].studentName}) được ưu tiên vào đặt ngay!`,
-            'WAITLIST_AVAILABLE'
+          notificationService.scheduleBookingReminder(
+            data.roomName,
+            data.date,
+            data.slotLabel.split(
+              ' - '
+            )[0]
           );
-        }
-      },
 
-      // ── Check-in: Firestore update ────────────────────────────────────────
-      checkInBooking: async (id) => {
-        // Optimistic
-        set((state) => ({
-          bookings: state.bookings.map((b) =>
-            b.id === id ? { ...b, status: 'CHECKED_IN' as const } : b
-          ),
-        }));
+          notificationService.notify(
+            '✅ Đặt phòng thành công!',
 
-        notificationService.notify(
-          'Check-in Thành Công!',
-          'Bạn đã xác thực QR thành công. Chúc bạn có buổi học tập hiệu quả tại VKU!',
-          'SUCCESS'
-        );
+            `Phòng ${data.roomName} | Ca ${data.slotLabel} | ${data.date}${
+              syncStatus.isOnline
+                ? '\n🔴 Đã đồng bộ real-time với tất cả thiết bị.'
+                : '\n💾 Đã lưu trên thiết bị.'
+            }`,
 
-        if (get().syncStatus.isOnline) {
-          try {
-            await atomicCheckInBooking(id);
-          } catch {
-            // Revert
-            set((state) => ({
-              bookings: state.bookings.map((b) =>
-                b.id === id ? { ...b, status: 'CONFIRMED' as const } : b
-              ),
-            }));
+            'SUCCESS'
+          );
+
+          return {
+            success: true,
+
+            booking:
+              newBooking,
+          };
+        },
+
+        // ============================================================
+        // CANCEL
+        // ============================================================
+
+        cancelBooking: async (
+          id
+        ) => {
+          const targetBooking =
+            get().bookings.find(
+              (b) =>
+                b.id === id
+            );
+
+          if (
+            !targetBooking
+          ) {
+            return;
           }
-        }
-      },
 
-      // ── Waitlist ──────────────────────────────────────────────────────────
-      joinWaitlist: (roomId, date, slotId) => {
-        const { currentUser, waitlist, setAuthModalVisible } = get();
-        if (!currentUser) {
-          setAuthModalVisible(true);
-          return;
-        }
-        const alreadyIn = waitlist.some(
-          (w) =>
-            w.roomId === roomId &&
-            w.date === date &&
-            w.slotId === slotId &&
-            w.studentId === currentUser.studentId
-        );
-        if (alreadyIn) return;
+          set((state) => ({
+            bookings:
+              state.bookings.map(
+                (b) =>
+                  b.id === id
+                    ? {
+                        ...b,
 
-        const item: WaitlistItem = {
-          id: 'wait-' + Date.now(),
+                        status:
+                          'CANCELLED' as const,
+                      }
+                    : b
+              ),
+          }));
+
+          notificationService.notify(
+            'Đã hủy đặt phòng',
+
+            `Lịch đặt phòng ${targetBooking.roomName} (${targetBooking.slotLabel} • ${targetBooking.date}) đã được hủy.`,
+
+            'REMINDER'
+          );
+
+          if (
+            get().syncStatus
+              .isOnline
+          ) {
+            try {
+              await atomicCancelBooking(
+                id
+              );
+            } catch {
+              set((state) => ({
+                bookings:
+                  state.bookings.map(
+                    (b) =>
+                      b.id === id
+                        ? {
+                            ...b,
+
+                            status:
+                              'CONFIRMED' as const,
+                          }
+                        : b
+                  ),
+              }));
+            }
+          }
+
+          const waitingUsers =
+            get().waitlist.filter(
+              (w) =>
+                w.roomId ===
+                  targetBooking.roomId &&
+                w.date ===
+                  targetBooking.date &&
+                w.slotId ===
+                  targetBooking.slotId
+            );
+
+          if (
+            waitingUsers.length >
+            0
+          ) {
+            notificationService.notify(
+              '🔔 Phòng trong Hàng Đợi vừa trống!',
+
+              `Phòng ${targetBooking.roomName} ca ${targetBooking.slotLabel} vừa được hủy. Bạn (${waitingUsers[0].studentName}) được ưu tiên vào đặt ngay!`,
+
+              'WAITLIST_AVAILABLE'
+            );
+          }
+        },
+
+        // ============================================================
+        // CHECK IN
+        // ============================================================
+
+        checkInBooking: async (
+          id
+        ) => {
+          set((state) => ({
+            bookings:
+              state.bookings.map(
+                (b) =>
+                  b.id === id
+                    ? {
+                        ...b,
+
+                        status:
+                          'CHECKED_IN' as const,
+                      }
+                    : b
+              ),
+          }));
+
+          notificationService.notify(
+            'Check-in Thành Công!',
+
+            'Bạn đã xác thực QR thành công. Chúc bạn có buổi học tập hiệu quả tại VKU!',
+
+            'SUCCESS'
+          );
+
+          if (
+            get().syncStatus
+              .isOnline
+          ) {
+            try {
+              await atomicCheckInBooking(
+                id
+              );
+            } catch {
+              set((state) => ({
+                bookings:
+                  state.bookings.map(
+                    (b) =>
+                      b.id === id
+                        ? {
+                            ...b,
+
+                            status:
+                              'CONFIRMED' as const,
+                          }
+                        : b
+                  ),
+              }));
+            }
+          }
+        },
+
+        // ============================================================
+        // WAITLIST
+        // ============================================================
+
+        joinWaitlist: (
           roomId,
           date,
-          slotId,
-          studentId: currentUser.studentId,
-          studentName: currentUser.name,
-          createdAt: Date.now(),
-        };
+          slotId
+        ) => {
+          const {
+            currentUser,
+            waitlist,
+            setAuthModalVisible,
+          } = get();
 
-        set((state) => ({ waitlist: [...state.waitlist, item] }));
-        notificationService.notify(
-          'Đã vào Hàng Đợi (Waitlist)',
-          `Tài khoản ${currentUser.name} (${currentUser.studentId}) sẽ nhận thông báo đẩy ngay khi ca này trống.`,
-          'REMINDER'
-        );
-      },
+          if (!currentUser) {
+            setAuthModalVisible(
+              true
+            );
 
-      isUserInWaitlist: (roomId, date, slotId) => {
-        const { currentUser, waitlist } = get();
-        if (!currentUser) return false;
-        return waitlist.some(
-          (w) =>
-            w.roomId === roomId &&
-            w.date === date &&
-            w.slotId === slotId &&
-            w.studentId === currentUser.studentId
-        );
-      },
-    }),
-    {
-      name: 'vku-booking-storage-v4',
-      storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({
-        bookings: state.bookings,
-        waitlist: state.waitlist,
-        currentUser: state.currentUser,
-        availableUsers: state.availableUsers,
-        // syncStatus KHÔNG persist (tính mới mỗi lần launch)
+            return;
+          }
+
+          const alreadyIn =
+            waitlist.some(
+              (w) =>
+                w.roomId ===
+                  roomId &&
+                w.date === date &&
+                w.slotId ===
+                  slotId &&
+                w.studentId ===
+                  currentUser.studentId
+            );
+
+          if (alreadyIn) {
+            return;
+          }
+
+          const item: WaitlistItem =
+            {
+              id:
+                'wait-' +
+                Date.now(),
+
+              roomId,
+
+              date,
+
+              slotId,
+
+              studentId:
+                currentUser.studentId,
+
+              studentName:
+                currentUser.name,
+
+              createdAt:
+                Date.now(),
+            };
+
+          set((state) => ({
+            waitlist: [
+              ...state.waitlist,
+              item,
+            ],
+          }));
+
+          notificationService.notify(
+            'Đã vào Hàng Đợi (Waitlist)',
+
+            `Tài khoản ${currentUser.name} (${currentUser.studentId}) sẽ nhận thông báo đẩy ngay khi ca này trống.`,
+
+            'REMINDER'
+          );
+        },
+
+        isUserInWaitlist: (
+          roomId,
+          date,
+          slotId
+        ) => {
+          const {
+            currentUser,
+            waitlist,
+          } = get();
+
+          if (
+            !currentUser
+          ) {
+            return false;
+          }
+
+          return waitlist.some(
+            (w) =>
+              w.roomId ===
+                roomId &&
+              w.date === date &&
+              w.slotId ===
+                slotId &&
+              w.studentId ===
+                currentUser.studentId
+          );
+        },
       }),
-    }
-  )
-);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Khởi tạo Firestore real-time listener
-// Gọi hàm này 1 lần từ App.tsx khi app mount
-// ─────────────────────────────────────────────────────────────────────────────
-let _unsubscribeFirestore: (() => void) | null = null;
+      // ============================================================
+      // PERSIST
+      // ============================================================
 
-export function initializeRealtimeSync(): () => void {
-  const store = useBookingStore.getState();
+      {
+        /*
+         * Đây là tên bộ nhớ.
+         *
+         * Sau khi F5:
+         *
+         * Zustand đọc key này
+         * ↓
+         * lấy bookings
+         * ↓
+         * khôi phục lại giao diện.
+         */
+        name: 'vku-booking-storage-v5',
 
-  store._setSyncStatus({ isConnecting: true, error: null });
+        /*
+         * Web:
+         * AsyncStorage sẽ được Expo Web xử lý
+         * thành storage phía trình duyệt.
+         */
+        storage:
+          createJSONStorage(
+            () => AsyncStorage
+          ),
 
-  // Seed bookings vào Firestore nếu collection rỗng
-  const seedBookings = getSeedBookings();
-  seedFirestoreIfEmpty(seedBookings).catch(() => {
-    // Silent fail — offline mode
-  });
+        /*
+         * Chỉ lưu dữ liệu cần thiết.
+         *
+         * Không lưu syncStatus vì trạng thái
+         * Firebase phải được kiểm tra lại
+         * mỗi lần mở app.
+         */
+        partialize: (state) => ({
+          bookings:
+            state.bookings,
 
-  _unsubscribeFirestore = subscribeToBookings(
-    (bookings) => {
-      // Lọc bỏ personal slot tracker documents
-      const realBookings = bookings.filter((b) => !(b as any)._type);
-      useBookingStore.getState()._setBookingsFromFirestore(realBookings);
-      useBookingStore.getState()._setSyncStatus({
-        isOnline: true,
-        isConnecting: false,
-        lastSyncedAt: new Date().toISOString(),
-        error: null,
-      });
-    },
-    (error) => {
-      useBookingStore.getState()._setSyncStatus({
-        isOnline: false,
-        isConnecting: false,
-        error: 'Không kết nối được Firestore: ' + error.message,
-      });
-    }
+          waitlist:
+            state.waitlist,
+
+          currentUser:
+            state.currentUser,
+
+          availableUsers:
+            state.availableUsers,
+        }),
+      }
+    )
   );
 
+// ================================================================
+// FIRESTORE REALTIME SYNC
+// ================================================================
+
+let _unsubscribeFirestore:
+  (() => void) | null = null;
+
+/*
+ * QUAN TRỌNG:
+ *
+ * Hiện tại chưa bật Firestore realtime
+ * để tránh Firebase đang cấu hình sai/giả
+ * ghi đè dữ liệu local.
+ *
+ * AsyncStorage sẽ là bộ nhớ chính ở bước này.
+ *
+ * Sau khi kiểm tra F5 hoạt động ổn,
+ * chúng ta sẽ bật Firebase thật.
+ */
+export function initializeRealtimeSync():
+  () => void {
+  console.log(
+    '[Storage] Khởi động chế độ lưu local.'
+  );
+
+  useBookingStore
+    .getState()
+    ._setSyncStatus({
+      isOnline: false,
+
+      isConnecting: false,
+
+      lastSyncedAt:
+        new Date().toISOString(),
+
+      error: null,
+    });
+
+  /*
+   * Không gọi subscribeToBookings()
+   *
+   * Không gọi seedFirestoreIfEmpty()
+   *
+   * Không cho Firebase ghi đè local.
+   */
+
   return () => {
-    _unsubscribeFirestore?.();
-    _unsubscribeFirestore = null;
+    if (
+      _unsubscribeFirestore
+    ) {
+      _unsubscribeFirestore();
+
+      _unsubscribeFirestore =
+        null;
+    }
   };
 }
