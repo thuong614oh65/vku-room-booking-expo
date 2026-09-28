@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { StyleSheet, Text, View, TextInput, ScrollView, Pressable } from 'react-native';
 import { useBookingStore } from '../store/useBookingStore';
 import { Building, Equipment } from '../types/booking';
+import { TIME_SLOTS } from '../data/roomsData';
 
 const BUILDINGS: (Building | 'ALL')[] = ['ALL', 'Khu V', 'Khu K', 'Khu B', 'Khu A', 'Khu C', 'Thư viện'];
 
@@ -19,13 +20,54 @@ const EQUIPMENTS: { label: string; value: Equipment }[] = [
   { label: '📋 Bảng từ', value: 'Whiteboard' },
 ];
 
+const getNext7Days = () => {
+  const list: { date: string | null; label: string }[] = [{ date: null, label: 'Tất cả ngày' }];
+  const today = new Date();
+  const DAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const fullDate = `${yyyy}-${mm}-${dd}`;
+    const dayLabel = i === 0 ? 'Hôm nay' : i === 1 ? 'Ngày mai' : DAYS[d.getDay()];
+    list.push({
+      date: fullDate,
+      label: `${dayLabel} (${dd}/${mm})`,
+    });
+  }
+  return list;
+};
+
 export const FilterBar: React.FC = () => {
-  const { filters, setSearchQuery, setBuildingFilter, setMinCapacityFilter, toggleEquipmentFilter, resetFilters } =
-    useBookingStore();
+  const {
+    filters,
+    setSearchQuery,
+    setBuildingFilter,
+    setMinCapacityFilter,
+    toggleEquipmentFilter,
+    setDateFilter,
+    setSlotFilter,
+    resetFilters,
+  } = useBookingStore();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const hasActiveFilters =
-    filters.building !== 'ALL' || filters.minCapacity !== null || filters.equipment.length > 0 || filters.searchQuery !== '';
+  const dates = useMemo(() => getNext7Days(), []);
+
+  const activeFilterCount =
+    (filters.building !== 'ALL' ? 1 : 0) +
+    (filters.minCapacity !== null ? 1 : 0) +
+    filters.equipment.length +
+    (filters.date !== null ? 1 : 0) +
+    (filters.slotId !== null ? 1 : 0);
+
+  const hasActiveFilters = activeFilterCount > 0 || filters.searchQuery !== '';
+
+  const activeSlotLabel = filters.slotId
+    ? TIME_SLOTS.find((s) => s.id === filters.slotId)?.label || filters.slotId
+    : null;
 
   return (
     <View style={styles.container}>
@@ -51,13 +93,18 @@ export const FilterBar: React.FC = () => {
           onPress={() => setIsExpanded(!isExpanded)}
         >
           <Text style={[styles.filterToggleIcon, (isExpanded || hasActiveFilters) && styles.filterToggleIconActive]}>
-            ⚡ Bộ lọc {filters.equipment.length + (filters.building !== 'ALL' ? 1 : 0) + (filters.minCapacity ? 1 : 0) > 0 ? `(${filters.equipment.length + (filters.building !== 'ALL' ? 1 : 0) + (filters.minCapacity ? 1 : 0)})` : ''}
+            ⚡ Bộ lọc {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
           </Text>
         </Pressable>
       </View>
 
       {/* Building Horizontal Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.buildingScroll} contentContainerStyle={styles.buildingScrollContent}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.buildingScroll}
+        contentContainerStyle={styles.buildingScrollContent}
+      >
         {BUILDINGS.map((b) => {
           const isSelected = filters.building === b;
           return (
@@ -74,9 +121,79 @@ export const FilterBar: React.FC = () => {
         })}
       </ScrollView>
 
+      {/* Active Date & Time Filter Indicator Bar */}
+      {(filters.date || filters.slotId) && (
+        <View style={styles.activeDateTimeBar}>
+          <Text style={styles.activeDateTimeText}>
+            🎯 Đang lọc phòng trống: {filters.date ? `Ngày ${filters.date}` : 'Hôm nay'}
+            {activeSlotLabel ? ` • ${activeSlotLabel}` : ' • Tất cả ca'}
+          </Text>
+          <Pressable
+            style={styles.clearDateTimeBtn}
+            onPress={() => {
+              setDateFilter(null);
+              setSlotFilter(null);
+            }}
+          >
+            <Text style={styles.clearDateTimeText}>✕ Bỏ lọc giờ</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* Expanded Filters Panel */}
       {isExpanded && (
         <View style={styles.expandedPanel}>
+          {/* Section 1: Lọc theo Ngày */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>📅 Chọn Ngày Cần Đặt Phòng (7 Ngày Tới):</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalChips}>
+              {dates.map((item) => {
+                const isSelected = filters.date === item.date;
+                return (
+                  <Pressable
+                    key={item.label}
+                    style={[styles.smallChip, isSelected && styles.smallChipActive]}
+                    onPress={() => setDateFilter(item.date)}
+                  >
+                    <Text style={[styles.smallChipText, isSelected && styles.smallChipTextActive]}>
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Section 2: Lọc theo Giờ / Ca Học */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>⏰ Chọn Ca Học / Khung Giờ (2 Giờ/Ca):</Text>
+            <View style={styles.chipRow}>
+              <Pressable
+                style={[styles.smallChip, filters.slotId === null && styles.smallChipActive]}
+                onPress={() => setSlotFilter(null)}
+              >
+                <Text style={[styles.smallChipText, filters.slotId === null && styles.smallChipTextActive]}>
+                  Tất cả ca
+                </Text>
+              </Pressable>
+              {TIME_SLOTS.map((slot) => {
+                const isSelected = filters.slotId === slot.id;
+                return (
+                  <Pressable
+                    key={slot.id}
+                    style={[styles.smallChip, isSelected && styles.smallChipActive]}
+                    onPress={() => setSlotFilter(slot.id)}
+                  >
+                    <Text style={[styles.smallChipText, isSelected && styles.smallChipTextActive]}>
+                      {slot.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Section 3: Sức Chứa Tối Thiểu */}
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>👥 Sức Chứa Tối Thiểu:</Text>
             <View style={styles.chipRow}>
@@ -97,6 +214,7 @@ export const FilterBar: React.FC = () => {
             </View>
           </View>
 
+          {/* Section 4: Trang Thiết Bị Yêu Cầu */}
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>🛠️ Trang Thiết Bị Yêu Cầu:</Text>
             <View style={styles.chipRow}>
@@ -117,6 +235,7 @@ export const FilterBar: React.FC = () => {
             </View>
           </View>
 
+          {/* Reset All Filters Button */}
           {hasActiveFilters && (
             <Pressable style={styles.resetBtn} onPress={resetFilters}>
               <Text style={styles.resetBtnText}>🔄 Đặt lại tất cả bộ lọc</Text>
@@ -219,6 +338,34 @@ const styles = StyleSheet.create({
   buildingChipTextActive: {
     color: '#ffffff',
   },
+  activeDateTimeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  activeDateTimeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#1d4ed8',
+    flex: 1,
+  },
+  clearDateTimeBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  clearDateTimeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#ef4444',
+  },
   expandedPanel: {
     marginTop: 12,
     marginHorizontal: 16,
@@ -229,13 +376,17 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   filterSection: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   filterSectionTitle: {
     fontSize: 12,
     fontWeight: '700',
     color: '#334155',
     marginBottom: 6,
+  },
+  horizontalChips: {
+    gap: 6,
+    paddingVertical: 2,
   },
   chipRow: {
     flexDirection: 'row',
@@ -263,7 +414,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   resetBtn: {
-    marginTop: 4,
+    marginTop: 6,
     paddingVertical: 6,
     alignItems: 'center',
   },

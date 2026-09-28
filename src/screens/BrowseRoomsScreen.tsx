@@ -14,6 +14,14 @@ export const BrowseRoomsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { rooms, filters, bookings, currentUser, setAuthModalVisible, setInstallModalVisible, logout } = useBookingStore();
 
+  const todayStr = useMemo(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => {
       if (filters.searchQuery.trim()) {
@@ -38,17 +46,35 @@ export const BrowseRoomsScreen: React.FC = () => {
         if (!hasAllEq) return false;
       }
 
+      // Lọc theo Ngày & Giờ (Ca học)
+      if (filters.date || filters.slotId) {
+        const targetDate = filters.date || todayStr;
+
+        if (filters.slotId) {
+          // Lọc chính xác ca học: phòng phải TRỐNG đúng ca đó vào ngày đó
+          const isSlotBooked = bookings.some(
+            (b) =>
+              b.roomId === room.id &&
+              b.date === targetDate &&
+              b.slotId === filters.slotId &&
+              b.status !== 'CANCELLED'
+          );
+          if (isSlotBooked) return false;
+        } else {
+          // Chỉ chọn ngày: phòng phải còn ít nhất 1 ca học trống trong ngày
+          const bookedCount = bookings.filter(
+            (b) =>
+              b.roomId === room.id &&
+              b.date === targetDate &&
+              b.status !== 'CANCELLED'
+          ).length;
+          if (bookedCount >= 5) return false;
+        }
+      }
+
       return true;
     });
-  }, [rooms, filters]);
-
-  const todayStr = useMemo(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  }, []);
+  }, [rooms, filters, bookings, todayStr]);
 
   const isRoomAvailableToday = useCallback(
     (roomId: string) => {

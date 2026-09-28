@@ -59,6 +59,8 @@ export interface FilterState {
   building: Building | 'ALL';
   minCapacity: number | null;
   equipment: Equipment[];
+  date: string | null;
+  slotId: string | null;
 }
 
 export interface UserProfile {

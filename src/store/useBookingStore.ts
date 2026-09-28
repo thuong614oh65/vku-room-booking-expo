@@ -62,6 +62,8 @@ interface BookingState {
   setBuildingFilter: (building: Building | 'ALL') => void;
   setMinCapacityFilter: (capacity: number | null) => void;
   toggleEquipmentFilter: (equipment: Equipment) => void;
+  setDateFilter: (date: string | null) => void;
+  setSlotFilter: (slotId: string | null) => void;
   resetFilters: () => void;
 
   // Conflict detection & resolution engine
@@ -87,6 +89,8 @@ const INITIAL_FILTERS: FilterState = {
   building: 'ALL',
   minCapacity: null,
   equipment: [],
+  date: null,
+  slotId: null,
 };
 
 const INITIAL_SYNC: SyncStatus = {
@@ -213,6 +217,12 @@ export const useBookingStore = create<BookingState>()(
           const next = exists ? current.filter((e) => e !== equipment) : [...current, equipment];
           return { filters: { ...state.filters, equipment: next } };
         }),
+
+      setDateFilter: (date) =>
+        set((state) => ({ filters: { ...state.filters, date } })),
+
+      setSlotFilter: (slotId) =>
+        set((state) => ({ filters: { ...state.filters, slotId } })),
 
       resetFilters: () => set({ filters: INITIAL_FILTERS }),
 

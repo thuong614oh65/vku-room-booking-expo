@@ -7,22 +7,19 @@ import {
   Pressable,
   SafeAreaView,
   Alert,
+  ScrollView,
 } from 'react-native';
-import { CompositeScreenProps } from '@react-navigation/native';
-import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BottomTabParamList, RootStackParamList } from '../navigation/types';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
 import { useBookingStore } from '../store/useBookingStore';
 import { Booking, BookingStatus } from '../types/booking';
-
-type Props = CompositeScreenProps<
-  BottomTabScreenProps<BottomTabParamList, 'MyBookings'>,
-  NativeStackScreenProps<RootStackParamList>
->;
+import { TIME_SLOTS } from '../data/roomsData';
 
 type FilterType = 'ALL' | BookingStatus;
 
-export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
+export const MyBookingsScreen: React.FC = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { bookings, waitlist, cancelBooking, checkInBooking, currentUser, setAuthModalVisible } = useBookingStore();
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('ALL');
 
@@ -32,10 +29,29 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
     return bookings.filter((b) => b.studentId === currentUser.studentId);
   }, [bookings, currentUser]);
 
+  // Bộ lọc theo Ngày & Giờ (ca học)
+  const [dateFilter, setDateFilter] = useState<string | null>(null);
+  const [slotFilter, setSlotFilter] = useState<string | null>(null);
+
+  // Các ngày thực sự có lịch đặt (mới nhất trước) để chọn nhanh
+  const bookingDates = useMemo(() => {
+    const set = new Set(myBookings.map((b) => b.date));
+    return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+  }, [myBookings]);
+
+  const formatDate = (iso: string) => {
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
   const filteredBookings = useMemo(() => {
-    if (selectedFilter === 'ALL') return myBookings;
-    return myBookings.filter((b) => b.status === selectedFilter);
-  }, [myBookings, selectedFilter]);
+    return myBookings.filter((b) => {
+      if (selectedFilter !== 'ALL' && b.status !== selectedFilter) return false;
+      if (dateFilter && b.date !== dateFilter) return false;
+      if (slotFilter && b.slotId !== slotFilter) return false;
+      return true;
+    });
+  }, [myBookings, selectedFilter, dateFilter, slotFilter]);
 
   const handleCancel = (booking: Booking) => {
     cancelBooking(booking.id);
@@ -188,6 +204,64 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
         })}
       </View>
 
+      {/* Date & Time Filter */}
+      <View style={styles.dateTimeFilterWrap}>
+        <Text style={styles.dateTimeTitle}>📅 Ngày</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateTimeChips}>
+          <Pressable
+            style={[styles.filterChip, dateFilter === null && styles.filterChipActive]}
+            onPress={() => setDateFilter(null)}
+          >
+            <Text style={[styles.filterChipText, dateFilter === null && styles.filterChipTextActive]}>Tất cả ngày</Text>
+          </Pressable>
+          {bookingDates.map((d) => {
+            const active = dateFilter === d;
+            return (
+              <Pressable
+                key={d}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+                onPress={() => setDateFilter(active ? null : d)}
+              >
+                <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{formatDate(d)}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        <Text style={styles.dateTimeTitle}>⏰ Giờ (ca học)</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateTimeChips}>
+          <Pressable
+            style={[styles.filterChip, slotFilter === null && styles.filterChipActive]}
+            onPress={() => setSlotFilter(null)}
+          >
+            <Text style={[styles.filterChipText, slotFilter === null && styles.filterChipTextActive]}>Tất cả ca</Text>
+          </Pressable>
+          {TIME_SLOTS.map((slot) => {
+            const active = slotFilter === slot.id;
+            return (
+              <Pressable
+                key={slot.id}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+                onPress={() => setSlotFilter(active ? null : slot.id)}
+              >
+                <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{slot.label}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {(dateFilter || slotFilter) && (
+          <Pressable
+            onPress={() => {
+              setDateFilter(null);
+              setSlotFilter(null);
+            }}
+          >
+            <Text style={styles.clearDateTimeText}>✕ Bỏ lọc ngày/giờ • {filteredBookings.length} kết quả</Text>
+          </Pressable>
+        )}
+      </View>
+
       {/* Waitlist Notice Card (If any active queue) */}
       {myWaitlist.length > 0 && (
         <View style={styles.waitlistBanner}>
@@ -221,7 +295,7 @@ export const MyBookingsScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
             <Pressable
               style={styles.emptyButton}
-              onPress={() => navigation.navigate('BrowseRooms')}
+              onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
             >
               <Text style={styles.emptyButtonText}>🔍 Tìm phòng học ngay</Text>
             </Pressable>
@@ -279,6 +353,30 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: '#ffffff',
+  },
+  dateTimeFilterWrap: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  dateTimeTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#334155',
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  dateTimeChips: {
+    gap: 8,
+    paddingBottom: 4,
+  },
+  clearDateTimeText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#ef4444',
+    marginTop: 6,
   },
   waitlistBanner: {
     backgroundColor: '#faf5ff',
