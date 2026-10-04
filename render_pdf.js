@@ -227,5 +227,4 @@ function renderFile(mdFilename, pdfFilename) {
   console.log(`✓ PDF Generated Successfully: ${pdfOut}`);
 }
 
-renderFile('BAO_CAO_KY_THUAT_REPORT.md', 'BAO_CAO_KY_THUAT_REPORT.pdf');
 renderFile('Mini-Project-2-Report-Template (2).md', 'Mini-Project-2-Report-Template.pdf');
