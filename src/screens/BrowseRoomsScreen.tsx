@@ -19,6 +19,7 @@ export const BrowseRoomsScreen: React.FC = () => {
     currentUser,
     setAuthModalVisible,
     setInstallModalVisible,
+    setSysInfoModalVisible,
     isAppInstalled,
     isStandaloneApp,
     logout,
@@ -135,39 +136,53 @@ export const BrowseRoomsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
 
-      {/* Header Bar */}
+      {/* HEADER DOANH NGHIỆP CHUẨN HOÁ GIỐNG VKU FIELD SURVEY */}
       <View style={styles.header}>
-        <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={styles.schoolHeader}>VKU CAMPUS • HỆ THỐNG ĐẶT PHÒNG HỌC</Text>
-          <Text style={styles.screenTitle}>Tra Cứu Phòng Học & Lab</Text>
+        <View style={styles.brand}>
+          <View style={styles.logoIcon}>
+            <Text style={styles.logoIconText}>🏫</Text>
+          </View>
+          <View style={styles.brandTextWrap}>
+            <Text style={styles.brandTitle}>VKU Room Booking</Text>
+            <Text style={styles.brandSubtitle}>
+              Hệ thống đặt phòng học & kiểm soát mã QR thông minh
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.headerRightActions}>
+        <View style={styles.statusBar}>
           <Pressable
             style={[
-              styles.installAppBtn,
+              styles.btnInstall,
               isStandaloneApp
-                ? styles.installAppBtnStandalone
+                ? styles.btnInstallStandalone
                 : isAppInstalled
-                ? styles.installAppBtnInstalled
+                ? styles.btnInstallInstalled
                 : null,
             ]}
             onPress={handleInstallPress}
           >
-            <Text
-              style={[
-                styles.installAppBtnText,
-                isStandaloneApp
-                  ? styles.installAppBtnTextStandalone
-                  : isAppInstalled
-                  ? styles.installAppBtnTextInstalled
-                  : null,
-              ]}
-            >
+            <Text style={styles.btnInstallText}>
               {isStandaloneApp ? '🟢 Đang Trong App' : isAppInstalled ? '🚀 Vào App' : '📲 Cài Đặt App'}
             </Text>
+          </Pressable>
+
+          <View style={styles.badgeOnline}>
+            <Text style={styles.badgeOnlineText}>🟢 Online</Text>
+          </View>
+
+          <View style={styles.badgePending}>
+            <Text style={styles.badgePendingText}>⚡ Real-time</Text>
+          </View>
+
+          <Pressable
+            style={styles.btnInfoIcon}
+            onPress={() => setSysInfoModalVisible(true)}
+            accessibilityLabel="Thông số kỹ thuật"
+          >
+            <Text style={styles.btnInfoIconText}>ℹ️</Text>
           </Pressable>
 
           {currentUser ? (
@@ -184,7 +199,7 @@ export const BrowseRoomsScreen: React.FC = () => {
             </View>
           ) : (
             <Pressable style={styles.loginHeaderBtn} onPress={() => setAuthModalVisible(true)}>
-              <Text style={styles.loginHeaderBtnText}>🔑 Đăng nhập / Đăng ký</Text>
+              <Text style={styles.loginHeaderBtnText}>🔑 Đăng nhập</Text>
             </Pressable>
           )}
         </View>
@@ -238,57 +253,116 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 36 : 12,
-    paddingBottom: 12,
-    backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === 'android' ? 36 : 14,
+    paddingBottom: 14,
+    backgroundColor: '#0f172a',
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#1e293b',
+    flexWrap: 'wrap',
+    gap: 12,
   },
-  schoolHeader: {
-    fontSize: 10,
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    minWidth: 260,
+  },
+  logoIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(2, 132, 199, 0.22)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(2, 132, 199, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoIconText: {
+    fontSize: 22,
+  },
+  brandTextWrap: {
+    flex: 1,
+  },
+  brandTitle: {
+    fontSize: 17,
     fontWeight: '800',
-    color: '#0284c7',
-    letterSpacing: 0.5,
+    color: '#ffffff',
+    letterSpacing: -0.3,
   },
-  screenTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#0f172a',
-    marginTop: 1,
+  brandSubtitle: {
+    fontSize: 11.5,
+    color: '#94a3b8',
+    marginTop: 2,
   },
-  headerRightActions: {
+  statusBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexWrap: 'wrap',
   },
-  installAppBtn: {
-    backgroundColor: '#eff6ff',
-    borderWidth: 1.5,
-    borderColor: '#0284c7',
-    paddingHorizontal: 10,
+  btnInstall: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 10,
+    borderRadius: 20,
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  installAppBtnInstalled: {
+  btnInstallInstalled: {
     backgroundColor: '#7c3aed',
-    borderColor: '#6d28d9',
+    shadowColor: '#7c3aed',
   },
-  installAppBtnStandalone: {
+  btnInstallStandalone: {
     backgroundColor: '#16a34a',
-    borderColor: '#15803d',
+    shadowColor: '#16a34a',
   },
-  installAppBtnText: {
-    color: '#0284c7',
+  btnInstallText: {
+    color: '#ffffff',
     fontSize: 12,
     fontWeight: '800',
   },
-  installAppBtnTextInstalled: {
-    color: '#ffffff',
-    fontWeight: '900',
+  badgeOnline: {
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.35)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
-  installAppBtnTextStandalone: {
-    color: '#ffffff',
-    fontWeight: '800',
+  badgeOnlineText: {
+    color: '#4ade80',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  badgePending: {
+    backgroundColor: 'rgba(2, 132, 199, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(2, 132, 199, 0.35)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  badgePendingText: {
+    color: '#38bdf8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  btnInfoIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnInfoIconText: {
+    fontSize: 13,
   },
   loginHeaderBtn: {
     backgroundColor: '#0284c7',

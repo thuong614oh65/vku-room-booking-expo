@@ -7,6 +7,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { NotificationToast } from './src/components/NotificationToast';
 import { AuthModal } from './src/components/AuthModal';
 import { InstallAppModal } from './src/components/InstallAppModal';
+import { SystemInfoModal } from './src/components/SystemInfoModal';
 import { initializeRealtimeSync, useBookingStore } from './src/store/useBookingStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ export default function App() {
         <NotificationToast />
         <AuthModal />
         <InstallAppModal />
+        <SystemInfoModal />
       </NavigationContainer>
     </SafeAreaProvider>
   );

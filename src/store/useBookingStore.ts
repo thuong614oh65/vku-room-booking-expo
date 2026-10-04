@@ -52,6 +52,7 @@ interface BookingState {
   availableUsers: UserProfile[];
   authModalVisible: boolean;
   installModalVisible: boolean;
+  sysInfoModalVisible: boolean;
   isAppInstalled: boolean;
   isStandaloneApp: boolean;
   filters: FilterState;
@@ -63,6 +64,7 @@ interface BookingState {
 
   setAuthModalVisible: (visible: boolean) => void;
   setInstallModalVisible: (visible: boolean) => void;
+  setSysInfoModalVisible: (visible: boolean) => void;
   markAppAsInstalled: () => void;
   resetAppInstallStatus: () => void;
 
@@ -179,6 +181,7 @@ export const useBookingStore =
         authModalVisible: false,
 
         installModalVisible: false,
+        sysInfoModalVisible: false,
 
         isAppInstalled:
           typeof window !== 'undefined' &&
@@ -249,6 +252,11 @@ export const useBookingStore =
         setInstallModalVisible: (visible) =>
           set({
             installModalVisible: visible,
+          }),
+
+        setSysInfoModalVisible: (visible) =>
+          set({
+            sysInfoModalVisible: visible,
           }),
 
         markAppAsInstalled: () => {

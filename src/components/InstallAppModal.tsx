@@ -14,7 +14,7 @@ import { useBookingStore } from '../store/useBookingStore';
 type InstallTab = 'ANDROID' | 'IOS';
 
 const APK_DIRECT_URL =
-  'https://expo.dev/artifacts/eas/RCy0mWfjmQN0ym6lH8qmL1PpNYsoY2rfRO5r2lxEYu0.apk';
+  'https://github.com/thuong614oh65/vku-room-booking-expo/releases/download/v1.0.0/app-release.apk';
 const EAS_BUILD_URL =
   'https://expo.dev/accounts/thuong221332/projects/vku-room-booking/builds/56663180-6a06-4ae6-91e6-f991c7d8d73c';
 
@@ -87,13 +87,7 @@ export const InstallAppModal: React.FC = () => {
     setTimeout(() => setDownloadingApk(false), 3000);
 
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const a = document.createElement('a');
-      a.href = APK_DIRECT_URL;
-      a.download = 'VKU-RoomBooking.apk';
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      window.location.href = APK_DIRECT_URL;
     } else {
       Linking.openURL(APK_DIRECT_URL).catch(() => Linking.openURL(EAS_BUILD_URL));
     }
