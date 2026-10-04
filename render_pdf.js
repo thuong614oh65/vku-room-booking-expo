@@ -82,15 +82,17 @@ function mdToHtml(md) {
   return resultLines.join('\n');
 }
 
-const mdPath = path.join(__dirname, 'BAO_CAO_KY_THUAT_REPORT.md');
-const mdContent = fs.readFileSync(mdPath, 'utf-8');
-const bodyContent = mdToHtml(mdContent);
+function renderFile(mdFilename, pdfFilename) {
+  const mdPath = path.join(__dirname, mdFilename);
+  if (!fs.existsSync(mdPath)) return;
+  const mdContent = fs.readFileSync(mdPath, 'utf-8');
+  const bodyContent = mdToHtml(mdContent);
 
-const htmlTemplate = `<!DOCTYPE html>
+  const htmlTemplate = `<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Báo Cáo Kỹ Thuật - VKU Room Booking</title>
+  <title>${pdfFilename}</title>
   <style>
     @page {
       size: A4;
@@ -209,17 +211,21 @@ const htmlTemplate = `<!DOCTYPE html>
 </body>
 </html>`;
 
-const tempHtml = path.join(__dirname, 'temp_report.html');
-fs.writeFileSync(tempHtml, htmlTemplate, 'utf-8');
+  const tempHtml = path.join(__dirname, `temp_${Date.now()}.html`);
+  fs.writeFileSync(tempHtml, htmlTemplate, 'utf-8');
 
-const pdfOut = path.join(__dirname, 'BAO_CAO_KY_THUAT_REPORT.pdf');
-const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+  const pdfOut = path.join(__dirname, pdfFilename);
+  const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 
-console.log('Rendering PDF via Microsoft Edge...');
-execSync(`"${edgePath}" --headless --disable-gpu --print-to-pdf="${pdfOut}" --no-pdf-header-footer "${tempHtml}"`);
+  console.log(`Rendering ${pdfFilename} via Microsoft Edge...`);
+  execSync(`"${edgePath}" --headless --disable-gpu --print-to-pdf="${pdfOut}" --no-pdf-header-footer "${tempHtml}"`);
 
-if (fs.existsSync(tempHtml)) {
-  fs.unlinkSync(tempHtml);
+  if (fs.existsSync(tempHtml)) {
+    fs.unlinkSync(tempHtml);
+  }
+
+  console.log(`✓ PDF Generated Successfully: ${pdfOut}`);
 }
 
-console.log(`✓ PDF Generated Successfully: ${pdfOut}`);
+renderFile('BAO_CAO_KY_THUAT_REPORT.md', 'BAO_CAO_KY_THUAT_REPORT.pdf');
+renderFile('Mini-Project-2-Report-Template (2).md', 'Mini-Project-2-Report-Template.pdf');
