@@ -1,5 +1,6 @@
 # BÁO CÁO KỸ THUẬT TIỂU LUẬN / MINI-PROJECT 2
-## HỌC PHẦN: LẬP TRÌNH ĐA NỀN TẢNG (CROSS-PLATFORM DEVELOPMENT)
+## HỌC PHẦN: PHÁT TRIỂN ỨNG DỤNG DI ĐỘNG ĐA NỀN TẢNG
+### LỚP HỌC PHẦN: Phát triển ứng dụng di động đa nền tảng (4)
 **TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG VIỆT - HÀN (VKU)**  
 **KHOA KHOA HỌC MÁY TÍNH**
 
@@ -9,6 +10,7 @@
 * **Họ và tên sinh viên:** Nguyễn Thị Thương
 * **Mã số sinh viên (MSSV):** 23IT.B219
 * **Lớp sinh hoạt:** 23ITB
+* **Lớp học phần:** [Phát triển ứng dụng di động đa nền tảng (4)](https://daotao.vku.udn.vn/sv/lich-hoc#)
 * **Email sinh viên:** [thuongnt.23itb@vku.udn.vn](mailto:thuongnt.23itb@vku.udn.vn)
 * **Giảng viên hướng dẫn:** TS. Nguyễn Thanh Tuấn
 * **Tên đề tài:** *VKU Room Booking — Hệ thống tra cứu, mượn phòng học & kiểm soát mã QR thời gian thực (React Native, Expo SDK 57, Firestore & Offline-First PWA)*
@@ -127,4 +129,4 @@ npx expo export -p web
 
 *Đà Nẵng, Ngày 04 tháng 10 năm 2026*  
 **Sinh viên thực hiện:**  
-**Nguyễn Thị Thương (MSSV: 23IT.B219 — Lớp 23ITB)**
+**Nguyễn Thị Thương (MSSV: 23IT.B219 — Lớp SH: 23ITB — Lớp HP: Phát triển ứng dụng di động đa nền tảng (4))**

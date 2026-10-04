@@ -4,7 +4,8 @@
 
 ![VKU Room Booking Banner](https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1200&q=80)
 
-**HỌC PHẦN: LẬP TRÌNH ĐA NỀN TẢNG (CROSS-PLATFORM APPLICATION DEVELOPMENT)**  
+**HỌC PHẦN: PHÁT TRIỂN ỨNG DỤNG DI ĐỘNG ĐA NỀN TẢNG (LỚP 4)**  
+**Lớp học phần:** [Phát triển ứng dụng di động đa nền tảng (4)](https://daotao.vku.udn.vn/sv/lich-hoc#)  
 **TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG VIỆT - HÀN (VKU)**  
 *Mini-Project #2 (Tuần 5 - 6) • Trọng số: 10%*
 
@@ -24,6 +25,7 @@
 * **Họ và tên sinh viên:** Nguyễn Thị Thương
 * **Mã số sinh viên (MSSV):** 23IT.B219
 * **Lớp sinh hoạt:** 23ITB
+* **Lớp học phần:** [Phát triển ứng dụng di động đa nền tảng (4)](https://daotao.vku.udn.vn/sv/lich-hoc#)
 * **Email sinh viên:** [thuongnt.23itb@vku.udn.vn](mailto:thuongnt.23itb@vku.udn.vn)
 * **Giảng viên giảng dạy:** TS. Nguyễn Thanh Tuấn
 * **Học kỳ:** II - Năm học 2025 - 2026

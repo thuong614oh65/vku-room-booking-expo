@@ -88,10 +88,10 @@ export const SystemInfoModal: React.FC = () => {
 
             <View style={styles.footerNote}>
               <Text style={styles.footerNoteText}>
-                Học phần Lập trình Đa Nền Tảng • Khoa Khoa học Máy tính — VKU 2026
+                Lớp HP: Phát triển ứng dụng di động đa nền tảng (4) • Khoa Khoa học Máy tính — VKU 2026
               </Text>
               <Text style={styles.studentCredit}>
-                Sinh viên: Nguyễn Thị Thương • MSSV: 23IT.B219 • Lớp: 23ITB
+                Sinh viên: Nguyễn Thị Thương • MSSV: 23IT.B219 • Lớp SH: 23ITB
               </Text>
             </View>
           </ScrollView>
