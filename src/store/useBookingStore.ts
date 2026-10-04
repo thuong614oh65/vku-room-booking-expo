@@ -52,6 +52,8 @@ interface BookingState {
   availableUsers: UserProfile[];
   authModalVisible: boolean;
   installModalVisible: boolean;
+  isAppInstalled: boolean;
+  isStandaloneApp: boolean;
   filters: FilterState;
   waitlist: WaitlistItem[];
   syncStatus: SyncStatus;
@@ -61,6 +63,8 @@ interface BookingState {
 
   setAuthModalVisible: (visible: boolean) => void;
   setInstallModalVisible: (visible: boolean) => void;
+  markAppAsInstalled: () => void;
+  resetAppInstallStatus: () => void;
 
   login: (
     identifier: string,
@@ -176,6 +180,15 @@ export const useBookingStore =
 
         installModalVisible: false,
 
+        isAppInstalled:
+          typeof window !== 'undefined' &&
+          Boolean(window.localStorage?.getItem('vku_app_installed') === 'true'),
+
+        isStandaloneApp:
+          typeof window !== 'undefined' &&
+          (Boolean(window.matchMedia?.('(display-mode: standalone)').matches) ||
+            Boolean((window.navigator as any)?.standalone === true)),
+
         filters: INITIAL_FILTERS,
 
         waitlist: [],
@@ -237,6 +250,30 @@ export const useBookingStore =
           set({
             installModalVisible: visible,
           }),
+
+        markAppAsInstalled: () => {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('vku_app_installed', 'true');
+          }
+          set({ isAppInstalled: true });
+          notificationService.notify(
+            '🎉 Đã xác nhận cài đặt',
+            'Nút trên thanh điều hướng đã chuyển thành "🚀 Vào App"!',
+            'SUCCESS'
+          );
+        },
+
+        resetAppInstallStatus: () => {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.removeItem('vku_app_installed');
+          }
+          set({ isAppInstalled: false });
+          notificationService.notify(
+            '🔄 Đã đặt lại trạng thái',
+            'Đã chuyển lại trạng thái Cài Đặt / Tải App ban đầu.',
+            'SUCCESS'
+          );
+        },
 
         // ============================================================
         // LOGIN

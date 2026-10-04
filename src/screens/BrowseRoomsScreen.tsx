@@ -12,7 +12,17 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const BrowseRoomsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { rooms, filters, bookings, currentUser, setAuthModalVisible, setInstallModalVisible, logout } = useBookingStore();
+  const {
+    rooms,
+    filters,
+    bookings,
+    currentUser,
+    setAuthModalVisible,
+    setInstallModalVisible,
+    isAppInstalled,
+    isStandaloneApp,
+    logout,
+  } = useBookingStore();
 
   const todayStr = useMemo(() => {
     const today = new Date();
@@ -135,8 +145,29 @@ export const BrowseRoomsScreen: React.FC = () => {
         </View>
 
         <View style={styles.headerRightActions}>
-          <Pressable style={styles.installAppBtn} onPress={handleInstallPress}>
-            <Text style={styles.installAppBtnText}>📲 Cài Đặt</Text>
+          <Pressable
+            style={[
+              styles.installAppBtn,
+              isStandaloneApp
+                ? styles.installAppBtnStandalone
+                : isAppInstalled
+                ? styles.installAppBtnInstalled
+                : null,
+            ]}
+            onPress={handleInstallPress}
+          >
+            <Text
+              style={[
+                styles.installAppBtnText,
+                isStandaloneApp
+                  ? styles.installAppBtnTextStandalone
+                  : isAppInstalled
+                  ? styles.installAppBtnTextInstalled
+                  : null,
+              ]}
+            >
+              {isStandaloneApp ? '🟢 Đang Trong App' : isAppInstalled ? '🚀 Vào App' : '📲 Cài Đặt App'}
+            </Text>
           </Pressable>
 
           {currentUser ? (
@@ -238,9 +269,25 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 10,
   },
+  installAppBtnInstalled: {
+    backgroundColor: '#7c3aed',
+    borderColor: '#6d28d9',
+  },
+  installAppBtnStandalone: {
+    backgroundColor: '#16a34a',
+    borderColor: '#15803d',
+  },
   installAppBtnText: {
     color: '#0284c7',
     fontSize: 12,
+    fontWeight: '800',
+  },
+  installAppBtnTextInstalled: {
+    color: '#ffffff',
+    fontWeight: '900',
+  },
+  installAppBtnTextStandalone: {
+    color: '#ffffff',
     fontWeight: '800',
   },
   loginHeaderBtn: {
