@@ -13,7 +13,7 @@ export const DEMO_USERS: UserProfile[] = [
     name: 'Nguyễn Thị Thương',
     studentId: '23IT.B219',
     email: 'thuongnt.23itb@vku.udn.vn',
-    major: 'Kỹ Thuật Phần Mềm & Lập Trình Đa Nền Tảng (Lớp 23ITB)',
+    major: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
   },
   {

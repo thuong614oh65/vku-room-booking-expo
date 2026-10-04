@@ -91,7 +91,7 @@ export const SystemInfoModal: React.FC = () => {
                 Lớp HP: Phát triển ứng dụng di động đa nền tảng (4) • Khoa Khoa học Máy tính — VKU 2026
               </Text>
               <Text style={styles.studentCredit}>
-                Sinh viên: Nguyễn Thị Thương • MSSV: 23IT.B219 • Lớp SH: 23ITB
+                Sinh viên: Nguyễn Thị Thương • MSSV: 23IT.B219 • Lớp SH: 23SE4
               </Text>
             </View>
           </ScrollView>

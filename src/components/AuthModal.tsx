@@ -25,7 +25,7 @@ export const AuthModal: React.FC = () => {
   const [regName, setRegName] = useState('');
   const [regStudentId, setRegStudentId] = useState('');
   const [regEmail, setRegEmail] = useState('');
-  const [regMajor, setRegMajor] = useState('Kỹ Thuật Phần Mềm (Lớp 23ITB)');
+  const [regMajor, setRegMajor] = useState('Kỹ Thuật Phần Mềm (Lớp 23SE4)');
   const [regPassword, setRegPassword] = useState('');
 
   const resetForm = () => {
@@ -213,7 +213,7 @@ export const AuthModal: React.FC = () => {
                 <Text style={styles.label}>Lớp / Chuyên ngành</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="VD: Kỹ Thuật Phần Mềm (Lớp 23ITB)"
+                  placeholder="VD: Kỹ Thuật Phần Mềm (Lớp 23SE4)"
                   placeholderTextColor="#94a3b8"
                   value={regMajor}
                   onChangeText={setRegMajor}

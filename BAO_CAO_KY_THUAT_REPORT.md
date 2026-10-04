@@ -9,7 +9,7 @@
 ### 📋 THÔNG TIN SINH VIÊN & ĐỀ TÀI
 * **Họ và tên sinh viên:** Nguyễn Thị Thương
 * **Mã số sinh viên (MSSV):** 23IT.B219
-* **Lớp sinh hoạt:** 23ITB
+* **Lớp sinh hoạt:** 23SE4
 * **Lớp học phần:** [Phát triển ứng dụng di động đa nền tảng (4)](https://daotao.vku.udn.vn/sv/lich-hoc#)
 * **Email sinh viên:** [thuongnt.23itb@vku.udn.vn](mailto:thuongnt.23itb@vku.udn.vn)
 * **Giảng viên hướng dẫn:** TS. Nguyễn Thanh Tuấn
@@ -129,4 +129,4 @@ npx expo export -p web
 
 *Đà Nẵng, Ngày 04 tháng 10 năm 2026*  
 **Sinh viên thực hiện:**  
-**Nguyễn Thị Thương (MSSV: 23IT.B219 — Lớp SH: 23ITB — Lớp HP: Phát triển ứng dụng di động đa nền tảng (4))**
+**Nguyễn Thị Thương (MSSV: 23IT.B219 — Lớp SH: 23SE4 — Lớp HP: Phát triển ứng dụng di động đa nền tảng (4))**

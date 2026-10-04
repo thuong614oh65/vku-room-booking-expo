@@ -24,7 +24,7 @@
 ## 📌 1. THÔNG TIN SINH VIÊN & HỌC PHẦN
 * **Họ và tên sinh viên:** Nguyễn Thị Thương
 * **Mã số sinh viên (MSSV):** 23IT.B219
-* **Lớp sinh hoạt:** 23ITB
+* **Lớp sinh hoạt:** 23SE4
 * **Lớp học phần:** [Phát triển ứng dụng di động đa nền tảng (4)](https://daotao.vku.udn.vn/sv/lich-hoc#)
 * **Email sinh viên:** [thuongnt.23itb@vku.udn.vn](mailto:thuongnt.23itb@vku.udn.vn)
 * **Giảng viên giảng dạy:** TS. Nguyễn Thanh Tuấn
