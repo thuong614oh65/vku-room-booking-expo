@@ -7,14 +7,16 @@
     <title>%WEB_TITLE%</title>
 
     <!-- PWA & Mobile Web App Manifest & Meta -->
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#2563eb" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png" />
+    <meta name="theme-color" content="#0284c7" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="VKU Booking" />
-    <link rel="apple-touch-icon" href="/icon.png" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
 
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
@@ -57,7 +59,7 @@
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+          navigator.serviceWorker.register('./sw.js').then(function(reg) {
             console.log('[VKU PWA] Service Worker registered with scope:', reg.scope);
           }).catch(function(err) {
             console.warn('[VKU PWA] Service Worker registration failed:', err);

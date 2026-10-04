@@ -33,10 +33,10 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "VKU Room Booking",
+      "name": "VKU Room Booking - Hệ Thống Đặt Phòng Học",
       "shortName": "VKU Booking",
-      "themeColor": "#2563eb",
-      "backgroundColor": "#0f172a",
+      "themeColor": "#0284c7",
+      "backgroundColor": "#ffffff",
       "display": "standalone",
       "orientation": "portrait"
     },

@@ -1,32 +1,24 @@
 {
+  "name": "VKU Room Booking - Hệ Thống Đặt Phòng Học",
   "short_name": "VKU Booking",
-  "name": "VKU Room Booking - Đặt Phòng VKU",
+  "description": "Hệ thống đặt phòng học và kiểm soát mã QR thông minh VKU",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0284c7",
   "icons": [
     {
-      "src": "/icon.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon.png",
-      "type": "image/png",
+      "src": "./icons/icon-192.png",
       "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon.png",
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "144x144",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": "/",
-  "scope": "/",
-  "background_color": "#0f172a",
-  "theme_color": "#2563eb",
-  "display": "standalone",
-  "orientation": "portrait",
-  "categories": ["education", "productivity", "utilities"],
-  "description": "Hệ thống đặt phòng thực hành và hội trường VKU - Trường ĐH Công nghệ Thông tin & Truyền thông Việt - Hàn."
+  ]
 }

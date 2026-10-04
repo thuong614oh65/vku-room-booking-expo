@@ -1,20 +1,23 @@
-// VKU Room Booking PWA Service Worker
-const CACHE_NAME = 'vku-room-booking-v2';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon.png',
-  '/favicon.png',
-  '/favicon.ico'
+/**
+ * Service Worker: VKU Room Booking PWA
+ * Caching Strategy: Cache-First for App Shell (HTML, CSS, JS, Manifest, Icons)
+ */
+
+const CACHE_NAME = 'vku-booking-cache-v15';
+const APP_SHELL_ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
+  console.log('[Service Worker] Đang tải trước App Shell vào Cache Storage...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.log('SW cache partial warmup:', err);
-      });
+      return cache.addAll(APP_SHELL_ASSETS);
     })
   );
   self.skipWaiting();
@@ -22,43 +25,53 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
+    caches.keys().then((cacheNames) => {
       return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('[Service Worker] Đang dọn dẹp cache cũ:', cache);
+            return caches.delete(cache);
           }
         })
       );
-    }).then(() => self.clients.claim())
+    })
   );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  // Bỏ qua Firestore & Cloudflare healthchecks
+  if (
+    event.request.url.includes('firestore.googleapis.com') ||
+    event.request.url.includes('firebaseio.com') ||
+    event.request.url.includes('__healthcheck')
+  ) {
+    return;
+  }
 
-  // Let browser network handle it, fall back to cache
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Only cache valid http/https responses
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(event.request)
+        .then((networkResponse) => {
+          if (
+            networkResponse &&
+            networkResponse.status === 200 &&
+            event.request.url.startsWith(self.location.origin)
+          ) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
+          return networkResponse;
+        })
+        .catch(() => {
           if (event.request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('/');
+            return caches.match('./index.html');
           }
         });
-      })
+    })
   );
 });
