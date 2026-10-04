@@ -10,6 +10,7 @@ import {
   Linking,
 } from 'react-native';
 import { useBookingStore } from '../store/useBookingStore';
+import { notificationService } from '../services/notificationService';
 
 type InstallTab = 'ANDROID' | 'IOS';
 
@@ -22,6 +23,7 @@ export const InstallAppModal: React.FC = () => {
   const {
     installModalVisible,
     setInstallModalVisible,
+    setSysInfoModalVisible,
     isAppInstalled,
     isStandaloneApp,
     markAppAsInstalled,
@@ -31,6 +33,7 @@ export const InstallAppModal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<InstallTab>('ANDROID');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [downloadingApk, setDownloadingApk] = useState<boolean>(false);
+  const [apkDownloaded, setApkDownloaded] = useState<boolean>(false);
   const [showChromeGuide, setShowChromeGuide] = useState<boolean>(false);
 
   useEffect(() => {
@@ -66,36 +69,72 @@ export const InstallAppModal: React.FC = () => {
         if (typeof window !== 'undefined') {
           (window as any).__vkuDeferredPrompt = null;
         }
+        setInstallModalVisible(false);
       };
 
       window.addEventListener('vku-install-prompt-ready', handlePromptReady);
       window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.addEventListener('appinstalled', handleAppInstalled);
+      window.addEventListener('vku-app-installed', handleAppInstalled);
 
       return () => {
         window.removeEventListener('vku-install-prompt-ready', handlePromptReady);
         window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         window.removeEventListener('appinstalled', handleAppInstalled);
+        window.removeEventListener('vku-app-installed', handleAppInstalled);
       };
     }
-  }, [markAppAsInstalled]);
+  }, [markAppAsInstalled, setInstallModalVisible]);
 
   if (!installModalVisible) return null;
 
+  // Safe background file download
   const handleDownloadApk = () => {
     setDownloadingApk(true);
+    setApkDownloaded(true);
     setTimeout(() => setDownloadingApk(false), 3000);
 
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.location.href = APK_DIRECT_URL;
+    notificationService.notify(
+      '📥 Bắt đầu tải file APK',
+      'Đang tải file VKU-RoomBooking.apk (78 MB) về máy của bạn...',
+      'REMINDER'
+    );
+
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const link = document.createElement('a');
+      link.href = APK_DIRECT_URL;
+      link.setAttribute('download', 'VKU-RoomBooking.apk');
+      link.setAttribute('target', '_blank');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } else {
       Linking.openURL(APK_DIRECT_URL).catch(() => Linking.openURL(EAS_BUILD_URL));
     }
-
-    // Automatically mark as installed just like in vku-field-survey
-    markAppAsInstalled();
   };
 
+  // Launch standalone application window
+  const handleLaunchApp = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const w = Math.min(window.screen.availWidth, 480);
+      const h = Math.min(window.screen.availHeight, 920);
+      const left = Math.max(0, Math.floor((window.screen.availWidth - w) / 2));
+      const top = Math.max(0, Math.floor((window.screen.availHeight - h) / 2));
+      window.open(
+        window.location.href,
+        'VKU_Room_Booking_App',
+        `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
+      );
+    }
+    notificationService.notify(
+      '🚀 Đang khởi chạy ứng dụng',
+      'Cửa sổ ứng dụng độc lập VKU Room Booking đang được mở...',
+      'SUCCESS'
+    );
+    setInstallModalVisible(false);
+  };
+
+  // Trigger Chrome PWA Install
   const handleTriggerPwa = async () => {
     const prompt =
       deferredPrompt ||
@@ -113,17 +152,28 @@ export const InstallAppModal: React.FC = () => {
           }
           setInstallModalVisible(false);
           return;
+        } else {
+          setShowChromeGuide(true);
         }
       } catch (err) {
         console.warn('PWA prompt invocation error:', err);
+        setShowChromeGuide(true);
       }
+    } else {
+      setShowChromeGuide(true);
     }
-
-    // If deferredPrompt is not available or rejected, show the inline guide and allow 1-click confirmation
-    setShowChromeGuide(true);
   };
 
-  const isInstalledView = isAppInstalled || isStandaloneApp;
+  const handleConfirmInstalled = () => {
+    markAppAsInstalled();
+    setInstallModalVisible(false);
+  };
+
+  const handleReloadInApp = () => {
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  };
 
   return (
     <Modal
@@ -146,10 +196,14 @@ export const InstallAppModal: React.FC = () => {
                     ? 'Ứng Dụng Độc Lập'
                     : isAppInstalled
                     ? 'Vào Ứng Dụng Đã Cài Đặt'
-                    : 'Cài Đặt & Vào Ứng Dụng'}
+                    : 'Cài Đặt & Tải Ứng Dụng'}
                 </Text>
                 <Text style={styles.modalSub}>
-                  VKU Room Booking • Trải nghiệm ứng dụng di động độc lập
+                  {isStandaloneApp
+                    ? 'VKU Room Booking • Standalone PWA Mode'
+                    : isAppInstalled
+                    ? 'Biểu tượng ứng dụng đã sẵn sàng trên thiết bị của bạn'
+                    : 'Chọn phương thức cài đặt tối ưu cho thiết bị của bạn'}
                 </Text>
               </View>
             </View>
@@ -160,9 +214,62 @@ export const InstallAppModal: React.FC = () => {
 
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             {/* ========================================================= */}
-            {/* VIEW 1: KHI ĐÃ CÀI ĐẶT (TRẠNG THÁI "VÀO APP")            */}
+            {/* TRƯỜNG HỢP 1: ĐANG CHẠY TRONG APP ĐỘC LẬP (STANDALONE)     */}
             {/* ========================================================= */}
-            {isInstalledView ? (
+            {isStandaloneApp ? (
+              <View style={styles.appViewBox}>
+                <View style={styles.appStatusBannerStandalone}>
+                  <Text style={styles.bannerIcon}>🟢</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.bannerTitle}>Bạn đang trong ứng dụng độc lập!</Text>
+                    <Text style={styles.bannerText}>
+                      Phiên bản Standalone PWA chạy toàn màn hình, hỗ trợ Offline-First và quét mã QR phòng học bằng camera thực tế.
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.standaloneFeaturesCard}>
+                  <Text style={styles.featuresHeading}>⚡ Tính Năng Hoạt Động Trong Ứng Dụng:</Text>
+                  <View style={styles.featureItemRow}>
+                    <Text style={styles.featureDot}>✓</Text>
+                    <Text style={styles.featureText}>Giao diện toàn màn hình, không thanh URL trình duyệt.</Text>
+                  </View>
+                  <View style={styles.featureItemRow}>
+                    <Text style={styles.featureDot}>✓</Text>
+                    <Text style={styles.featureText}>Quét mã QR camera thực tế sub-second không độ trễ.</Text>
+                  </View>
+                  <View style={styles.featureItemRow}>
+                    <Text style={styles.featureDot}>✓</Text>
+                    <Text style={styles.featureText}>Lưu trữ offline IndexedDB và đồng bộ tự động Firestore.</Text>
+                  </View>
+                </View>
+
+                <View style={styles.appActionButtons}>
+                  <Pressable style={styles.btnLaunchApp} onPress={handleReloadInApp}>
+                    <Text style={styles.btnLaunchAppText}>🔄 Đồng Bộ / Làm Mới Dữ Liệu</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.btnSecondaryOutline}
+                    onPress={() => {
+                      setInstallModalVisible(false);
+                      setSysInfoModalVisible(true);
+                    }}
+                  >
+                    <Text style={styles.btnSecondaryOutlineText}>ℹ️ Xem Thông Số Three-Layer Architecture</Text>
+                  </Pressable>
+
+                  <Pressable style={styles.btnResetInstall} onPress={resetAppInstallStatus}>
+                    <Text style={styles.btnResetInstallText}>
+                      🔄 Đặt lại trạng thái ban đầu ("Cài Đặt App")
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : isAppInstalled ? (
+              /* ========================================================= */
+              /* TRƯỜNG HỢP 2: ĐÃ CÀI ĐẶT NHƯNG ĐANG MỞ TRÊN TRÌNH DUYỆT   */
+              /* ========================================================= */
               <View style={styles.appViewBox}>
                 <View style={styles.appStatusBannerSuccess}>
                   <Text style={styles.bannerIcon}>🎉</Text>
@@ -176,9 +283,29 @@ export const InstallAppModal: React.FC = () => {
                   </View>
                 </View>
 
+                {/* NÚT HÀNH ĐỘNG CHÍNH ĐỂ VÀO APP NGAY */}
+                <View style={styles.launchHeroCard}>
+                  <Text style={styles.launchHeroTitle}>🚀 KHỞI ĐỘNG ỨNG DỤNG NGAY</Text>
+                  <Pressable style={styles.btnLaunchApp} onPress={handleLaunchApp}>
+                    <Text style={styles.btnLaunchAppText}>
+                      🚀 MỞ CỬA SỔ APP ĐỘC LẬP (STANDALONE)
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.btnContinueInBrowser}
+                    onPress={() => setInstallModalVisible(false)}
+                  >
+                    <Text style={styles.btnContinueInBrowserText}>
+                      ✨ Tiếp tục tra cứu ngay trên trình duyệt này
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {/* Hướng dẫn mở trên điện thoại */}
                 <View style={styles.appInstructionBox}>
                   <Text style={styles.instructionHeading}>
-                    📱 Cách mở ứng dụng toàn màn hình:
+                    📱 Cách mở ứng dụng toàn màn hình trên điện thoại:
                   </Text>
                   <View style={styles.appStepsList}>
                     <View style={styles.stepItemRow}>
@@ -196,7 +323,7 @@ export const InstallAppModal: React.FC = () => {
                     <View style={styles.stepItemRow}>
                       <Text style={styles.stepDot}>3.</Text>
                       <Text style={styles.stepDesc}>
-                        Ứng dụng sẽ mở lên chạy <Text style={styles.boldText}>toàn màn hình 100%</Text> (không có thanh địa chỉ trình duyệt, quét mã QR camera thật và lưu offline mượt mà).
+                        Ứng dụng sẽ mở lên chạy <Text style={styles.boldText}>toàn màn hình 100%</Text> (không có thanh địa chỉ, quét mã QR camera thật và lưu offline mượt mà).
                       </Text>
                     </View>
                   </View>
@@ -214,17 +341,18 @@ export const InstallAppModal: React.FC = () => {
                     onPress={() => {
                       resetAppInstallStatus();
                       setShowChromeGuide(false);
+                      setApkDownloaded(false);
                     }}
                   >
                     <Text style={styles.btnResetInstallText}>
-                      🔄 Tôi chưa cài đặt / Chuyển lại trạng thái "Tải về"
+                      🔄 Tôi chưa cài đặt / Chuyển lại trạng thái "Cài Đặt App"
                     </Text>
                   </Pressable>
                 </View>
               </View>
             ) : (
               /* ========================================================= */
-              /* VIEW 2: KHI CHƯA CÀI ĐẶT (TRẠNG THÁI "TẢI VỀ / CÀI ĐẶT")  */
+              /* TRƯỜNG HỢP 3: CHƯA CÀI ĐẶT (TRẠNG THÁI "CÀI ĐẶT & TẢI VỀ") */
               /* ========================================================= */
               <View style={styles.appViewBox}>
                 {/* Platform Tabs Header */}
@@ -273,11 +401,11 @@ export const InstallAppModal: React.FC = () => {
                 {/* TAB ANDROID */}
                 {activeTab === 'ANDROID' && (
                   <View style={styles.installTabContent}>
-                    {/* Method 1: APK Download */}
+                    {/* Cách 1: Tải File APK Gốc */}
                     <View style={[styles.installOptionCard, styles.installOptionCardHighlight]}>
                       <View style={styles.optionHeader}>
                         <View style={styles.optionBadge}>
-                          <Text style={styles.optionBadgeText}>Khuyên dùng</Text>
+                          <Text style={styles.optionBadgeText}>Khuyên dùng cho Android</Text>
                         </View>
                         <Text style={styles.optionTitle}>Cách 1: Tải File APK Gốc Về Cài Đặt</Text>
                       </View>
@@ -292,9 +420,34 @@ export const InstallAppModal: React.FC = () => {
                           {downloadingApk ? '⏳ Đang Tải Về...' : '⬇️ Tải File VKU-RoomBooking.apk (~78 MB)'}
                         </Text>
                       </Pressable>
+
+                      {apkDownloaded && (
+                        <View style={styles.apkInstallStepsCard}>
+                          <Text style={styles.apkInstallStepsTitle}>
+                            📋 Các bước tiếp theo trên điện thoại:
+                          </Text>
+                          <Text style={styles.apkStepText}>
+                            1. Bấm mở file <Text style={styles.boldText}>app-release.apk</Text> vừa tải về trong mục Tải về / Thông báo.
+                          </Text>
+                          <Text style={styles.apkStepText}>
+                            2. Cho phép cài đặt ứng dụng từ nguồn này nếu được hỏi.
+                          </Text>
+                          <Text style={styles.apkStepText}>
+                            3. Bấm <Text style={styles.boldText}>Cài đặt (Install)</Text> để hoàn tất.
+                          </Text>
+                          <Pressable
+                            style={styles.btnConfirmInstalled}
+                            onPress={handleConfirmInstalled}
+                          >
+                            <Text style={styles.btnConfirmInstalledText}>
+                              ✓ Tôi đã cài xong file APK ➔ Chuyển sang "🚀 Vào App"
+                            </Text>
+                          </Pressable>
+                        </View>
+                      )}
                     </View>
 
-                    {/* Method 2: PWA */}
+                    {/* Cách 2: PWA qua Chrome */}
                     <View style={styles.installOptionCard}>
                       <Text style={styles.optionTitleSecondary}>
                         Cách 2: Cài Đặt Trực Tiếp Qua Trình Duyệt Chrome
@@ -318,13 +471,10 @@ export const InstallAppModal: React.FC = () => {
                           </Text>
                           <Pressable
                             style={styles.btnConfirmInstalled}
-                            onPress={() => {
-                              markAppAsInstalled();
-                              setInstallModalVisible(false);
-                            }}
+                            onPress={handleConfirmInstalled}
                           >
                             <Text style={styles.btnConfirmInstalledText}>
-                              ✓ Tôi đã cài đặt xong!
+                              ✓ Tôi đã cài đặt xong ➔ Chuyển sang "🚀 Vào App"
                             </Text>
                           </Pressable>
                         </View>
@@ -363,13 +513,10 @@ export const InstallAppModal: React.FC = () => {
 
                       <Pressable
                         style={styles.btnPrimaryAction}
-                        onPress={() => {
-                          markAppAsInstalled();
-                          setInstallModalVisible(false);
-                        }}
+                        onPress={handleConfirmInstalled}
                       >
                         <Text style={styles.btnPrimaryActionText}>
-                          ✓ Tôi đã thêm vào MH chính xong!
+                          ✓ Tôi đã thêm vào MH chính ➔ Chuyển sang "🚀 Vào App"
                         </Text>
                       </Pressable>
                     </View>
@@ -451,46 +598,130 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: '#f1f5f9',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   modalCloseBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#64748b',
     fontWeight: '700',
   },
   modalBody: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    padding: 20,
   },
   appViewBox: {
     gap: 16,
   },
-
-  // INSTALLED VIEW STYLES
   appStatusBannerSuccess: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    borderRadius: 12,
     padding: 14,
+    gap: 12,
+  },
+  appStatusBannerStandalone: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#ecfdf5',
     borderWidth: 1,
-    borderColor: '#10b981',
+    borderColor: '#6ee7b7',
     borderRadius: 12,
+    padding: 14,
+    gap: 12,
   },
   bannerIcon: {
-    fontSize: 24,
+    fontSize: 26,
   },
   bannerTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#065f46',
+    color: '#166534',
   },
   bannerText: {
-    fontSize: 12.5,
-    color: '#047857',
+    fontSize: 12,
+    color: '#15803d',
     marginTop: 2,
     lineHeight: 18,
+  },
+  launchHeroCard: {
+    backgroundColor: '#fdf4ff',
+    borderWidth: 2,
+    borderColor: '#c084fc',
+    borderRadius: 14,
+    padding: 16,
+    gap: 10,
+    alignItems: 'center',
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  launchHeroTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#7e22ce',
+    letterSpacing: 0.5,
+  },
+  btnLaunchApp: {
+    width: '100%',
+    backgroundColor: '#7c3aed',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#7c3aed',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  btnLaunchAppText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  btnContinueInBrowser: {
+    paddingVertical: 6,
+  },
+  btnContinueInBrowserText: {
+    color: '#6b21a8',
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  standaloneFeaturesCard: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+  },
+  featuresHeading: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+  featureItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  featureDot: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#16a34a',
+  },
+  featureText: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 18,
+    flex: 1,
   },
   appInstructionBox: {
     backgroundColor: '#f8fafc',
@@ -500,7 +731,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   instructionHeading: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
     color: '#0f172a',
     marginBottom: 8,
@@ -510,103 +741,108 @@ const styles = StyleSheet.create({
   },
   stepItemRow: {
     flexDirection: 'row',
-    gap: 8,
     alignItems: 'flex-start',
+    gap: 8,
   },
   stepDot: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '800',
     color: '#0284c7',
   },
   stepDesc: {
-    flex: 1,
-    fontSize: 12.5,
+    fontSize: 12,
     color: '#334155',
     lineHeight: 18,
+    flex: 1,
   },
   boldText: {
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#0f172a',
   },
   appActionButtons: {
     gap: 10,
+    marginTop: 4,
   },
   btnApkDownload: {
     backgroundColor: '#0284c7',
-    paddingVertical: 13,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   btnApkDownloadText: {
     color: '#ffffff',
-    fontSize: 13.5,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
   },
-  btnResetInstall: {
-    backgroundColor: '#f1f5f9',
+  btnSecondaryOutline: {
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#cbd5e1',
     paddingVertical: 11,
-    paddingHorizontal: 16,
     borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  btnResetInstallText: {
-    color: '#475569',
-    fontSize: 12.5,
+  btnSecondaryOutlineText: {
+    color: '#334155',
+    fontSize: 12,
     fontWeight: '700',
   },
-
-  // NOT INSTALLED VIEW STYLES
+  btnResetInstall: {
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  btnResetInstallText: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   appTabsHeader: {
     flexDirection: 'row',
     gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    paddingBottom: 10,
   },
   appTabBtn: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f1f5f9',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
   appTabBtnActive: {
-    backgroundColor: '#e0f2fe',
-    borderColor: '#0284c7',
+    backgroundColor: '#0284c7',
   },
   appTabBtnText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#64748b',
+    color: '#475569',
   },
   appTabBtnTextActive: {
-    color: '#0284c7',
-    fontWeight: '800',
+    color: '#ffffff',
   },
   installTabContent: {
-    gap: 12,
+    gap: 14,
+    marginTop: 4,
   },
   installOptionCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 12,
     padding: 14,
+    gap: 8,
   },
   installOptionCardHighlight: {
-    borderColor: '#0284c7',
+    borderColor: '#38bdf8',
     backgroundColor: '#f0f9ff',
   },
   optionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 6,
     flexWrap: 'wrap',
   },
   optionBadge: {
@@ -617,81 +853,96 @@ const styles = StyleSheet.create({
   },
   optionBadgeText: {
     color: '#ffffff',
-    fontSize: 10.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   optionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#0369a1',
   },
   optionTitleSecondary: {
     fontSize: 14,
     fontWeight: '800',
     color: '#0f172a',
-    marginBottom: 6,
   },
   optionDesc: {
-    fontSize: 12.5,
+    fontSize: 12,
     color: '#475569',
     lineHeight: 18,
-    marginBottom: 12,
   },
   btnPrimaryAction: {
     backgroundColor: '#0284c7',
     paddingVertical: 12,
-    paddingHorizontal: 16,
     borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: 4,
   },
   btnPrimaryActionText: {
     color: '#ffffff',
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
   },
   btnSecondaryAction: {
     backgroundColor: '#ffffff',
     borderWidth: 1.5,
     borderColor: '#0284c7',
-    paddingVertical: 11,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: 4,
   },
   btnSecondaryActionText: {
     color: '#0284c7',
     fontSize: 13,
     fontWeight: '800',
   },
-  chromeGuideWrap: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
+  apkInstallStepsCard: {
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#bae6fd',
+    borderRadius: 10,
+    padding: 12,
+    gap: 6,
+    marginTop: 8,
+  },
+  apkInstallStepsTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0369a1',
+    marginBottom: 2,
+  },
+  apkStepText: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 18,
+  },
+  chromeGuideWrap: {
+    backgroundColor: '#fefce8',
+    borderWidth: 1,
+    borderColor: '#fde047',
+    borderRadius: 10,
+    padding: 12,
+    gap: 8,
+    marginTop: 8,
   },
   chromeGuideTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 4,
+    color: '#854d0e',
   },
   chromeGuideText: {
-    fontSize: 11.5,
-    color: '#475569',
-    lineHeight: 16,
-    marginBottom: 8,
+    fontSize: 12,
+    color: '#713f12',
+    lineHeight: 18,
   },
   btnConfirmInstalled: {
-    backgroundColor: '#10b981',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    backgroundColor: '#16a34a',
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
+    marginTop: 4,
   },
   btnConfirmInstalledText: {
     color: '#ffffff',
@@ -700,40 +951,40 @@ const styles = StyleSheet.create({
   },
   iosStepList: {
     gap: 8,
-    marginVertical: 10,
+    marginTop: 4,
   },
   iosStepItem: {
     flexDirection: 'row',
-    gap: 6,
     alignItems: 'flex-start',
+    gap: 8,
   },
   iosStepNum: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '800',
     color: '#0284c7',
   },
   iosStepText: {
-    flex: 1,
-    fontSize: 12.5,
+    fontSize: 12,
     color: '#334155',
     lineHeight: 18,
+    flex: 1,
   },
   modalFooter: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
   modalFooterBtn: {
-    paddingVertical: 7,
-    paddingHorizontal: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
     backgroundColor: '#f1f5f9',
   },
   modalFooterBtnText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#64748b',
+    color: '#475569',
   },
 });

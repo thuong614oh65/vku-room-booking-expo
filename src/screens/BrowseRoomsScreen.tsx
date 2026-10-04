@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, SafeAreaView, StatusBar, Platform, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,6 +22,9 @@ export const BrowseRoomsScreen: React.FC = () => {
     setSysInfoModalVisible,
     isAppInstalled,
     isStandaloneApp,
+    markAppAsInstalled,
+    setIsStandaloneApp,
+    refreshInstallState,
     logout,
   } = useBookingStore();
 
@@ -115,22 +118,32 @@ export const BrowseRoomsScreen: React.FC = () => {
     [isRoomAvailableToday, handleSelectRoom]
   );
 
-  const handleInstallPress = useCallback(async () => {
+  useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const prompt = (window as any).__vkuDeferredPrompt;
-      if (prompt) {
-        try {
-          prompt.prompt();
-          const choice = await prompt.userChoice;
-          if (choice && choice.outcome === 'accepted') {
-            (window as any).__vkuDeferredPrompt = null;
-            return;
-          }
-        } catch (e) {
-          console.log('Direct install prompt trigger fallback:', e);
-        }
-      }
+      refreshInstallState();
+
+      const handleInstalled = () => {
+        markAppAsInstalled();
+      };
+
+      window.addEventListener('appinstalled', handleInstalled);
+      window.addEventListener('vku-app-installed', handleInstalled);
+
+      const mq = window.matchMedia?.('(display-mode: standalone)');
+      const handleModeChange = (e: MediaQueryListEvent) => {
+        setIsStandaloneApp(e.matches);
+      };
+      mq?.addEventListener?.('change', handleModeChange);
+
+      return () => {
+        window.removeEventListener('appinstalled', handleInstalled);
+        window.removeEventListener('vku-app-installed', handleInstalled);
+        mq?.removeEventListener?.('change', handleModeChange);
+      };
     }
+  }, [markAppAsInstalled, setIsStandaloneApp, refreshInstallState]);
+
+  const handleInstallPress = useCallback(() => {
     setInstallModalVisible(true);
   }, [setInstallModalVisible]);
 

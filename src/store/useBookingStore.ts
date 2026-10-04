@@ -45,6 +45,17 @@ interface SyncStatus {
   error: string | null;
 }
 
+export const checkIsStandalone = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    window.matchMedia?.('(display-mode: fullscreen)').matches ||
+    window.matchMedia?.('(display-mode: minimal-ui)').matches ||
+    (window.navigator as any)?.standalone === true ||
+    (typeof document !== 'undefined' && document.referrer.includes('android-app://'))
+  );
+};
+
 interface BookingState {
   rooms: Room[];
   bookings: Booking[];
@@ -65,6 +76,8 @@ interface BookingState {
   setAuthModalVisible: (visible: boolean) => void;
   setInstallModalVisible: (visible: boolean) => void;
   setSysInfoModalVisible: (visible: boolean) => void;
+  setIsStandaloneApp: (isStandalone: boolean) => void;
+  refreshInstallState: () => void;
   markAppAsInstalled: () => void;
   resetAppInstallStatus: () => void;
 
@@ -185,12 +198,9 @@ export const useBookingStore =
 
         isAppInstalled:
           typeof window !== 'undefined' &&
-          Boolean(window.localStorage?.getItem('vku_app_installed') === 'true'),
+          (Boolean(window.localStorage?.getItem('vku_app_installed') === 'true') || checkIsStandalone()),
 
-        isStandaloneApp:
-          typeof window !== 'undefined' &&
-          (Boolean(window.matchMedia?.('(display-mode: standalone)').matches) ||
-            Boolean((window.navigator as any)?.standalone === true)),
+        isStandaloneApp: checkIsStandalone(),
 
         filters: INITIAL_FILTERS,
 
@@ -259,6 +269,24 @@ export const useBookingStore =
             sysInfoModalVisible: visible,
           }),
 
+        setIsStandaloneApp: (isStandalone: boolean) =>
+          set({
+            isStandaloneApp: isStandalone,
+            isAppInstalled: isStandalone ? true : get().isAppInstalled,
+          }),
+
+        refreshInstallState: () => {
+          const standalone = checkIsStandalone();
+          const installed =
+            standalone ||
+            (typeof window !== 'undefined' &&
+              Boolean(window.localStorage?.getItem('vku_app_installed') === 'true'));
+          set({
+            isStandaloneApp: standalone,
+            isAppInstalled: installed,
+          });
+        },
+
         markAppAsInstalled: () => {
           if (typeof window !== 'undefined' && window.localStorage) {
             window.localStorage.setItem('vku_app_installed', 'true');
@@ -275,7 +303,8 @@ export const useBookingStore =
           if (typeof window !== 'undefined' && window.localStorage) {
             window.localStorage.removeItem('vku_app_installed');
           }
-          set({ isAppInstalled: false });
+          const standalone = checkIsStandalone();
+          set({ isAppInstalled: standalone, isStandaloneApp: standalone });
           notificationService.notify(
             '🔄 Đã đặt lại trạng thái',
             'Đã chuyển lại trạng thái Cài Đặt / Tải App ban đầu.',
