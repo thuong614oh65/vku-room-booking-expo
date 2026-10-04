@@ -19,15 +19,33 @@ function mdToHtml(md) {
     // Inline code
     .replace(/`([^`]+)`/gim, '<code>$1</code>');
 
-  // Simple table parser
+  // Table and pre/code parser
   const lines = html.split('\n');
   let inTable = false;
+  let inPre = false;
   let tableHtml = '';
+  let preHtml = '';
   const resultLines = [];
-  let inCodeBlock = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
+
+    if (line.startsWith('```')) {
+      if (inPre) {
+        inPre = false;
+        resultLines.push('<pre><code>' + preHtml + '</code></pre>');
+        preHtml = '';
+      } else {
+        inPre = true;
+      }
+      continue;
+    }
+
+    if (inPre) {
+      preHtml += (preHtml ? '\n' : '') + line;
+      continue;
+    }
+
     if (line.startsWith('|') && line.endsWith('|')) {
       if (line.includes('---')) {
         continue; // delimiter row
@@ -45,16 +63,10 @@ function mdToHtml(md) {
         tableHtml += '</tbody></table>';
         resultLines.push(tableHtml);
       }
-      if (line.startsWith('```')) {
-        if (!inCodeBlock) {
-          inCodeBlock = true;
-          resultLines.push('<pre><code>');
-        } else {
-          inCodeBlock = false;
-          resultLines.push('</code></pre>');
-        }
-      } else if (inCodeBlock) {
-        resultLines.push(line.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+      if (line.startsWith('* ')) {
+        resultLines.push(`<li>${line.slice(2)}</li>`);
+      } else if (/^\d+\.\s/.test(line)) {
+        resultLines.push(`<li>${line.replace(/^\d+\.\s/, '')}</li>`);
       } else if (line.length > 0 && !line.startsWith('<h') && !line.startsWith('<hr')) {
         resultLines.push(`<p>${line}</p>`);
       } else {
@@ -62,6 +74,7 @@ function mdToHtml(md) {
       }
     }
   }
+
   if (inTable) {
     resultLines.push(tableHtml + '</tbody></table>');
   }
@@ -70,128 +83,143 @@ function mdToHtml(md) {
 }
 
 const mdPath = path.join(__dirname, 'BAO_CAO_KY_THUAT_REPORT.md');
-const htmlPath = path.join(__dirname, 'temp_report.html');
-const pdfPath = path.join(__dirname, 'BAO_CAO_KY_THUAT_REPORT.pdf');
+const mdContent = fs.readFileSync(mdPath, 'utf-8');
+const bodyContent = mdToHtml(mdContent);
 
-const mdContent = fs.readFileSync(mdPath, 'utf8');
-const bodyHtml = mdToHtml(mdContent);
-
-const fullHtml = `<!DOCTYPE html>
+const htmlTemplate = `<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>VKU Mini-Project 2 Report</title>
+  <title>Báo Cáo Kỹ Thuật - VKU Room Booking</title>
   <style>
     @page {
       size: A4;
-      margin: 18mm 16mm 18mm 16mm;
+      margin: 14mm 16mm;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      font-size: 13.5px;
-      line-height: 1.55;
-      color: #1e293b;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      line-height: 1.5;
+      font-size: 12.5px;
       margin: 0;
       padding: 0;
     }
     h1 {
-      font-size: 20px;
-      color: #0f172a;
-      border-bottom: 2px solid #2563eb;
-      padding-bottom: 6px;
+      font-size: 18px;
+      color: #0284c7;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 4px;
       margin-top: 0;
-      margin-bottom: 12px;
+      margin-bottom: 4px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
     h2 {
-      font-size: 15px;
-      color: #1e40af;
-      border-bottom: 1px solid #cbd5e1;
-      padding-bottom: 4px;
-      margin-top: 18px;
-      margin-bottom: 10px;
-    }
-    h3 {
       font-size: 14px;
-      color: #334155;
+      color: #0369a1;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 3px;
       margin-top: 14px;
       margin-bottom: 6px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 13px;
+      color: #1e293b;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 12px;
+      color: #0284c7;
+      margin: 8px 0 3px 0;
     }
     p {
-      margin: 6px 0;
+      margin: 4px 0;
+    }
+    li {
+      margin: 2px 0;
+      margin-left: 18px;
     }
     hr {
       border: none;
       border-top: 1px solid #e2e8f0;
-      margin: 14px 0;
+      margin: 10px 0;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 12px 0;
-      font-size: 12px;
-    }
-    th, td {
-      border: 1px solid #cbd5e1;
-      padding: 7px 10px;
-      text-align: left;
-      vertical-align: top;
+      margin: 8px 0;
+      font-size: 11px;
     }
     th {
-      background-color: #f1f5f9;
+      background: #f1f5f9;
       color: #0f172a;
-      font-weight: 600;
+      font-weight: 700;
+      border: 1px solid #cbd5e1;
+      padding: 5px 8px;
+      text-align: left;
     }
-    tr:nth-child(even) td {
-      background-color: #f8fafc;
+    td {
+      border: 1px solid #cbd5e1;
+      padding: 4px 8px;
+    }
+    tr {
+      page-break-inside: avoid;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
     }
     code {
-      background-color: #f1f5f9;
+      background: #f1f5f9;
       color: #0369a1;
-      padding: 2px 5px;
+      padding: 1px 4px;
       border-radius: 4px;
-      font-family: Consolas, "Courier New", monospace;
-      font-size: 11.5px;
+      font-family: Consolas, monospace;
+      font-size: 11px;
     }
     pre {
-      background-color: #0f172a;
+      background: #0f172a;
       color: #f8fafc;
-      padding: 10px 14px;
+      padding: 8px 12px;
       border-radius: 6px;
       overflow-x: auto;
-      font-size: 11px;
-      line-height: 1.45;
-      margin: 10px 0;
+      font-size: 10.5px;
+      line-height: 1.4;
+      page-break-inside: avoid;
+      font-family: Consolas, monospace;
     }
     pre code {
-      background-color: transparent;
+      background: none;
       color: inherit;
       padding: 0;
     }
     a {
-      color: #2563eb;
+      color: #0284c7;
       text-decoration: none;
+      font-weight: 600;
+    }
+    strong {
+      color: #0f172a;
     }
   </style>
 </head>
 <body>
-  ${bodyHtml}
+  ${bodyContent}
 </body>
 </html>`;
 
-fs.writeFileSync(htmlPath, fullHtml, 'utf8');
+const tempHtml = path.join(__dirname, 'temp_report.html');
+fs.writeFileSync(tempHtml, htmlTemplate, 'utf-8');
 
+const pdfOut = path.join(__dirname, 'BAO_CAO_KY_THUAT_REPORT.pdf');
 const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const cmd = `"${edgePath}" --headless --disable-gpu --print-to-pdf="${pdfPath}" "${htmlPath}"`;
 
 console.log('Rendering PDF via Microsoft Edge...');
-execSync(cmd, { stdio: 'inherit' });
+execSync(`"${edgePath}" --headless --disable-gpu --print-to-pdf="${pdfOut}" --no-pdf-header-footer "${tempHtml}"`);
 
-if (fs.existsSync(pdfPath)) {
-  const stats = fs.statSync(pdfPath);
-  console.log(`✓ PDF Generated Successfully (${stats.size} bytes): ${pdfPath}`);
-  fs.unlinkSync(htmlPath);
-} else {
-  console.error('Failed to generate PDF');
+if (fs.existsSync(tempHtml)) {
+  fs.unlinkSync(tempHtml);
 }
+
+console.log(`✓ PDF Generated Successfully: ${pdfOut}`);

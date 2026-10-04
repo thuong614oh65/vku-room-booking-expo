@@ -1,145 +1,130 @@
-# MINI-PROJECT SHORT TECHNICAL REPORT
-**Course:** Cross-Platform Mobile App Development (VKU)  
-**Mini-Project Title:** Mini-Project 2: Real-time Study Room Booking App (React Native & Expo)  
-**Team / Student Name:** Nguyễn Thị Thương  
-**Submission Date:** 22/09/2026  
+# BÁO CÁO KỸ THUẬT TIỂU LUẬN / MINI-PROJECT 2
+## HỌC PHẦN: LẬP TRÌNH ĐA NỀN TẢNG (CROSS-PLATFORM DEVELOPMENT)
+**TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG VIỆT - HÀN (VKU)**  
+**KHOA KHOA HỌC MÁY TÍNH**
 
 ---
 
-## 1. GENERAL INFORMATION & DELIVERABLE LINKS
-* **Team Members:**
-  1. **Nguyễn Thị Thương** — Student ID: **23IT.B219** — Class: **23ITB** — Role: **Full-stack Mobile Developer (Architecture, UI/UX, State Management & Cloud Deployment)** — Contribution: **100%**
-* **🔗 Live Demo URL:** [https://vku-room-booking-17t.pages.dev/](https://vku-room-booking-17t.pages.dev/)
-* **💻 GitHub Repository:** [https://github.com/thuong614oh65/vku-room-booking-expo](https://github.com/thuong614oh65/vku-room-booking-expo)
-* **🎥 Video Demo / Mobile Access:** Truy cập và cài đặt trực tiếp trên thiết bị di động (iOS Safari & Android Chrome / PWA Standalone) tại đường dẫn Live Demo trên.
+### 📋 THÔNG TIN SINH VIÊN & ĐỀ TÀI
+* **Họ và tên sinh viên:** Nguyễn Thị Thương
+* **Mã số sinh viên (MSSV):** 23IT.B219
+* **Lớp sinh hoạt:** 23ITB
+* **Email sinh viên:** [thuongnt.23itb@vku.udn.vn](mailto:thuongnt.23itb@vku.udn.vn)
+* **Giảng viên hướng dẫn:** TS. Nguyễn Thanh Tuấn
+* **Tên đề tài:** *VKU Room Booking — Hệ thống tra cứu, mượn phòng học & kiểm soát mã QR thời gian thực (React Native, Expo SDK 57, Firestore & Offline-First PWA)*
+* **Thời gian thực hiện:** Tuần 5 – Tuần 6 • **Trọng số điểm:** 10%
 
 ---
 
-## 2. FEATURE IMPLEMENTATION CHECKLIST
+## 1. THÔNG TIN BÀN GIAO & LIÊN KẾT MINH CHỨNG (DELIVERABLES)
 
-| # | Required Feature | Status | Implementation Details & Acceptance Level |
-|:---:|---|:---:|---|
-| 1 | **Room Discovery & Multi-Parameter Filter** | ✅ Complete | Danh sách phòng học hiển thị ảnh độ nét cao, toà nhà/tầng, sức chứa, trang thiết bị và trạng thái tức thì. Hỗ trợ tìm kiếm theo tên và lọc kết hợp đa tham số (Toà nhà A, B, C, V; Sức chứa 2–20; Thiết bị: Máy chiếu, Bảng trắng, Máy tính cấu hình cao, Điều hoà). |
-| 2 | **Interactive Time-Slot Selector & Conflict Engine** | ✅ Complete | Thanh chọn ngày 7 ngày kế tiếp kết hợp lưới ca học 2 giờ rời rạc (`07:30–09:30`, `09:30–11:30`, `13:00–15:00`, `15:00–17:00`). Kiểm tra xung đột thời gian thực: ca đã có người đặt sẽ hiển thị màu đỏ `"Đã Kín"` và khoá tương tác. |
-| 3 | **Global State Management with Zustand** | ✅ Complete | Quản lý phiên người dùng (`currentUser`), danh sách phòng (`rooms`), lịch sử đặt chỗ (`bookings`), hàng đợi chờ (`waitlist`) thông qua `useBookingStore`. |
-| 4 | **Local Offline Persistence** | ✅ Complete | Tích hợp middleware bền vững hóa lưu trữ dữ liệu thông qua `@react-native-async-storage/async-storage`, giữ nguyên dữ liệu đặt phòng khi đóng ứng dụng hoặc khởi động lại thiết bị. |
-| 5 | **FlatList 60 FPS Performance Optimization** | ✅ Complete | Tối ưu hóa cuộn mượt mà với `React.memo(RoomCard)`, `initialNumToRender={5}`, `maxToRenderPerBatch={8}`, `windowSize={7}`, `removeClippedSubviews` và `useMemo` tính toán bộ lọc. |
-| 6 | **Digital Booking Pass & QR Check-in Modal** | ✅ Complete | Phát hành thẻ thông hành điện tử (Digital Boarding Pass) kèm mã QR xác thực phòng học độc nhất (`VKU-ROOM-{timestamp}`), thông tin ca học và mã phòng. |
-| 7 | **Local Notification Reminders** | ✅ Complete | Tích hợp dịch vụ thông báo cục bộ (`notificationService.ts`), mô phỏng kích hoạt cảnh báo Check-in tự động 15 phút trước khi ca học bắt đầu và báo phòng trống từ hàng đợi. |
-| 8 | **Priority Waitlist & Smart Conflict Resolution** | ✅ Complete | Khi phát hiện xung đột, kích hoạt `ConflictResolutionModal` gợi ý 3 phương án: Đổi phòng tương đương còn trống, Chọn ca khác trong ngày, hoặc Đăng ký vào Hàng đợi ưu tiên (tự động thông báo khi có người huỷ). |
+* **🌐 Live Web Demo (Cloudflare Pages):** [https://vku-room-booking-17t.pages.dev/](https://vku-room-booking-17t.pages.dev/)
+* **📁 GitHub Repository (Public):** [https://github.com/thuong614oh65/vku-room-booking-expo](https://github.com/thuong614oh65/vku-room-booking-expo)
+* **📱 Tải Trực Tiếp Native Android APK:** [app-release.apk (v1.0.0 - 78.8 MB)](https://github.com/thuong614oh65/vku-room-booking-expo/releases/download/v1.0.0/app-release.apk)
+* **⚡ Expo Application Services (EAS Build):** [EAS Build Artifact Details (Build ID: 56663180-6a06-4ae6-91e6-f991c7d8d73c)](https://expo.dev/accounts/thuong221332/projects/vku-room-booking/builds/56663180-6a06-4ae6-91e6-f991c7d8d73c)
 
 ---
 
-## 3. TECHNICAL ARCHITECTURE & PROJECT STRUCTURE
+## 2. BẢNG KIỂM TRA ĐỐI SOÁT TÍNH NĂNG (FEATURE CHECKLIST)
 
-### 3.1. Directory Structure
+| STT | Tính năng yêu cầu | Trạng thái | Minh chứng kỹ thuật trong mã nguồn |
+|:---:|:---|:---:|:---|
+| 1 | **Danh sách phòng học 60 FPS** | ✅ Đạt 100% | `BrowseRoomsScreen.tsx`: Dùng `FlatList` kết hợp `React.memo(RoomCard)`, `initialNumToRender: 6`, `windowSize: 5`, cuộn mượt mà không rớt khung hình. |
+| 2 | **Bộ lọc đa tiêu chí & Ngày giờ** | ✅ Đạt 100% | `FilterBar.tsx`: Lọc theo từ khóa, tòa nhà (Khu A, B, C, V, Lib), sức chứa, thiết bị và lọc ca học/ngày giờ khả dụng. |
+| 3 | **Lưới ca học chuẩn VKU (2 tiếng)** | ✅ Đạt 100% | `TimeSlotGrid.tsx`: 5 ca học VKU (07:30–09:30, 09:30–11:30, 13:00–15:00, 15:00–17:00, 17:30–19:30) kèm trạng thái khóa thị giác slot đã kín. |
+| 4 | **Giải quyết xung đột First-Committed** | ✅ Đạt 100% | `useBookingStore.ts`: Cơ chế Atomic Commit với `checkSlotConflict()`, đảm bảo khi 2 người cùng bấm đặt phòng, chỉ người đến trước thành công. |
+| 5 | **Modal điều phối thông minh** | ✅ Đạt 100% | `ConflictResolutionModal.tsx`: Gợi ý phòng tương đương cùng tòa/sức chứa, gợi ý ca học khác và đăng ký danh sách chờ. |
+| 6 | **Hàng đợi ưu tiên (Priority Waitlist)** | ✅ Đạt 100% | `useBookingStore.ts`: Đăng ký nhận giữ chỗ tự động; khi người trước hủy phòng, hệ thống tự động đẩy thông báo ưu tiên cho người chờ. |
+| 7 | **Thẻ mượn phòng số (Digital Pass)** | ✅ Đạt 100% | `BookingConfirmationPassScreen.tsx`: Vé điện tử chứa mã sinh viên, mã phòng, ca học, mã định danh duy nhất và mã QR xác thực. |
+| 8 | **Quét mã QR camera thực tế** | ✅ Đạt 100% | `QRScannerScreen.tsx`: Tích hợp camera thực tế phân tích mã QR sub-second, có đèn Flash toggle và nhận diện tức thì. |
+| 9 | **Xác thực Check-in tại cửa** | ✅ Đạt 100% | Xác thực mã vé hợp lệ, tự động cập nhật trạng thái `CHECKED_IN` và ghi nhận thời gian vào phòng. |
+| 10 | **Quản lý lịch mượn phòng cá nhân** | ✅ Đạt 100% | `MyBookingsScreen.tsx`: Phân loại 3 tab Sắp tới / Đã vào / Đã hủy, hỗ trợ hủy phòng giải phóng slot cho người khác. |
+| 11 | **Nhắc nhở tự động 15 phút** | ✅ Đạt 100% | `notificationService.ts`: Tự động hẹn giờ phát thông báo đẩy trước ca học 15 phút và phát Toast tương tác trực quan. |
+| 12 | **Lưu trữ Offline-First (Persistence)** | ✅ Đạt 100% | Tích hợp Zustand với `@react-native-async-storage/async-storage`, lưu trữ toàn bộ dữ liệu phòng và vé không bị mất khi F5. |
+| 13 | **Đồng bộ thời gian thực Firestore** | ✅ Đạt 100% | `realtimeBookingService.ts`: Tích hợp Google Firestore REST API, đồng bộ hai chiều thời gian thực giữa các thiết bị. |
+| 14 | **Đóng gói Native Android APK** | ✅ Đạt 100% | Xây dựng thành công tệp Native Release APK độc lập (`78.8 MB`), cài đặt trực tiếp trên các dòng máy Android. |
+| 15 | **PWA Standalone & Bộ icon chuẩn** | ✅ Đạt 100% | `manifest.json` & `sw.js` (Cache-First v15), icon 192x192 & 512x512, hỗ trợ cài đặt Add to Home Screen và cửa sổ độc lập. |
+
+---
+
+## 3. KIẾN TRÚC HỆ THỐNG & GIẢI PHÁP KỸ THUẬT TRỌNG TÂM
+
+### 3.1. Kiến trúc phân tầng (Three-Layer Architecture)
+Ứng dụng được thiết kế theo mô hình 3 lớp phân tách trách nhiệm rõ ràng (Separation of Concerns):
+1. **Lớp Giao diện (Presentation Layer):**
+   - Xây dựng bằng React Native kết hợp React Navigation (Native Stack + Bottom Tabs).
+   - Áp dụng các kỹ thuật tối ưu hóa 60 FPS: `React.memo`, `useCallback`, `useMemo`, `initialNumToRender: 6`.
+2. **Lớp Xử lý nghiệp vụ & Quản lý trạng thái (Business & State Layer):**
+   - Trung tâm điều phối bởi Zustand Store (`useBookingStore.ts`).
+   - Động cơ giải quyết xung đột nguyên tử (Atomic Commit Engine) xử lý tranh chấp tài nguyên phòng.
+   - Dịch vụ thông báo cục bộ (`notificationService.ts`) điều phối lịch nhắc nhở 15 phút và cảnh báo hàng đợi.
+3. **Lớp Lưu trữ & Đồng bộ đám mây (Data & Sync Layer):**
+   - **Cục bộ (Local):** `AsyncStorage` lưu trữ cấu hình, vé và phòng học ngoại tuyến (Offline-First).
+   - **Đám mây (Cloud):** Google Cloud Firestore lưu trữ tập trung, đồng bộ 2 chiều thời gian thực.
+
+---
+
+### 3.2. Sơ đồ luồng giải quyết xung đột đặt phòng (Atomic Conflict Resolution)
+
 ```
-Tuan_05_06_MiniProject2_VKU_RoomBooking/
-├── src/
-│   ├── components/                # Reusable UI components
-│   │   ├── RoomCard.tsx           # Memoized card component for FlatList (60fps)
-│   │   ├── FilterBar.tsx          # Multi-parameter search & chips filter
-│   │   ├── DateSelector.tsx       # 7-day horizontal date picker
-│   │   ├── TimeSlotGrid.tsx       # 2-hour discrete time slots with conflict colors
-│   │   ├── QRCodeModal.tsx        # Interactive digital QR check-in modal
-│   │   ├── ConflictResolutionModal.tsx # Smart conflict resolver & waitlist handler
-│   │   └── NotificationToast.tsx  # In-app animated toast banner
-│   ├── data/
-│   │   └── roomsData.ts           # 10 comprehensive VKU study rooms & computer labs
-│   ├── navigation/
-│   │   ├── AppNavigator.tsx       # Root NativeStackNavigator & NavigationContainer
-│   │   └── TabNavigator.tsx       # BottomTabNavigator (Browse, Bookings, Profile)
-│   ├── screens/
-│   │   ├── BrowseRoomsScreen.tsx  # Feed screen with search, filters & FlatList
-│   │   ├── RoomDetailsScreen.tsx  # Detailed room specs, 7-day picker, slot grid
-│   │   ├── BookingConfirmationPassScreen.tsx # Digital Pass & QR display
-│   │   ├── MyBookingsScreen.tsx   # Active reservations & waitlist management
-│   │   └── ProfileScreen.tsx      # Student profile, booking metrics & guidelines
-│   ├── services/
-│   │   └── notificationService.ts # Local notification scheduler & in-app alerts
-│   ├── store/
-│   │   └── useBookingStore.ts     # Zustand store with AsyncStorage persistence
-│   └── types/
-│       └── index.ts               # Complete TypeScript interfaces & type definitions
-├── assets/                        # Brand icons & splash screens
-├── App.tsx                        # App entry point with safe-area & toast provider
-└── package.json                   # Dependencies (React Native 0.86, Expo 57, Zustand)
-```
-
-### 3.2. State Management & Data Flow Architecture
-```mermaid
-flowchart TD
-    Storage["AsyncStorage (Bền Vững Hóa Dữ Liệu)"] <--> Store["Zustand Store (useBookingStore)"]
-    
-    subgraph State["Global State"]
-        Store --> Rooms["rooms: 10 Phòng học & Lab VKU"]
-        Store --> Bookings["bookings: Danh sách phiếu mượn"]
-        Store --> Waitlist["waitlist: Danh sách sinh viên chờ"]
-        Store --> Filter["filters: Toà nhà, Sức chứa, Thiết bị"]
-        Store --> User["currentUser: Nguyễn Thị Thương (23IT.B219)"]
-    end
-    
-    Action["Sinh viên chọn Ca học & Bấm Đặt"] --> ConflictCheck{"checkSlotConflict()"}
-    ConflictCheck -- "Ca Trống" --> Commit["addBooking() Atomic Transaction"]
-    Commit --> Success["Ghi AsyncStorage + Phát hành QR Pass + Đặt lịch nhắc 15p"]
-    
-    ConflictCheck -- "Đã Kín" --> Modal["Kích hoạt ConflictResolutionModal"]
-    Modal --> Alt1["1. Gợi ý phòng tương đương còn trống"]
-    Modal --> Alt2["2. Gợi ý ca khác trong ngày"]
-    Modal --> Alt3["3. Đăng ký Hàng Đợi (Waitlist)"]
+[Sinh viên A & B cùng bấm đặt Phòng X - Ca 07:30]
+                       │
+                       ▼
+          [checkSlotConflict() trong Zustand]
+         /                                   \
+   (Đến trước - 1st Commit)            (Đến sau - 2nd Commit)
+        /                                     \
+       ▼                                       ▼
+[Tạo vé CONFIRMED]                    [Kích hoạt Conflict Modal]
+[Khoá slot trên UI]                   ├─ Gợi ý phòng tương đương
+[Ghi Firestore & AsyncStorage]        ├─ Gợi ý ca học khác
+[Đặt thông báo nhắc 15 phút]          └─ Đăng ký Priority Waitlist
 ```
 
 ---
 
-## 4. EMPIRICAL EVIDENCE & SCREENSHOTS
+### 3.3. Giải pháp cho 2 câu hỏi kiến trúc cốt lõi của đề tài
 
-### 4.1. Màn hình Khám phá & Bộ lọc Đa tham số (BrowseRoomsScreen)
-* **Mô tả:** Hiển thị danh sách các phòng học tại Khu A, B, C, V và Thư viện với thanh tìm kiếm tức thì và các thẻ chip lọc theo Toà nhà, Sức chứa và Thiết bị (Máy chiếu, Máy tính Lab, Điều hoà).
-* **Điểm nổi bật:** Cuộn danh sách đạt tốc độ 60 FPS mượt mà nhờ cơ chế ảo hoá FlatList và component `RoomCard` được memoize.
+#### ❓ Câu hỏi 1: Xử lý thế nào khi 2 người cùng bấm đặt 1 phòng tại cùng 1 thời điểm?
+* **Khóa thị giác tức thời (Visual Lock):** Ngay khi một slot được chọn và commit, trạng thái trên toàn bộ giao diện lập tức chuyển sang màu đỏ (badge "Đã kín") và vô hiệu hóa nút bấm đối với các người dùng khác.
+* **Cơ chế First-Committed-Wins:** Khi 2 yêu cầu gửi đến gần như đồng thời (chênh lệch mili-giây), hàm `atomicAddBooking()` trong Zustand Store sẽ thực hiện kiểm tra nguyên tử tính hợp lệ của slot `(roomId, date, slotId)`. Yêu cầu đến trước sẽ được cấp phát thành công (`status: 'CONFIRMED'`), sinh mã thẻ điện tử; yêu cầu đến sau lập tức bị chặn lại và trả về cờ xung đột `{ success: false, conflict: ... }`.
 
-### 4.2. Màn hình Chọn ngày 7 ngày & Lưới Ca học (RoomDetailsScreen)
-* **Mô tả:** Cho phép sinh viên duyệt lịch 7 ngày tới, lựa chọn các ca học rời rạc 2 tiếng (`07:30–09:30`, `09:30–11:30`, `13:00–15:00`, `15:00–17:00`).
-* **Trực quan hoá xung đột:** Ca trống hiển thị nền xanh lá nhạt với nút chọn rõ ràng; ca đã kín hiển thị màu đỏ viền gạch kèm nhãn `"Đã Kín"` và tự động vô hiệu hóa thao tác bấm.
-
-### 4.3. Thẻ Thông Hành Số Hoá & QR Check-in (BookingConfirmationPassScreen)
-* **Mô tả:** Vé điện tử xác thực đặt phòng thành công với mã đặt chỗ độc nhất, thông tin phòng, khung giờ đã chọn, sơ đồ toà nhà và mã QR Check-in tương tác có thể mở phóng to tại cửa phòng học.
-
-### 4.4. Động cơ Giải quyết Xung đột & Hàng đợi Chờ (ConflictResolutionModal & Waitlist)
-* **Mô tả:** Khi hai sinh viên cùng thao tác một ca học, sinh viên đến sau sẽ nhận được modal điều hướng thân thiện: hệ thống tự động tìm và gợi ý các phòng lân cận cùng khung giờ, gợi ý ca học khác của phòng này, hoặc cho phép đăng ký vào Hàng đợi ưu tiên.
+#### ❓ Câu hỏi 2: Trải nghiệm cho người thất bại (đến sau) được giải quyết như thế nào?
+Thay vì ngắt quãng trải nghiệm bằng thông báo lỗi đơn thuần, hệ thống kích hoạt **Modal Điều Phối Thông Minh** với 3 cấp độ hỗ trợ:
+1. **Gợi ý phòng tương đương còn trống (Smart Alternative Rooms):** Thuật toán tự động tìm các phòng cùng tòa nhà hoặc cùng sức chứa (độ lệch $\pm 10$ chỗ) đang còn trống tại chính ca học đó để sinh viên đổi phòng ngay với 1 chạm.
+2. **Gợi ý ca học lân cận (Alternative Time Slots):** Nếu sinh viên bắt buộc dùng đúng phòng đã chọn (do đặc thù dàn máy PC hoặc phòng lab), hệ thống hiển thị các ca học còn trống khác trong ngày để chuyển ca.
+3. **Đăng ký Hàng đợi Ưu tiên (Priority Waitlist):** Sinh viên có thể đăng ký giữ chỗ dự bị. Khi người đặt trước hủy phòng, hệ thống tự động gửi thông báo đẩy để người chờ vào xác nhận đặt phòng.
 
 ---
 
-## 5. TECHNICAL CHALLENGES & RESOLUTIONS
+## 4. HƯỚNG DẪN CÀI ĐẶT & TRIỂN KHAI HỆ THỐNG
 
-### 5.1. Thách thức 1: Bài toán Đồng thời & Tranh chấp Đặt phòng (Race Conditions & Overbooking)
-* **Vấn đề kỹ thuật:** Nếu hai sinh viên cùng mở ứng dụng khi một phòng đang hiển thị trống và cùng bấm xác nhận gần như cùng lúc, hệ thống rất dễ bị ghi đè dữ liệu hoặc chấp nhận hai lượt đặt cho cùng một khung giờ.
-* **Giải pháp khắc phục:**
-  1. Triển khai phương thức xác thực giao dịch nguyên tử (*Atomic Validation*) trong `useBookingStore.ts`:
-     ```typescript
-     addBooking: (bookingData) => {
-       const conflict = get().checkSlotConflict(bookingData.roomId, bookingData.date, bookingData.slotId);
-       if (conflict.hasConflict) {
-         return { success: false, conflict };
-       }
-       // Yêu cầu đến trước: Ghi đè trạng thái CONFIRMED vào AsyncStorage
-       const newBooking = { ...bookingData, id: `BK-${Date.now()}`, status: 'CONFIRMED' };
-       set((state) => ({ bookings: [newBooking, ...state.bookings] }));
-       return { success: true, booking: newBooking };
-     }
-     ```
-  2. Kết hợp với `ConflictResolutionModal`: Khi yêu cầu đến sau bị từ chối, ứng dụng không hiển thị thông báo lỗi khô khan mà lập tức cung cấp 3 giải pháp thay thế (Đổi phòng tương đương, Đổi ca, hoặc Đưa vào Hàng đợi Waitlist tự động thông báo khi có người huỷ).
+### 4.1. Khởi chạy trên Web Browser
+```bash
+# Di chuyển vào thư mục dự án
+cd "D:\TÀI LIỆU\LẬP TRÌNH ĐA NỀN TẢNG\CODE_BAITAP\Tuan_05_06_MiniProject2_VKU_RoomBooking"
 
-### 5.2. Thách thức 2: Sụt giảm Khung hình (Frame Drops) khi Cuộn Danh sách Phòng học Đa Phương tiện
-* **Vấn đề kỹ thuật:** Mỗi thẻ phòng học chứa ảnh minh hoạ độ phân giải cao, hệ thống biểu tượng thiết bị, badge trạng thái và tính toán số chỗ trống theo thời gian thực, dẫn đến hiện tượng giật lag khi người dùng thao tác cuộn nhanh.
-* **Giải pháp khắc phục:**
-  1. Áp dụng `React.memo` cho `RoomCard` với hàm so sánh `areEqual` tùy biến, triệt tiêu hoàn toàn việc re-render các thẻ không thay đổi dữ liệu.
-  2. Tinh chỉnh cấu hình ảo hóa của `FlatList`:
-     * `initialNumToRender={5}`: Chỉ dựng trước 5 thẻ đầu tiên trong lần nạp đầu, rút ngắn thời gian khởi động xuống dưới 200ms.
-     * `maxToRenderPerBatch={8}`: Giới hạn số lượng phần tử dựng trong mỗi chu kỳ khung hình (frame cycle).
-     * `windowSize={7}`: Kiểm soát vùng đệm bộ nhớ cho các phần tử ngoài màn hình, tiết kiệm dung lượng RAM trên thiết bị di động.
-     * `useMemo`: Tách biệt logic lọc 4 tiêu chí khỏi chu kỳ render chính của màn hình.
+# Cài đặt các gói thư viện phụ thuộc
+npm install
+
+# Xuất bản và chạy thử nghiệm trên Web
+npm run web
+# Hoặc chạy bản build PWA Production
+npx expo export -p web
+```
+
+### 4.2. Cài đặt file Native Android APK
+1. Tải tệp tin cài đặt [app-release.apk](https://github.com/thuong614oh65/vku-room-booking-expo/releases/download/v1.0.0/app-release.apk) trực tiếp về điện thoại Android.
+2. Mở tệp tin và cấp quyền *"Cài đặt ứng dụng từ nguồn này"*.
+3. Nhấn **"Cài đặt"** (Install) để hoàn tất. Ứng dụng sẽ xuất hiện trên màn hình chính với đầy đủ quyền truy cập Camera quét mã QR và lưu trữ offline.
+
+### 4.3. Cài đặt trực tiếp qua PWA Standalone (iOS & Android Chrome)
+1. Mở liên kết [https://vku-room-booking-17t.pages.dev/](https://vku-room-booking-17t.pages.dev/) trên Google Chrome hoặc Safari.
+2. Bấm nút **`📲 Cài Đặt App`** trên thanh tiêu đề ➔ Chọn **`📲 Bấm Vào Đây Để Cài Đặt Ngay`**.
+3. Bấm **"Install"** trên hộp thoại của trình duyệt. Ứng dụng sẽ được ghim vào màn hình chính / Start Menu và chạy ở chế độ cửa sổ độc lập 100%.
 
 ---
-*Đà Nẵng, Ngày 22 tháng 09 năm 2026*  
+
+*Đà Nẵng, Ngày 04 tháng 10 năm 2026*  
 **Sinh viên thực hiện:**  
-**Nguyễn Thị Thương — MSSV: 23IT.B219**
+**Nguyễn Thị Thương (MSSV: 23IT.B219 — Lớp 23ITB)**
