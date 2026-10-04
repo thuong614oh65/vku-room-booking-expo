@@ -1,6 +1,7 @@
-import React from 'react';
-import { StyleSheet, Text, View, Modal, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, Modal, Pressable, Image } from 'react-native';
 import { Booking } from '../types/booking';
+import { CameraQRScannerModal } from './CameraQRScannerModal';
 
 interface QRCodeModalProps {
   visible: boolean;
@@ -10,96 +11,131 @@ interface QRCodeModalProps {
 }
 
 export const QRCodeModal: React.FC<QRCodeModalProps> = ({ visible, booking, onClose, onCheckIn }) => {
+  const [isCameraScannerVisible, setIsCameraScannerVisible] = useState(false);
+
   if (!booking) return null;
 
   const isCheckedIn = booking.status === 'CHECKED_IN';
 
+  const qrData = booking.qrCodeData || JSON.stringify({
+    vkuBookingPass: true,
+    bookingId: booking.id,
+    roomCode: booking.roomCode,
+    studentId: booking.studentId,
+    date: booking.date,
+    slot: booking.slotLabel,
+  });
+
+  const realQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data=${encodeURIComponent(qrData)}`;
+
+  const handleCameraScanSuccess = (_decodedData: string) => {
+    setIsCameraScannerVisible(false);
+    onCheckIn(booking.id);
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.modalCard}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Thẻ Thông Hành Check-in Phòng</Text>
-            <Pressable onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
-            </Pressable>
-          </View>
-
-          {/* Ticket Visual */}
-          <View style={styles.ticketCard}>
-            <View style={styles.ticketHeader}>
-              <Text style={styles.schoolName}>ĐẠI HỌC CÔNG NGHỆ THÔNG TIN & TRUYỀN THÔNG VIỆT - HÀN</Text>
-              <Text style={styles.passTitle}>VKU STUDY ROOM ACCESS PASS</Text>
+    <>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+        <View style={styles.overlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Thẻ Thông Hành Check-in Phòng</Text>
+              <Pressable onPress={onClose} style={styles.closeBtn}>
+                <Text style={styles.closeBtnText}>✕</Text>
+              </Pressable>
             </View>
 
-            {/* QR Pattern Display */}
-            <View style={styles.qrDisplayBox}>
-              <View style={styles.qrMatrixFrame}>
-                {/* Visual QR Corners */}
-                <View style={[styles.qrCorner, styles.qrCornerTL]} />
-                <View style={[styles.qrCorner, styles.qrCornerTR]} />
-                <View style={[styles.qrCorner, styles.qrCornerBL]} />
-                
-                {/* Simulated QR Modules */}
-                <View style={styles.qrPatternCenter}>
-                  <Text style={styles.qrCenterCode}>{booking.roomCode}</Text>
-                  <Text style={styles.qrCenterId}>{booking.id}</Text>
+            {/* Ticket Visual */}
+            <View style={styles.ticketCard}>
+              <View style={styles.ticketHeader}>
+                <Text style={styles.schoolName}>ĐẠI HỌC CÔNG NGHỆ THÔNG TIN & TRUYỀN THÔNG VIỆT - HÀN</Text>
+                <Text style={styles.passTitle}>VKU STUDY ROOM ACCESS PASS</Text>
+              </View>
+
+              {/* Real Scannable 2D QR Code */}
+              <View style={styles.qrDisplayBox}>
+                <View style={styles.qrImageFrame}>
+                  <Image
+                    source={{ uri: realQrImageUrl }}
+                    style={styles.realQrImage}
+                    resizeMode="contain"
+                  />
                 </View>
-              </View>
-              <Text style={styles.qrCodeLabel}>Mã Vé: {booking.id}</Text>
-              <Text style={styles.qrScanHint}>Đưa mã này vào máy quét tại cửa phòng để mở khóa</Text>
-            </View>
-
-            {/* Details */}
-            <View style={styles.detailsGrid}>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>PHÒNG HỌC</Text>
-                <Text style={styles.detailValue} numberOfLines={1}>{booking.roomName}</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>ĐỊA ĐIỂM</Text>
-                <Text style={styles.detailValue}>{booking.building} • {booking.floor}</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>THỜI GIAN</Text>
-                <Text style={styles.detailValue}>{booking.slotLabel}</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>NGÀY SỬ DỤNG</Text>
-                <Text style={styles.detailValue}>{booking.date}</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>SINH VIÊN ĐẶT</Text>
-                <Text style={styles.detailValue}>{booking.studentName} ({booking.studentId})</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>TRẠNG THÁI</Text>
-                <Text style={[styles.detailValue, isCheckedIn ? styles.statusChecked : styles.statusConfirmed]}>
-                  {isCheckedIn ? '✓ ĐÃ CHECK-IN' : '🟢 SẴN SÀNG VÀO PHÒNG'}
+                <Text style={styles.qrCodeLabel}>Mã Vé: {booking.id}</Text>
+                <Text style={styles.qrScanHint}>
+                  📱 Mã QR Thật: Có thể dùng Camera điện thoại bất kỳ (Zalo, iPhone, Google Lens) để quét mã này trực tiếp!
                 </Text>
               </View>
+
+              {/* Details */}
+              <View style={styles.detailsGrid}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>PHÒNG HỌC</Text>
+                  <Text style={styles.detailValue} numberOfLines={1}>{booking.roomName}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>ĐỊA ĐIỂM</Text>
+                  <Text style={styles.detailValue}>{booking.building} • {booking.floor}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>THỜI GIAN</Text>
+                  <Text style={styles.detailValue}>{booking.slotLabel}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>NGÀY SỬ DỤNG</Text>
+                  <Text style={styles.detailValue}>{booking.date}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>SINH VIÊN ĐẶT</Text>
+                  <Text style={styles.detailValue}>{booking.studentName} ({booking.studentId})</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>TRẠNG THÁI</Text>
+                  <Text style={[styles.detailValue, isCheckedIn ? styles.statusChecked : styles.statusConfirmed]}>
+                    {isCheckedIn ? '✓ ĐÃ CHECK-IN VÀO PHÒNG' : '🟢 SẴN SÀNG VÀO PHÒNG'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.actionColumn}>
+              {!isCheckedIn && (
+                <Pressable
+                  style={styles.openCameraBtn}
+                  onPress={() => setIsCameraScannerVisible(true)}
+                >
+                  <Text style={styles.openCameraBtnText}>📷 Bật Camera Thật Quét Mã Cửa Phòng</Text>
+                </Pressable>
+              )}
+
+              <View style={styles.secondaryActionRow}>
+                {!isCheckedIn && (
+                  <Pressable
+                    style={styles.manualCheckInBtn}
+                    onPress={() => onCheckIn(booking.id)}
+                  >
+                    <Text style={styles.manualCheckInBtnText}>⚡ Xác Nhận Nhanh</Text>
+                  </Pressable>
+                )}
+                <Pressable style={styles.dismissBtn} onPress={onClose}>
+                  <Text style={styles.dismissBtnText}>Đóng</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionRow}>
-            {!isCheckedIn && (
-              <Pressable
-                style={styles.checkInBtn}
-                onPress={() => {
-                  onCheckIn(booking.id);
-                }}
-              >
-                <Text style={styles.checkInBtnText}>📱 Quét Check-In Mở Cửa</Text>
-              </Pressable>
-            )}
-            <Pressable style={styles.dismissBtn} onPress={onClose}>
-              <Text style={styles.dismissBtnText}>Đóng</Text>
-            </Pressable>
-          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      {/* Real Camera Scanner Modal */}
+      <CameraQRScannerModal
+        visible={isCameraScannerVisible}
+        expectedRoomCode={booking.roomCode}
+        expectedBookingId={booking.id}
+        onClose={() => setIsCameraScannerVisible(false)}
+        onScanSuccess={handleCameraScanSuccess}
+      />
+    </>
   );
 };
 
@@ -113,27 +149,24 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 24,
     width: '100%',
-    maxWidth: 380,
-    overflow: 'hidden',
+    maxWidth: 420,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -141,23 +174,26 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   closeBtnText: {
-    fontSize: 16,
-    color: '#94a3b8',
+    fontSize: 18,
+    color: '#64748b',
     fontWeight: '700',
   },
   ticketCard: {
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
     padding: 16,
     backgroundColor: '#ffffff',
   },
   ticketHeader: {
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
     paddingBottom: 8,
   },
   schoolName: {
-    fontSize: 9.5,
+    fontSize: 9,
     fontWeight: '800',
     color: '#0284c7',
     textAlign: 'center',
@@ -173,56 +209,32 @@ const styles = StyleSheet.create({
   qrDisplayBox: {
     alignItems: 'center',
     backgroundColor: '#f8fafc',
-    padding: 16,
+    padding: 14,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
-    marginBottom: 14,
+    marginBottom: 12,
   },
-  qrMatrixFrame: {
-    width: 130,
-    height: 130,
+  qrImageFrame: {
+    width: 170,
+    height: 170,
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#0f172a',
-    position: 'relative',
+    borderColor: '#0284c7',
+    padding: 6,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  qrCorner: {
-    position: 'absolute',
-    width: 26,
-    height: 26,
-    borderWidth: 4,
-    borderColor: '#0284c7',
-  },
-  qrCornerTL: {
-    top: 6,
-    left: 6,
-  },
-  qrCornerTR: {
-    top: 6,
-    right: 6,
-  },
-  qrCornerBL: {
-    bottom: 6,
-    left: 6,
-  },
-  qrPatternCenter: {
-    alignItems: 'center',
-  },
-  qrCenterCode: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#0f172a',
-  },
-  qrCenterId: {
-    fontSize: 9,
-    color: '#64748b',
-    fontWeight: '600',
-    marginTop: 2,
+  realQrImage: {
+    width: 154,
+    height: 154,
   },
   qrCodeLabel: {
     fontSize: 12,
@@ -231,27 +243,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   qrScanHint: {
-    fontSize: 10.5,
-    color: '#64748b',
+    fontSize: 11,
+    color: '#0284c7',
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: 4,
+    fontWeight: '600',
+    lineHeight: 15,
   },
   detailsGrid: {
-    gap: 8,
+    gap: 6,
   },
   detailItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderBottomWidth: 1,
     borderBottomColor: '#f8fafc',
   },
   detailLabel: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '700',
     color: '#64748b',
-    textTransform: 'uppercase',
   },
   detailValue: {
     fontSize: 12,
@@ -260,42 +273,61 @@ const styles = StyleSheet.create({
     maxWidth: '65%',
     textAlign: 'right',
   },
+  statusChecked: {
+    color: '#16a34a',
+  },
   statusConfirmed: {
     color: '#0284c7',
   },
-  statusChecked: {
-    color: '#15803d',
+  actionColumn: {
+    marginTop: 14,
+    gap: 8,
   },
-  actionRow: {
-    flexDirection: 'row',
-    padding: 14,
-    gap: 10,
-    backgroundColor: '#f8fafc',
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  checkInBtn: {
-    flex: 1,
-    backgroundColor: '#10b981',
+  openCameraBtn: {
+    backgroundColor: '#0284c7',
     paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  openCameraBtnText: {
+    color: '#ffffff',
+    fontSize: 13.5,
+    fontWeight: '800',
+  },
+  secondaryActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  manualCheckInBtn: {
+    flex: 1,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
   },
-  checkInBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
+  manualCheckInBtnText: {
+    color: '#1d4ed8',
+    fontSize: 12.5,
     fontWeight: '700',
   },
   dismissBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#f1f5f9',
     borderRadius: 10,
-    backgroundColor: '#e2e8f0',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   dismissBtnText: {
     color: '#475569',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
   },
 });
