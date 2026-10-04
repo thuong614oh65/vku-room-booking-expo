@@ -1,0 +1,32 @@
+{
+  "short_name": "VKU Booking",
+  "name": "VKU Room Booking - Đặt Phòng VKU",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "144x144",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait",
+  "categories": ["education", "productivity", "utilities"],
+  "description": "Hệ thống đặt phòng thực hành và hội trường VKU - Trường ĐH Công nghệ Thông tin & Truyền thông Việt - Hàn."
+}

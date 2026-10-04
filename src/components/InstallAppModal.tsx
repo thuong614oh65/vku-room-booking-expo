@@ -8,33 +8,74 @@ import {
   ScrollView,
   Platform,
   Linking,
+  Image,
 } from 'react-native';
 import { useBookingStore } from '../store/useBookingStore';
 
 type InstallTab = 'ANDROID' | 'IOS' | 'EXPO_GO';
+
+const APK_DIRECT_URL = 'https://expo.dev/artifacts/eas/RCy0mWfjmQN0ym6lH8qmL1PpNYsoY2rfRO5r2lxEYu0.apk';
+const EAS_BUILD_URL = 'https://expo.dev/accounts/thuong221332/projects/vku-room-booking/builds/56663180-6a06-4ae6-91e6-f991c7d8d73c';
+const EXPO_GO_URL = 'exp://u.expo.dev/4d0aa5e3-181e-4e0f-ae53-a6ec7f303edb';
+const EXPO_DASHBOARD_URL = 'https://expo.dev/accounts/thuong221332/projects/vku-room-booking';
 
 export const InstallAppModal: React.FC = () => {
   const { installModalVisible, setInstallModalVisible } = useBookingStore();
   const [activeTab, setActiveTab] = useState<InstallTab>('ANDROID');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [pwaInstalled, setPwaInstalled] = useState<boolean>(false);
+  const [downloadingApk, setDownloadingApk] = useState<boolean>(false);
+  const [showBrowserGuide, setShowBrowserGuide] = useState<boolean>(false);
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      // Auto-detect device OS
+      const ua = navigator.userAgent || '';
+      if (/iphone|ipad|ipod/i.test(ua)) {
+        setActiveTab('IOS');
+      } else {
+        setActiveTab('ANDROID');
+      }
+
+      // Check if already captured in global window
+      if ((window as any).__vkuDeferredPrompt) {
+        setDeferredPrompt((window as any).__vkuDeferredPrompt);
+      }
+
+      const handlePromptReady = () => {
+        if ((window as any).__vkuDeferredPrompt) {
+          setDeferredPrompt((window as any).__vkuDeferredPrompt);
+        }
+      };
+
       const handleBeforeInstallPrompt = (e: any) => {
         e.preventDefault();
+        (window as any).__vkuDeferredPrompt = e;
         setDeferredPrompt(e);
       };
 
       const handleAppInstalled = () => {
         setPwaInstalled(true);
         setDeferredPrompt(null);
+        if (typeof window !== 'undefined') {
+          (window as any).__vkuDeferredPrompt = null;
+        }
       };
 
+      window.addEventListener('vku-install-prompt-ready', handlePromptReady);
       window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.addEventListener('appinstalled', handleAppInstalled);
 
+      // Check if already in standalone display mode
+      if (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as any).standalone === true
+      ) {
+        setPwaInstalled(true);
+      }
+
       return () => {
+        window.removeEventListener('vku-install-prompt-ready', handlePromptReady);
         window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         window.removeEventListener('appinstalled', handleAppInstalled);
       };
@@ -44,44 +85,53 @@ export const InstallAppModal: React.FC = () => {
   if (!installModalVisible) return null;
 
   const handleDownloadApk = () => {
-    // Link trực tiếp tải APK build từ EAS Expo / GitHub Release
-    const apkUrl = 'https://github.com/thuong614oh65/vku-room-booking-expo/releases/download/v1.0.0/vku-room-booking.apk';
-    const easBuildUrl = 'https://expo.dev/accounts/thuong221332/projects/vku-room-booking/builds/56663180-6a06-4ae6-91e6-f991c7d8d73c';
+    setDownloadingApk(true);
+    setTimeout(() => setDownloadingApk(false), 3000);
 
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.open(apkUrl, '_blank');
+      const a = document.createElement('a');
+      a.href = APK_DIRECT_URL;
+      a.download = 'VKU-RoomBooking.apk';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } else {
-      Linking.openURL(apkUrl).catch(() => Linking.openURL(easBuildUrl));
+      Linking.openURL(APK_DIRECT_URL).catch(() => Linking.openURL(EAS_BUILD_URL));
     }
   };
 
-  const handleTriggerPwa = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult: any) => {
-        if (choiceResult.outcome === 'accepted') {
+  const handleTriggerPwa = async () => {
+    const prompt =
+      deferredPrompt ||
+      (typeof window !== 'undefined' ? (window as any).__vkuDeferredPrompt : null);
+
+    if (prompt) {
+      try {
+        prompt.prompt();
+        const choiceResult = await prompt.userChoice;
+        if (choiceResult && choiceResult.outcome === 'accepted') {
           setPwaInstalled(true);
+          setDeferredPrompt(null);
+          if (typeof window !== 'undefined') {
+            (window as any).__vkuDeferredPrompt = null;
+          }
         }
-        setDeferredPrompt(null);
-      });
+      } catch (err) {
+        console.warn('PWA prompt invocation error:', err);
+        setShowBrowserGuide(true);
+      }
     } else {
-      alert(
-        '💡 Hướng dẫn cài đặt PWA:\n\n' +
-        '1. Bấm biểu tượng 3 chấm (⋮) ở góc trên bên phải trình duyệt Chrome.\n' +
-        '2. Chọn "Cài đặt ứng dụng" hoặc "Thêm vào màn hình chính".\n' +
-        '3. Nhấn "Cài đặt" để đưa biểu tượng VKU Booking ra màn hình điện thoại!'
-      );
+      // In modern UX, never show browser alert(); instead toggle the rich interactive guide card
+      setShowBrowserGuide(true);
     }
   };
 
   const handleOpenExpoGo = () => {
-    const expoGoUrl = 'exp://u.expo.dev/4d0aa5e3-181e-4e0f-ae53-a6ec7f303edb';
-    const webDashboardUrl = 'https://expo.dev/accounts/thuong221332/projects/vku-room-booking';
-
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.open(webDashboardUrl, '_blank');
+      window.open(EXPO_DASHBOARD_URL, '_blank');
     } else {
-      Linking.openURL(expoGoUrl).catch(() => Linking.openURL(webDashboardUrl));
+      Linking.openURL(EXPO_GO_URL).catch(() => Linking.openURL(EXPO_DASHBOARD_URL));
     }
   };
 
@@ -101,8 +151,8 @@ export const InstallAppModal: React.FC = () => {
                 <Text style={styles.iconBadgeText}>📲</Text>
               </View>
               <View>
-                <Text style={styles.title}>Cài Đặt & Tải Ứng Dụng</Text>
-                <Text style={styles.subtitle}>VKU Room Booking • Trải nghiệm ứng dụng di động độc lập</Text>
+                <Text style={styles.title}>Cài Đặt Ứng Dụng</Text>
+                <Text style={styles.subtitle}>VKU Room Booking • Bản Di Động Độc Lập</Text>
               </View>
             </View>
             <Pressable style={styles.closeBtn} onPress={() => setInstallModalVisible(false)}>
@@ -114,108 +164,195 @@ export const InstallAppModal: React.FC = () => {
           <View style={styles.tabBar}>
             <Pressable
               style={[styles.tabItem, activeTab === 'ANDROID' && styles.tabItemActive]}
-              onPress={() => setActiveTab('ANDROID')}
+              onPress={() => {
+                setActiveTab('ANDROID');
+                setShowBrowserGuide(false);
+              }}
             >
               <Text style={[styles.tabText, activeTab === 'ANDROID' && styles.tabTextActive]}>
-                🤖 Dành Cho Android
+                🤖 Android (APK & PWA)
               </Text>
             </Pressable>
 
             <Pressable
               style={[styles.tabItem, activeTab === 'IOS' && styles.tabItemActive]}
-              onPress={() => setActiveTab('IOS')}
+              onPress={() => {
+                setActiveTab('IOS');
+                setShowBrowserGuide(false);
+              }}
             >
               <Text style={[styles.tabText, activeTab === 'IOS' && styles.tabTextActive]}>
-                🍏 Dành Cho iPhone (iOS)
+                🍏 iPhone (iOS Safari)
               </Text>
             </Pressable>
 
             <Pressable
               style={[styles.tabItem, activeTab === 'EXPO_GO' && styles.tabItemActive]}
-              onPress={() => setActiveTab('EXPO_GO')}
+              onPress={() => {
+                setActiveTab('EXPO_GO');
+                setShowBrowserGuide(false);
+              }}
             >
               <Text style={[styles.tabText, activeTab === 'EXPO_GO' && styles.tabTextActive]}>
-                ⚡ Expo Go
+                ⚡ Expo Go & QR
               </Text>
             </Pressable>
           </View>
 
           {/* Tab Content */}
           <ScrollView style={styles.contentBody} showsVerticalScrollIndicator={false}>
+            {/* ANDROID TAB */}
             {activeTab === 'ANDROID' && (
               <View style={styles.tabPane}>
-                {/* Method 1: APK */}
+                {pwaInstalled && (
+                  <View style={styles.installedBanner}>
+                    <Text style={styles.installedBannerIcon}>✅</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.installedBannerTitle}>Đã Cài Đặt Thành Công!</Text>
+                      <Text style={styles.installedBannerText}>
+                        Ứng dụng VKU Booking đã có mặt trên màn hình chính của bạn.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Option 1: Direct Real APK */}
                 <View style={styles.optionCardPrimary}>
                   <View style={styles.optionHeaderRow}>
                     <View style={styles.recommendBadge}>
-                      <Text style={styles.recommendBadgeText}>KHUYÊN DÙNG</Text>
+                      <Text style={styles.recommendBadgeText}>CHÍNH THỨC • FILE GỐC</Text>
                     </View>
-                    <Text style={styles.optionTitle}>Cách 1: Tải File APK Gốc Về Cài Đặt</Text>
+                    <Text style={styles.optionTitle}>Cách 1: Tải Trực Tiếp File Native APK</Text>
                   </View>
+
                   <Text style={styles.optionDesc}>
-                    Tải trực tiếp tệp tin cài đặt Native Android APK về máy điện thoại của bạn:
+                    Cài đặt trực tiếp gói cài đặt ứng dụng Android gốc (EAS Production APK build). Chạy mượt mà, đầy đủ tính năng rung, quét mã camera và ngoại tuyến.
                   </Text>
-                  <Pressable style={styles.btnPrimary} onPress={handleDownloadApk}>
-                    <Text style={styles.btnPrimaryText}>⬇️ Tải File VKU-RoomBooking.apk (~38 MB)</Text>
+
+                  <Pressable
+                    style={[styles.btnPrimary, downloadingApk && styles.btnPrimaryLoading]}
+                    onPress={handleDownloadApk}
+                  >
+                    <Text style={styles.btnPrimaryText}>
+                      {downloadingApk ? '⏳ Đang Bắt Đầu Tải...' : '⬇️ Tải File VKU-RoomBooking.apk (~78 MB)'}
+                    </Text>
                   </Pressable>
+
+                  <View style={styles.buildInfoRow}>
+                    <Text style={styles.buildInfoText}>📦 Phiên bản: v1.0.0 (Release Build)</Text>
+                    <Pressable onPress={() => Linking.openURL(EAS_BUILD_URL)}>
+                      <Text style={styles.buildInfoLink}>Chi tiết build Expo EAS ↗</Text>
+                    </Pressable>
+                  </View>
+
                   <Text style={styles.optionHint}>
-                    💡 Lưu ý: Khi cài đặt, chọn "Vẫn cài đặt" (Install anyway) nếu xuất hiện cảnh báo ứng dụng nội bộ trường VKU.
+                    💡 Lưu ý: Khi mở tệp APK vừa tải về, chọn "Vẫn cài đặt" (Install anyway) nếu điện thoại hỏi xác nhận ứng dụng nội bộ trường VKU.
                   </Text>
                 </View>
 
-                {/* Method 2: PWA */}
+                {/* Option 2: 1-Tap PWA Standalone */}
                 <View style={styles.optionCardSecondary}>
-                  <Text style={styles.optionTitleSecondary}>
-                    Cách 2: Cài Đặt Trực Tiếp Qua Trình Duyệt Chrome
-                  </Text>
+                  <View style={styles.optionHeaderRow}>
+                    <View style={[styles.recommendBadge, { backgroundColor: '#10b981' }]}>
+                      <Text style={styles.recommendBadgeText}>1 CHẠM • TIẾT KIỆM BỘ NHỚ</Text>
+                    </View>
+                    <Text style={styles.optionTitleSecondary}>
+                      Cách 2: Cài Đặt Trực Tiếp Qua Trình Duyệt (PWA)
+                    </Text>
+                  </View>
+
                   <Text style={styles.optionDesc}>
-                    Thêm ứng dụng vào màn hình chính thông qua công nghệ PWA Standalone:
+                    Khởi chạy độc lập không có thanh địa chỉ duyệt web, tự động đồng bộ thời gian thực và cập nhật tức thì không cần tải lại:
                   </Text>
-                  <Pressable style={styles.btnSecondary} onPress={handleTriggerPwa}>
+
+                  <Pressable
+                    style={[
+                      styles.btnSecondary,
+                      Boolean(deferredPrompt || (typeof window !== 'undefined' && (window as any).__vkuDeferredPrompt)) &&
+                        styles.btnSecondaryHighlighted,
+                    ]}
+                    onPress={handleTriggerPwa}
+                  >
                     <Text style={styles.btnSecondaryText}>
-                      {pwaInstalled ? '✅ Đã Cài Đặt Trên Thiết Bị' : '📲 Bấm Vào Đây Để Cài Đặt Ngay'}
+                      {pwaInstalled
+                        ? '✅ Đã Cài Đặt Trên Thiết Bị Này'
+                        : Boolean(deferredPrompt || (typeof window !== 'undefined' && (window as any).__vkuDeferredPrompt))
+                        ? '📲 Bấm Cài Đặt Ngay (1 Chạm)'
+                        : '📲 Kích Hoạt Cài Đặt Màn Hình Chính'}
                     </Text>
                   </Pressable>
+
+                  {/* Sleek in-modal browser guide when prompt not yet auto-shown */}
+                  {showBrowserGuide && !pwaInstalled && (
+                    <View style={styles.browserGuideBox}>
+                      <Text style={styles.browserGuideTitle}>💡 Hướng dẫn nhanh cho trình duyệt:</Text>
+                      <View style={styles.guideStepRow}>
+                        <Text style={styles.guideStepNumber}>1.</Text>
+                        <Text style={styles.guideStepText}>
+                          <Text style={styles.boldText}>Trên Điện Thoại Android:</Text> Bấm vào menu 3 chấm (<Text style={styles.boldText}>⋮</Text>) ở góc trên trình duyệt Chrome ➔ Chọn <Text style={styles.boldText}>"Cài đặt ứng dụng"</Text> hoặc <Text style={styles.boldText}>"Thêm vào màn hình chính"</Text>.
+                        </Text>
+                      </View>
+                      <View style={styles.guideStepRow}>
+                        <Text style={styles.guideStepNumber}>2.</Text>
+                        <Text style={styles.guideStepText}>
+                          <Text style={styles.boldText}>Trên Máy Tính Chrome / Edge:</Text> Nhìn lên thanh nhập địa chỉ URL ở trên cùng, nhấp vào biểu tượng máy tính <Text style={styles.boldText}>[🖥️ ⬇️]</Text> ở phía bên phải để cài đặt vào máy tính.
+                        </Text>
+                      </View>
+                      <View style={styles.guideStepRow}>
+                        <Text style={styles.guideStepNumber}>3.</Text>
+                        <Text style={styles.guideStepText}>
+                          Hoặc sử dụng ngay <Text style={styles.boldText}>Cách 1 ở trên</Text> để tải tệp tin Native APK chính thức!
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
               </View>
             )}
 
+            {/* IOS TAB */}
             {activeTab === 'IOS' && (
               <View style={styles.tabPane}>
                 <View style={styles.optionCardSecondary}>
-                  <Text style={styles.optionTitleSecondary}>
-                    🍏 Cài Đặt Trên iPhone (Safari PWA Standalone)
-                  </Text>
+                  <View style={styles.optionHeaderRow}>
+                    <View style={[styles.recommendBadge, { backgroundColor: '#0284c7' }]}>
+                      <Text style={styles.recommendBadgeText}>SAFARI PWA</Text>
+                    </View>
+                    <Text style={styles.optionTitleSecondary}>
+                      Cài Đặt Trực Tiếp Trên iPhone & iPad
+                    </Text>
+                  </View>
+
                   <Text style={styles.optionDesc}>
-                    Do chính sách của Apple, iOS không hỗ trợ tải file APK trực tiếp. Bạn hãy cài đặt ứng dụng độc lập qua Safari theo 4 bước đơn giản:
+                    Hệ điều hành iOS hỗ trợ cài đặt ứng dụng web nguyên bản thành ứng dụng độc lập trên màn hình chính (Home Screen) qua Safari theo 4 bước:
                   </Text>
 
                   <View style={styles.stepList}>
                     <View style={styles.stepItem}>
                       <View style={styles.stepNumber}><Text style={styles.stepNumberText}>1</Text></View>
                       <Text style={styles.stepText}>
-                        Mở trình duyệt <Text style={styles.boldText}>Safari</Text> trên iPhone và truy cập: <Text style={styles.codeText}>https://vku-room-booking-17t.pages.dev</Text>
+                        Mở bằng trình duyệt <Text style={styles.boldText}>Safari</Text> trên iPhone: <Text style={styles.codeText}>https://vku-room-booking-17t.pages.dev</Text>
                       </Text>
                     </View>
 
                     <View style={styles.stepItem}>
                       <View style={styles.stepNumber}><Text style={styles.stepNumberText}>2</Text></View>
                       <Text style={styles.stepText}>
-                        Bấm vào nút <Text style={styles.boldText}>Chia sẻ</Text> (biểu tượng hình vuông có mũi tên trỏ lên 📤 ở đáy màn hình Safari).
+                        Bấm vào nút <Text style={styles.boldText}>Chia sẻ</Text> (biểu tượng hình vuông có mũi tên trỏ lên <Text style={styles.boldText}>📤</Text> ở thanh công cụ dưới đáy Safari).
                       </Text>
                     </View>
 
                     <View style={styles.stepItem}>
                       <View style={styles.stepNumber}><Text style={styles.stepNumberText}>3</Text></View>
                       <Text style={styles.stepText}>
-                        Cuộn xuống danh sách tác vụ và chọn <Text style={styles.boldText}>"Thêm vào MH chính"</Text> (Add to Home Screen).
+                        Cuộn xuống danh sách tác vụ và chọn dòng <Text style={styles.boldText}>"Thêm vào MH chính"</Text> (Add to Home Screen ➕).
                       </Text>
                     </View>
 
                     <View style={styles.stepItem}>
                       <View style={styles.stepNumber}><Text style={styles.stepNumberText}>4</Text></View>
                       <Text style={styles.stepText}>
-                        Nhấn nút <Text style={styles.boldText}>"Thêm"</Text> ở góc trên bên phải. Biểu tượng ứng dụng VKU Booking sẽ xuất hiện trên màn hình iPhone, khởi động toàn màn hình như ứng dụng gốc!
+                        Nhấn nút <Text style={styles.boldText}>"Thêm"</Text> (Add) ở góc trên bên phải. Biểu tượng <Text style={styles.boldText}>VKU Booking</Text> sẽ lập tức hiển thị trên màn hình iPhone và hoạt động toàn màn hình!
                       </Text>
                     </View>
                   </View>
@@ -223,33 +360,30 @@ export const InstallAppModal: React.FC = () => {
               </View>
             )}
 
+            {/* EXPO GO TAB */}
             {activeTab === 'EXPO_GO' && (
               <View style={styles.tabPane}>
                 <View style={styles.optionCardPrimary}>
                   <View style={styles.optionHeaderRow}>
-                    <View style={styles.recommendBadge}>
-                      <Text style={styles.recommendBadgeText}>CHẤM BÀI</Text>
+                    <View style={[styles.recommendBadge, { backgroundColor: '#8b5cf6' }]}>
+                      <Text style={styles.recommendBadgeText}>GIẢNG VIÊN • TESTER</Text>
                     </View>
-                    <Text style={styles.optionTitle}>Trải Nghiệm Trực Tiếp Trên Expo Go</Text>
+                    <Text style={styles.optionTitle}>Chạy Trực Tiếp Qua Expo Go</Text>
                   </View>
+
                   <Text style={styles.optionDesc}>
-                    Dành cho Giảng viên & Sinh viên muốn xem mã nguồn thực thi tức thì trên thiết bị vật lý không cần cài APK:
+                    Quét mã QR dưới đây bằng camera điện thoại hoặc ứng dụng Expo Go để chạy trực tiếp ứng dụng với mã nguồn gốc:
                   </Text>
 
-                  <View style={styles.stepList}>
-                    <View style={styles.stepItem}>
-                      <View style={styles.stepNumber}><Text style={styles.stepNumberText}>1</Text></View>
-                      <Text style={styles.stepText}>
-                        Cài đặt ứng dụng <Text style={styles.boldText}>Expo Go</Text> miễn phí từ Google Play Store (Android) hoặc Apple App Store (iOS).
-                      </Text>
-                    </View>
-
-                    <View style={styles.stepItem}>
-                      <View style={styles.stepNumber}><Text style={styles.stepNumberText}>2</Text></View>
-                      <Text style={styles.stepText}>
-                        Mở Expo Go, đăng nhập tài khoản Expo hoặc bấm nút bên dưới để mở dự án:
-                      </Text>
-                    </View>
+                  <View style={styles.qrContainer}>
+                    <Image
+                      source={{
+                        uri: 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=exp%3A%2F%2Fu.expo.dev%2F4d0aa5e3-181e-4e0f-ae53-a6ec7f303edb',
+                      }}
+                      style={styles.qrImage}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.qrLabel}>Quét bằng ứng dụng Expo Go (Android & iOS)</Text>
                   </View>
 
                   <Pressable style={styles.btnPrimary} onPress={handleOpenExpoGo}>
@@ -275,7 +409,7 @@ export const InstallAppModal: React.FC = () => {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -369,9 +503,10 @@ const styles = StyleSheet.create({
     borderColor: '#0284c7',
   },
   tabText: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748b',
+    textAlign: 'center',
   },
   tabTextActive: {
     color: '#0284c7',
@@ -383,6 +518,29 @@ const styles = StyleSheet.create({
   },
   tabPane: {
     gap: 16,
+  },
+  installedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#10b981',
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+  },
+  installedBannerIcon: {
+    fontSize: 22,
+  },
+  installedBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#065f46',
+  },
+  installedBannerText: {
+    fontSize: 12,
+    color: '#047857',
+    marginTop: 2,
   },
   optionCardPrimary: {
     borderWidth: 1.5,
@@ -413,31 +571,31 @@ const styles = StyleSheet.create({
   },
   recommendBadgeText: {
     color: '#ffffff',
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   optionTitle: {
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: '800',
     color: '#0f172a',
     flex: 1,
   },
   optionTitleSecondary: {
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: '800',
     color: '#0f172a',
-    marginBottom: 8,
+    flex: 1,
   },
   optionDesc: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: '#475569',
-    lineHeight: 19,
-    marginBottom: 14,
+    lineHeight: 18,
+    marginBottom: 12,
   },
   btnPrimary: {
     backgroundColor: '#0284c7',
-    paddingVertical: 13,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 10,
     alignItems: 'center',
@@ -447,6 +605,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+  },
+  btnPrimaryLoading: {
+    backgroundColor: '#0369a1',
+    opacity: 0.8,
   },
   btnPrimaryText: {
     color: '#ffffff',
@@ -463,21 +625,77 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  btnSecondaryHighlighted: {
+    backgroundColor: '#0284c7',
+    borderColor: '#0284c7',
+  },
   btnSecondaryText: {
     color: '#0284c7',
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
+  },
+  buildInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#bae6fd',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  buildInfoText: {
+    fontSize: 11,
+    color: '#0369a1',
+    fontWeight: '600',
+  },
+  buildInfoLink: {
+    fontSize: 11,
+    color: '#0284c7',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   optionHint: {
     fontSize: 11.5,
     color: '#64748b',
-    marginTop: 10,
+    marginTop: 8,
     lineHeight: 16,
     fontStyle: 'italic',
   },
+  browserGuideBox: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 8,
+  },
+  browserGuideTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+  guideStepRow: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'flex-start',
+  },
+  guideStepNumber: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0284c7',
+  },
+  guideStepText: {
+    flex: 1,
+    fontSize: 11.5,
+    color: '#334155',
+    lineHeight: 16,
+  },
   stepList: {
     gap: 12,
-    marginVertical: 10,
+    marginVertical: 8,
   },
   stepItem: {
     flexDirection: 'row',
@@ -500,9 +718,9 @@ const styles = StyleSheet.create({
   },
   stepText: {
     flex: 1,
-    fontSize: 12.5,
+    fontSize: 12,
     color: '#334155',
-    lineHeight: 18,
+    lineHeight: 17,
   },
   boldText: {
     fontWeight: '800',
@@ -511,6 +729,27 @@ const styles = StyleSheet.create({
   codeText: {
     color: '#0284c7',
     fontWeight: '700',
+  },
+  qrContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  qrImage: {
+    width: 160,
+    height: 160,
+    borderRadius: 8,
+  },
+  qrLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '600',
+    marginTop: 8,
   },
   footer: {
     paddingHorizontal: 20,

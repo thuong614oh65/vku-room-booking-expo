@@ -103,7 +103,7 @@ export const ProfileScreen: React.FC = () => {
         <View style={[styles.settingCard, { borderColor: '#bfdbfe', backgroundColor: '#f0f9ff' }]}>
           <Text style={styles.settingTitle}>📲 Cài Đặt & Đóng Gói Ứng Dụng (APK / PWA)</Text>
           <Text style={styles.settingSub}>
-            Tải trực tiếp tệp cài đặt Android APK (~38 MB) hoặc thêm ứng dụng PWA độc lập vào màn hình chính điện thoại (iOS & Android).
+            Tải trực tiếp tệp cài đặt Android APK (~78 MB) hoặc thêm ứng dụng PWA độc lập vào màn hình chính điện thoại (iOS & Android).
           </Text>
           <Pressable
             style={[styles.testNotifBtn, { backgroundColor: '#0284c7' }]}

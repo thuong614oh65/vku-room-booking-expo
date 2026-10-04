@@ -104,6 +104,25 @@ export const BrowseRoomsScreen: React.FC = () => {
     [isRoomAvailableToday, handleSelectRoom]
   );
 
+  const handleInstallPress = useCallback(async () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const prompt = (window as any).__vkuDeferredPrompt;
+      if (prompt) {
+        try {
+          prompt.prompt();
+          const choice = await prompt.userChoice;
+          if (choice && choice.outcome === 'accepted') {
+            (window as any).__vkuDeferredPrompt = null;
+            return;
+          }
+        } catch (e) {
+          console.log('Direct install prompt trigger fallback:', e);
+        }
+      }
+    }
+    setInstallModalVisible(true);
+  }, [setInstallModalVisible]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -116,7 +135,7 @@ export const BrowseRoomsScreen: React.FC = () => {
         </View>
 
         <View style={styles.headerRightActions}>
-          <Pressable style={styles.installAppBtn} onPress={() => setInstallModalVisible(true)}>
+          <Pressable style={styles.installAppBtn} onPress={handleInstallPress}>
             <Text style={styles.installAppBtnText}>📲 Cài Đặt</Text>
           </Pressable>
 

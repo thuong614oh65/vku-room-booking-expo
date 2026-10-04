@@ -32,7 +32,13 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "VKU Room Booking",
+      "shortName": "VKU Booking",
+      "themeColor": "#2563eb",
+      "backgroundColor": "#0f172a",
+      "display": "standalone",
+      "orientation": "portrait"
     },
     "extra": {
       "eas": {
