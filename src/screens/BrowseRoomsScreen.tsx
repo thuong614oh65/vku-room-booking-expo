@@ -8,12 +8,14 @@ import { RoomCard } from '../components/RoomCard';
 import { FilterBar } from '../components/FilterBar';
 import { Room } from '../types/booking';
 import { useRoomsQuery } from '../hooks/useRoomsQuery';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const BrowseRoomsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { data: serverRooms } = useRoomsQuery();
+  const { data: serverRooms, isLoading, isFetching, refetch } = useRoomsQuery();
+  const { columns, cardWidth } = useResponsiveLayout();
   const {
     rooms,
     filters,
@@ -235,16 +237,19 @@ export const BrowseRoomsScreen: React.FC = () => {
         </Text>
       </View>
 
-      {/* High-performance FlatList Feed */}
+      {/* High-performance FlatList Feed (Week 5 Slide 17 & Week 6 Slide 18) */}
       <FlatList
         data={filteredRooms}
         renderItem={renderRoomItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        initialNumToRender={6}
-        maxToRenderPerBatch={8}
+        initialNumToRender={10}
+        maxToRenderPerBatch={5}
         windowSize={5}
+        refreshing={isLoading || isFetching}
+        onRefresh={refetch}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         removeClippedSubviews={Platform.OS !== 'web'}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
