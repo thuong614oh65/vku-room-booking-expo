@@ -64,9 +64,6 @@ export const ProfileScreen: React.FC = () => {
           <Text style={styles.userName}>{currentUser.name}</Text>
           <Text style={styles.userStudentId}>MSSV: {currentUser.studentId}</Text>
           <Text style={styles.userEmail}>{currentUser.email}</Text>
-          <View style={styles.majorBadge}>
-            <Text style={styles.majorText}>{currentUser.major}</Text>
-          </View>
 
           <View style={styles.accountActionsRow}>
             <Pressable style={styles.switchAccBtn} onPress={() => setAuthModalVisible(true)}>
