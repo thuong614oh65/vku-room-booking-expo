@@ -173,6 +173,13 @@ export const BrowseRoomsScreen: React.FC = () => {
 
         <View style={styles.statusBar}>
           <Pressable
+            style={styles.btnMyBookingsHeader}
+            onPress={() => (navigation as any).navigate('MyBookings')}
+          >
+            <Text style={styles.btnMyBookingsHeaderText}>📅 Lịch Đã Đặt</Text>
+          </Pressable>
+
+          <Pressable
             style={[
               styles.btnInstall,
               isStandaloneApp
@@ -229,12 +236,20 @@ export const BrowseRoomsScreen: React.FC = () => {
 
       {/* Result Count Banner */}
       <View style={styles.resultBanner}>
-        <Text style={styles.resultCountText}>
-          Tìm thấy <Text style={styles.resultCountBold}>{filteredRooms.length}</Text> phòng học & lab khả dụng
-        </Text>
-        <Text style={styles.resultSubText}>
-          {currentUser ? `Đang đăng nhập: ${currentUser.studentId}` : 'Chế độ Khách (Chưa đăng nhập)'}
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.resultCountText}>
+            Tìm thấy <Text style={styles.resultCountBold}>{filteredRooms.length}</Text> phòng học & lab khả dụng
+          </Text>
+          <Text style={styles.resultSubText}>
+            {currentUser ? `SV: ${currentUser.name} (${currentUser.studentId})` : 'Chế độ Khách (Chưa đăng nhập)'}
+          </Text>
+        </View>
+        <Pressable
+          style={styles.quickBookingsBtn}
+          onPress={() => (navigation as any).navigate('MyBookings')}
+        >
+          <Text style={styles.quickBookingsBtnText}>📋 Xem Lịch Đã Đặt →</Text>
+        </Pressable>
       </View>
 
       {/* High-performance FlatList Feed (Week 5 Slide 17 & Week 6 Slide 18) */}
@@ -322,6 +337,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap',
+  },
+  btnMyBookingsHeader: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  btnMyBookingsHeaderText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
   },
   btnInstall: {
     backgroundColor: '#0284c7',
@@ -456,6 +489,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748b',
     fontWeight: '600',
+  },
+  quickBookingsBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  quickBookingsBtnText: {
+    color: '#ffffff',
+    fontSize: 11.5,
+    fontWeight: '800',
   },
   listContent: {
     padding: 16,
