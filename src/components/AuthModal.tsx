@@ -13,13 +13,22 @@ import {
 import { useBookingStore } from '../store/useBookingStore';
 
 export const AuthModal: React.FC = () => {
-  const { authModalVisible, setAuthModalVisible, login, register, availableUsers } = useBookingStore();
+  const {
+    authModalVisible,
+    setAuthModalVisible,
+    login,
+    loginWithGoogle,
+    register,
+    availableUsers,
+  } = useBookingStore();
   const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
 
   // Login states
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showGooglePicker, setShowGooglePicker] = useState(false);
+  const [customGmail, setCustomGmail] = useState('');
 
   // Register states
   const [regName, setRegName] = useState('');
@@ -32,6 +41,8 @@ export const AuthModal: React.FC = () => {
     setErrorMsg('');
     setIdentifier('');
     setPassword('');
+    setCustomGmail('');
+    setShowGooglePicker(false);
     setRegName('');
     setRegStudentId('');
     setRegEmail('');
@@ -41,6 +52,22 @@ export const AuthModal: React.FC = () => {
   const handleClose = () => {
     resetForm();
     setAuthModalVisible(false);
+  };
+
+  const handleGoogleSelect = (email: string, name?: string) => {
+    setErrorMsg('');
+    loginWithGoogle(email, name);
+    resetForm();
+  };
+
+  const handleCustomGmailLogin = () => {
+    setErrorMsg('');
+    if (!customGmail.trim() || !customGmail.includes('@')) {
+      setErrorMsg('Vui lòng nhập địa chỉ Google / Gmail hợp lệ!');
+      return;
+    }
+    loginWithGoogle(customGmail.trim());
+    resetForm();
   };
 
   const handleLogin = () => {
@@ -161,6 +188,63 @@ export const AuthModal: React.FC = () => {
                 <Pressable style={styles.primaryBtn} onPress={handleLogin}>
                   <Text style={styles.primaryBtnText}>🔑 Đăng Nhập Ngay</Text>
                 </Pressable>
+
+                {/* ── GOOGLE / GMAIL SIGN IN ── */}
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>HOẶC TIẾP TỤC VỚI</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <Pressable
+                  style={styles.googleBtn}
+                  onPress={() => setShowGooglePicker(!showGooglePicker)}
+                >
+                  <View style={styles.googleGWrap}>
+                    <Text style={styles.googleGText}>G</Text>
+                  </View>
+                  <Text style={styles.googleBtnText}>Đăng nhập bằng Google / Gmail VKU</Text>
+                </Pressable>
+
+                {showGooglePicker && (
+                  <View style={styles.googlePickerBox}>
+                    <Text style={styles.googlePickerTitle}>Chọn tài khoản Google / Gmail VKU:</Text>
+                    {availableUsers.map((u) => (
+                      <Pressable
+                        key={u.email}
+                        style={styles.googleAccountItem}
+                        onPress={() => handleGoogleSelect(u.email, u.name)}
+                      >
+                        <View style={styles.googleAvatarCircle}>
+                          <Text style={styles.googleAvatarText}>{u.name.charAt(0)}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.googleAccountName}>{u.name}</Text>
+                          <Text style={styles.googleAccountEmail}>{u.email}</Text>
+                        </View>
+                        <Text style={styles.googleSelectArrow}>➔</Text>
+                      </Pressable>
+                    ))}
+
+                    <View style={styles.customGmailBox}>
+                      <Text style={styles.customGmailTitle}>Hoặc đăng nhập với Gmail khác:</Text>
+                      <View style={styles.customGmailInputRow}>
+                        <TextInput
+                          style={styles.customGmailInput}
+                          placeholder="tenban@gmail.com"
+                          placeholderTextColor="#94a3b8"
+                          value={customGmail}
+                          onChangeText={setCustomGmail}
+                          autoCapitalize="none"
+                          keyboardType="email-address"
+                        />
+                        <Pressable style={styles.customGmailBtn} onPress={handleCustomGmailLogin}>
+                          <Text style={styles.customGmailBtnText}>Vào</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+                )}
 
                 {/* Quick Demo Accounts */}
                 <View style={styles.quickBox}>
@@ -406,5 +490,149 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '800',
     color: '#0284c7',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  dividerText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#94a3b8',
+    marginHorizontal: 10,
+    letterSpacing: 0.5,
+  },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  googleGWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#ea4335',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  googleGText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  googleBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  googlePickerBox: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 16,
+  },
+  googlePickerTitle: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 8,
+  },
+  googleAccountItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  googleAvatarCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#0284c7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  googleAvatarText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  googleAccountName: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  googleAccountEmail: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  googleSelectArrow: {
+    fontSize: 13,
+    color: '#0284c7',
+    fontWeight: '800',
+  },
+  customGmailBox: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  customGmailTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 6,
+  },
+  customGmailInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  customGmailInput: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 12,
+    color: '#0f172a',
+  },
+  customGmailBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  customGmailBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

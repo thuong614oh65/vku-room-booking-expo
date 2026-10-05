@@ -106,6 +106,15 @@ interface BookingState {
     message: string;
   };
 
+  loginWithGoogle: (
+    email: string,
+    name?: string,
+    avatar?: string
+  ) => {
+    success: boolean;
+    message: string;
+  };
+
   register: (
     name: string,
     studentId: string,
@@ -382,6 +391,62 @@ export const useBookingStore =
 
             message:
               'Đăng nhập thành công',
+          };
+        },
+
+        // ============================================================
+        // LOGIN WITH GOOGLE / GMAIL
+        // ============================================================
+
+        loginWithGoogle: (email, name, avatar) => {
+          const cleanEmail = email.trim().toLowerCase();
+          const existing = get().availableUsers.find(
+            (u) => u.email.toLowerCase() === cleanEmail
+          );
+
+          if (existing) {
+            set({
+              currentUser: existing,
+              authModalVisible: false,
+            });
+            notificationService.notify(
+              `🌐 Chào mừng ${existing.name}!`,
+              `Đã đăng nhập thành công qua Google / Gmail (${cleanEmail}).`,
+              'SUCCESS'
+            );
+            return {
+              success: true,
+              message: 'Đăng nhập Google thành công',
+            };
+          }
+
+          // Tạo tài khoản mới từ Google / Gmail
+          const derivedName = name?.trim() || cleanEmail.split('@')[0];
+          const derivedId = '23IT.B' + Math.floor(100 + Math.random() * 899);
+
+          const newUser: UserProfile = {
+            studentId: derivedId,
+            name: derivedName,
+            email: cleanEmail,
+            major: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
+            avatar: avatar || `https://api.dicebear.com/7.x/avataaars/png?seed=${cleanEmail}`,
+          };
+
+          set((state) => ({
+            availableUsers: [newUser, ...state.availableUsers],
+            currentUser: newUser,
+            authModalVisible: false,
+          }));
+
+          notificationService.notify(
+            `🌐 Chào mừng ${derivedName}!`,
+            `Đã liên kết tài khoản Google (${cleanEmail}) thành công!`,
+            'SUCCESS'
+          );
+
+          return {
+            success: true,
+            message: 'Đăng nhập Google thành công',
           };
         },
 
