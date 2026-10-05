@@ -57,12 +57,7 @@ export const MyBookingsScreen: React.FC = () => {
     cancelBooking(booking.id);
   };
 
-  const renderBookingItem = ({ item }: { item: Booking }) => {
-    const isCheckedIn = item.status === 'CHECKED_IN';
-    const isCancelled = item.status === 'CANCELLED';
-    const isConfirmed = item.status === 'CONFIRMED';
-
-    if (!currentUser) {
+  if (!currentUser) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 28 }}>
@@ -84,7 +79,12 @@ export const MyBookingsScreen: React.FC = () => {
     );
   }
 
-  return (
+  const renderBookingItem = ({ item }: { item: Booking }) => {
+    const isCheckedIn = item.status === 'CHECKED_IN';
+    const isCancelled = item.status === 'CANCELLED';
+    const isConfirmed = item.status === 'CONFIRMED';
+
+    return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View>

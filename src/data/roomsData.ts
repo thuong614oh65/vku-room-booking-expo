@@ -42,9 +42,138 @@ export const getTodayString = (): string => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+export const getRelativeDateString = (offsetDays: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export const getSeedBookings = (): Booking[] => {
   const today = getTodayString();
+  const yesterday = getRelativeDateString(-1);
+  const twoDaysAgo = getRelativeDateString(-2);
+
   return [
+    // ── Lịch sử đặt phòng của Nguyễn Thị Thương (23IT.B219 - Lớp 23SE4) ──
+    {
+      id: 'BK-VKU-219-01',
+      roomId: 'ROOM-VA201',
+      roomName: 'Phòng Lab Lập Trình Đa Nền Tảng V.A201',
+      roomCode: 'V.A201',
+      building: 'Khu V',
+      floor: 'Tầng 2 - Tòa nhà V',
+      date: today,
+      slotId: 'slot-1',
+      slotLabel: '07:30 - 09:30',
+      studentName: 'Nguyễn Thị Thương',
+      studentId: '23IT.B219',
+      studentEmail: 'thuongnt.23itb@vku.udn.vn',
+      groupSize: 12,
+      purpose: 'Thực hành nhóm môn Lập trình ứng dụng đa nền tảng (Lớp 23SE4) - TS. Nguyễn Thanh Tuấn',
+      status: 'CONFIRMED',
+      createdAt: new Date(Date.now() - 7200000).toISOString(),
+      qrCodeData: JSON.stringify({
+        bookingId: 'BK-VKU-219-01',
+        code: 'VKU-2191',
+        roomId: 'ROOM-VA201',
+        roomCode: 'V.A201',
+        date: today,
+        slot: '07:30 - 09:30',
+        student: 'Nguyễn Thị Thương',
+        studentId: '23IT.B219',
+      }),
+    },
+    {
+      id: 'BK-VKU-219-02',
+      roomId: 'ROOM-KA203',
+      roomName: 'Phòng Lab AI & Khoa Học Dữ Liệu K.A203',
+      roomCode: 'K.A203',
+      building: 'Khu K',
+      floor: 'Tầng 2 - Tòa nhà K (KOICA)',
+      date: today,
+      slotId: 'slot-4',
+      slotLabel: '15:00 - 17:00',
+      studentName: 'Nguyễn Thị Thương',
+      studentId: '23IT.B219',
+      studentEmail: 'thuongnt.23itb@vku.udn.vn',
+      groupSize: 8,
+      purpose: 'Nghiên cứu mô hình nhận diện QR Check-in & phân tích luồng xung đột đồng thời',
+      status: 'CHECKED_IN',
+      createdAt: new Date(Date.now() - 14400000).toISOString(),
+      checkedInAt: new Date(Date.now() - 1800000).toISOString(),
+      qrCodeData: JSON.stringify({
+        bookingId: 'BK-VKU-219-02',
+        code: 'VKU-2192',
+        roomId: 'ROOM-KA203',
+        roomCode: 'K.A203',
+        date: today,
+        slot: '15:00 - 17:00',
+        student: 'Nguyễn Thị Thương',
+        studentId: '23IT.B219',
+      }),
+    },
+    {
+      id: 'BK-VKU-219-03',
+      roomId: 'ROOM-LIB201',
+      roomName: 'Phòng Thảo Luận Nhóm Thư Viện Số LIB.201',
+      roomCode: 'LIB.201',
+      building: 'Thư viện',
+      floor: 'Tầng 2 - Trung tâm Học liệu & Thư viện VKU',
+      date: yesterday,
+      slotId: 'slot-2',
+      slotLabel: '09:30 - 11:30',
+      studentName: 'Nguyễn Thị Thương',
+      studentId: '23IT.B219',
+      studentEmail: 'thuongnt.23itb@vku.udn.vn',
+      groupSize: 5,
+      purpose: 'Nghiên cứu tài liệu đồ án và viết báo cáo kỹ thuật Mini-Project 2',
+      status: 'CHECKED_IN',
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      checkedInAt: new Date(Date.now() - 82800000).toISOString(),
+      qrCodeData: JSON.stringify({
+        bookingId: 'BK-VKU-219-03',
+        code: 'VKU-2193',
+        roomId: 'ROOM-LIB201',
+        roomCode: 'LIB.201',
+        date: yesterday,
+        slot: '09:30 - 11:30',
+        student: 'Nguyễn Thị Thương',
+        studentId: '23IT.B219',
+      }),
+    },
+    {
+      id: 'BK-VKU-219-04',
+      roomId: 'ROOM-B101',
+      roomName: 'Phòng Lab Cloud Computing & Devops B.101',
+      roomCode: 'B.101',
+      building: 'Khu B',
+      floor: 'Tầng 1 - Dãy nhà B',
+      date: twoDaysAgo,
+      slotId: 'slot-3',
+      slotLabel: '13:00 - 15:00',
+      studentName: 'Nguyễn Thị Thương',
+      studentId: '23IT.B219',
+      studentEmail: 'thuongnt.23itb@vku.udn.vn',
+      groupSize: 6,
+      purpose: 'Thực hành môn Cloud Computing (đã hoàn thành sớm, hủy phòng để nhường bạn khác)',
+      status: 'CANCELLED',
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
+      qrCodeData: JSON.stringify({
+        bookingId: 'BK-VKU-219-04',
+        code: 'VKU-2194',
+        roomId: 'ROOM-B101',
+        roomCode: 'B.101',
+        date: twoDaysAgo,
+        slot: '13:00 - 15:00',
+        student: 'Nguyễn Thị Thương',
+        studentId: '23IT.B219',
+      }),
+    },
+
+    // ── Lịch đặt phòng của sinh viên khác trong trường VKU ──
     {
       id: 'BK-VKU-101',
       roomId: 'ROOM-VA201',

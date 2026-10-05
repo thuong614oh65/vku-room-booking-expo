@@ -196,15 +196,14 @@ export const useBookingStore =
         rooms: INITIAL_ROOMS,
 
         /*
-         * Không dùng getSeedBookings() làm dữ liệu runtime.
-         *
-         * Khi app mở:
-         * - Nếu đã có dữ liệu trong AsyncStorage → Zustand persist khôi phục.
-         * - Nếu chưa có → bookings = [].
+         * Khởi tạo lịch sử đặt phòng phong phú từ getSeedBookings().
+         * Nếu AsyncStorage đã có dữ liệu từ trước -> Zustand persist tự động khôi phục.
+         * Nếu chưa có -> Dùng getSeedBookings() để sinh viên có ngay lịch sử trực quan.
          */
-        bookings: [],
+        bookings: getSeedBookings(),
 
-        currentUser: null,
+        // Mặc định đăng nhập tài khoản sinh viên thực hiện đề tài
+        currentUser: DEMO_USERS[0],
 
         availableUsers: DEMO_USERS,
 
