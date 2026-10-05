@@ -163,6 +163,63 @@ export const AuthModal: React.FC = () => {
               </View>
             ) : null}
 
+            {/* ── GOOGLE / GMAIL SIGN IN AT THE TOP OF BOTH TABS ── */}
+            <Pressable
+              style={styles.googleBtn}
+              onPress={() => setShowGooglePicker(!showGooglePicker)}
+            >
+              <View style={styles.googleGWrap}>
+                <Text style={styles.googleGText}>G</Text>
+              </View>
+              <Text style={styles.googleBtnText}>Đăng nhập nhanh bằng Google / Gmail VKU</Text>
+            </Pressable>
+
+            {showGooglePicker && (
+              <View style={styles.googlePickerBox}>
+                <Text style={styles.googlePickerTitle}>Chọn tài khoản Google / Gmail VKU:</Text>
+                {availableUsers.map((u) => (
+                  <Pressable
+                    key={u.email}
+                    style={styles.googleAccountItem}
+                    onPress={() => handleGoogleSelect(u.email, u.name)}
+                  >
+                    <View style={styles.googleAvatarCircle}>
+                      <Text style={styles.googleAvatarText}>{u.name.charAt(0)}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.googleAccountName}>{u.name}</Text>
+                      <Text style={styles.googleAccountEmail}>{u.email}</Text>
+                    </View>
+                    <Text style={styles.googleSelectArrow}>➔</Text>
+                  </Pressable>
+                ))}
+
+                <View style={styles.customGmailBox}>
+                  <Text style={styles.customGmailTitle}>Hoặc đăng nhập với Gmail khác:</Text>
+                  <View style={styles.customGmailInputRow}>
+                    <TextInput
+                      style={styles.customGmailInput}
+                      placeholder="tenban@gmail.com"
+                      placeholderTextColor="#94a3b8"
+                      value={customGmail}
+                      onChangeText={setCustomGmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                    <Pressable style={styles.customGmailBtn} onPress={handleCustomGmailLogin}>
+                      <Text style={styles.customGmailBtnText}>Vào</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>HOẶC NHẬP THỦ CÔNG</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
             {mode === 'LOGIN' ? (
               <View>
                 <Text style={styles.label}>Mã Sinh Viên (MSSV) hoặc Email VKU *</Text>
@@ -188,63 +245,6 @@ export const AuthModal: React.FC = () => {
                 <Pressable style={styles.primaryBtn} onPress={handleLogin}>
                   <Text style={styles.primaryBtnText}>🔑 Đăng Nhập Ngay</Text>
                 </Pressable>
-
-                {/* ── GOOGLE / GMAIL SIGN IN ── */}
-                <View style={styles.dividerRow}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>HOẶC TIẾP TỤC VỚI</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <Pressable
-                  style={styles.googleBtn}
-                  onPress={() => setShowGooglePicker(!showGooglePicker)}
-                >
-                  <View style={styles.googleGWrap}>
-                    <Text style={styles.googleGText}>G</Text>
-                  </View>
-                  <Text style={styles.googleBtnText}>Đăng nhập bằng Google / Gmail VKU</Text>
-                </Pressable>
-
-                {showGooglePicker && (
-                  <View style={styles.googlePickerBox}>
-                    <Text style={styles.googlePickerTitle}>Chọn tài khoản Google / Gmail VKU:</Text>
-                    {availableUsers.map((u) => (
-                      <Pressable
-                        key={u.email}
-                        style={styles.googleAccountItem}
-                        onPress={() => handleGoogleSelect(u.email, u.name)}
-                      >
-                        <View style={styles.googleAvatarCircle}>
-                          <Text style={styles.googleAvatarText}>{u.name.charAt(0)}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.googleAccountName}>{u.name}</Text>
-                          <Text style={styles.googleAccountEmail}>{u.email}</Text>
-                        </View>
-                        <Text style={styles.googleSelectArrow}>➔</Text>
-                      </Pressable>
-                    ))}
-
-                    <View style={styles.customGmailBox}>
-                      <Text style={styles.customGmailTitle}>Hoặc đăng nhập với Gmail khác:</Text>
-                      <View style={styles.customGmailInputRow}>
-                        <TextInput
-                          style={styles.customGmailInput}
-                          placeholder="tenban@gmail.com"
-                          placeholderTextColor="#94a3b8"
-                          value={customGmail}
-                          onChangeText={setCustomGmail}
-                          autoCapitalize="none"
-                          keyboardType="email-address"
-                        />
-                        <Pressable style={styles.customGmailBtn} onPress={handleCustomGmailLogin}>
-                          <Text style={styles.customGmailBtnText}>Vào</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  </View>
-                )}
 
                 {/* Quick Demo Accounts */}
                 <View style={styles.quickBox}>
