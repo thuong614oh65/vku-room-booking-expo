@@ -12,7 +12,14 @@ import { useBookingStore } from '../store/useBookingStore';
 import { notificationService } from '../services/notificationService';
 
 export const ProfileScreen: React.FC = () => {
-  const { currentUser, bookings, setAuthModalVisible, setInstallModalVisible, logout } = useBookingStore();
+  const {
+    currentUser,
+    bookings,
+    setAuthModalVisible,
+    setInstallModalVisible,
+    logout,
+    resetToSeedBookings,
+  } = useBookingStore();
 
   const myBookings = currentUser
     ? bookings.filter((b) => b.studentId === currentUser.studentId)
@@ -76,7 +83,15 @@ export const ProfileScreen: React.FC = () => {
         </View>
 
         {/* Booking Statistics */}
-        <Text style={styles.sectionHeader}>📊 Thống Kê Đặt Phòng Cá Nhân</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={[styles.sectionHeader, { marginBottom: 0 }]}>📊 Thống Kê Đặt Phòng Cá Nhân</Text>
+          <Pressable
+            style={{ backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 }}
+            onPress={resetToSeedBookings}
+          >
+            <Text style={{ color: '#0284c7', fontSize: 11.5, fontWeight: '700' }}>🔄 Nạp 4 Lịch Sử Mẫu</Text>
+          </Pressable>
+        </View>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{totalCount}</Text>

@@ -58,9 +58,18 @@
       });
 
       if ('serviceWorker' in navigator) {
+        var isReloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          if (!isReloading) {
+            isReloading = true;
+            console.log('[VKU PWA] New Service Worker active, reloading page to apply updates...');
+            window.location.reload();
+          }
+        });
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('./sw.js').then(function(reg) {
             console.log('[VKU PWA] Service Worker registered with scope:', reg.scope);
+            reg.update();
           }).catch(function(err) {
             console.warn('[VKU PWA] Service Worker registration failed:', err);
           });

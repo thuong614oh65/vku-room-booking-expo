@@ -1327,7 +1327,7 @@ export const useBookingStore =
       // ============================================================
 
       {
-        name: 'vku-booking-storage-v7',
+        name: 'vku-booking-storage-v8',
         storage: createJSONStorage(() => AsyncStorage),
         onRehydrateStorage: () => (state) => {
           if (state) {
@@ -1407,7 +1407,7 @@ export function initializeRealtimeSync(): () => void {
   let storageHandler: ((e: StorageEvent) => void) | null = null;
   if (typeof window !== 'undefined' && window.addEventListener) {
     storageHandler = (e: StorageEvent) => {
-      if ((e.key === 'vku-booking-storage-v7' || e.key === 'vku-booking-storage') && e.newValue) {
+      if ((e.key === 'vku-booking-storage-v8' || e.key === 'vku-booking-storage-v7' || e.key === 'vku-booking-storage') && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
           if (parsed?.state?.bookings) {
