@@ -20,7 +20,15 @@ type FilterType = 'ALL' | BookingStatus;
 
 export const MyBookingsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { bookings, waitlist, cancelBooking, checkInBooking, currentUser, setAuthModalVisible } = useBookingStore();
+  const {
+    bookings,
+    waitlist,
+    cancelBooking,
+    checkInBooking,
+    currentUser,
+    setAuthModalVisible,
+    resetToSeedBookings,
+  } = useBookingStore();
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('ALL');
 
   // Lọc danh sách đặt phòng của sinh viên hiện tại
@@ -172,11 +180,19 @@ export const MyBookingsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Lịch Đặt Phòng Của Tôi</Text>
-        <Text style={styles.headerSub}>
-          {currentUser?.name} • {currentUser?.studentId}
-        </Text>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>Lịch Đặt Phòng Của Tôi</Text>
+          <Text style={styles.headerSub}>
+            {currentUser?.name} • MSSV: {currentUser?.studentId}
+          </Text>
+        </View>
+        <Pressable
+          style={{ backgroundColor: '#0284c7', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20 }}
+          onPress={resetToSeedBookings}
+        >
+          <Text style={{ color: '#fff', fontSize: 11.5, fontWeight: '800' }}>🔄 Nạp Lịch Sử Mẫu</Text>
+        </Pressable>
       </View>
 
       {/* Filter Tabs */}
@@ -293,12 +309,20 @@ export const MyBookingsScreen: React.FC = () => {
             <Text style={styles.emptySub}>
               Khám phá danh sách phòng học VKU và đặt lịch để cùng học nhóm ngay hôm nay!
             </Text>
-            <Pressable
-              style={styles.emptyButton}
-              onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
-            >
-              <Text style={styles.emptyButtonText}>🔍 Tìm phòng học ngay</Text>
-            </Pressable>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Pressable
+                style={styles.emptyButton}
+                onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
+              >
+                <Text style={styles.emptyButtonText}>🔍 Tìm phòng học ngay</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.emptyButton, { backgroundColor: '#0284c7' }]}
+                onPress={resetToSeedBookings}
+              >
+                <Text style={styles.emptyButtonText}>🔄 Nạp Lịch Sử Mẫu VKU</Text>
+              </Pressable>
+            </View>
           </View>
         }
       />

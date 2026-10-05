@@ -3,7 +3,7 @@
  * Caching Strategy: Cache-First for App Shell (HTML, CSS, JS, Manifest, Icons)
  */
 
-const CACHE_NAME = 'vku-booking-cache-v15';
+const CACHE_NAME = 'vku-booking-cache-v16';
 const APP_SHELL_ASSETS = [
   './',
   './index.html',
@@ -47,6 +47,20 @@ self.addEventListener('fetch', (event) => {
     event.request.url.includes('firebaseio.com') ||
     event.request.url.includes('__healthcheck')
   ) {
+    return;
+  }
+
+  // Network-First cho HTML navigation để luôn thấy bản cập nhật mới nhất
+  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match('./index.html'))
+    );
     return;
   }
 

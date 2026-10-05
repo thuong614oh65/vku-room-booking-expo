@@ -171,6 +171,8 @@ interface BookingState {
     date: string,
     slotId: string
   ) => boolean;
+
+  resetToSeedBookings: () => void;
 }
 
 const INITIAL_FILTERS: FilterState = {
@@ -1235,10 +1237,22 @@ export const useBookingStore =
               w.roomId ===
                 roomId &&
               w.date === date &&
-              w.slotId ===
-                slotId &&
-              w.studentId ===
-                currentUser.studentId
+              w.slotId === slotId &&
+              w.studentId === currentUser.studentId
+          );
+        },
+
+        resetToSeedBookings: () => {
+          const fresh = getSeedBookings();
+          set({
+            bookings: fresh,
+            currentUser: DEMO_USERS[0],
+          });
+          broadcastBookingsSync(fresh);
+          notificationService.notify(
+            '🔄 Đã nạp lịch sử đặt phòng',
+            'Toàn bộ 4 lịch sử đặt phòng mẫu của Nguyễn Thị Thương (23IT.B219) đã sẵn sàng!',
+            'SUCCESS'
           );
         },
       }),
@@ -1248,28 +1262,18 @@ export const useBookingStore =
       // ============================================================
 
       {
-        /*
-         * Đây là tên bộ nhớ.
-         *
-         * Sau khi F5:
-         *
-         * Zustand đọc key này
-         * ↓
-         * lấy bookings
-         * ↓
-         * khôi phục lại giao diện.
-         */
-        name: 'vku-booking-storage-v5',
-
-        /*
-         * Web:
-         * AsyncStorage sẽ được Expo Web xử lý
-         * thành storage phía trình duyệt.
-         */
-        storage:
-          createJSONStorage(
-            () => AsyncStorage
-          ),
+        name: 'vku-booking-storage-v7',
+        storage: createJSONStorage(() => AsyncStorage),
+        onRehydrateStorage: () => (state) => {
+          if (state) {
+            if (!state.currentUser) {
+              state.currentUser = DEMO_USERS[0];
+            }
+            if (!state.bookings || state.bookings.length === 0) {
+              state.bookings = getSeedBookings();
+            }
+          }
+        },
 
         /*
          * Chỉ lưu dữ liệu cần thiết.
