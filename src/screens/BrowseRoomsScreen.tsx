@@ -7,11 +7,13 @@ import { useBookingStore } from '../store/useBookingStore';
 import { RoomCard } from '../components/RoomCard';
 import { FilterBar } from '../components/FilterBar';
 import { Room } from '../types/booking';
+import { useRoomsQuery } from '../hooks/useRoomsQuery';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const BrowseRoomsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const { data: serverRooms } = useRoomsQuery();
   const {
     rooms,
     filters,
@@ -28,6 +30,8 @@ export const BrowseRoomsScreen: React.FC = () => {
     logout,
   } = useBookingStore();
 
+  const activeRooms = serverRooms || rooms;
+
   const todayStr = useMemo(() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -37,7 +41,7 @@ export const BrowseRoomsScreen: React.FC = () => {
   }, []);
 
   const filteredRooms = useMemo(() => {
-    return rooms.filter((room) => {
+    return activeRooms.filter((room) => {
       if (filters.searchQuery.trim()) {
         const query = filters.searchQuery.toLowerCase().trim();
         const matchName = room.name.toLowerCase().includes(query);

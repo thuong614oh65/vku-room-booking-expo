@@ -10,10 +10,13 @@ import { InstallAppModal } from './src/components/InstallAppModal';
 import { SystemInfoModal } from './src/components/SystemInfoModal';
 import { initializeRealtimeSync, useBookingStore } from './src/store/useBookingStore';
 
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './src/services/queryClient';
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function App() {
   useEffect(() => {
-    // Khởi tạo Firestore real-time listener
+    // Khởi tạo Firestore real-time listener & cross-window sync
     const unsubscribe = initializeRealtimeSync();
     return () => {
       unsubscribe();
@@ -21,16 +24,18 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <StatusBar style="dark" />
-        <AppNavigator />
-        <NotificationToast />
-        <AuthModal />
-        <InstallAppModal />
-        <SystemInfoModal />
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <StatusBar style="dark" />
+          <AppNavigator />
+          <NotificationToast />
+          <AuthModal />
+          <InstallAppModal />
+          <SystemInfoModal />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }
 

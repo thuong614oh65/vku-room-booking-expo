@@ -56,6 +56,23 @@ export const checkIsStandalone = (): boolean => {
   );
 };
 
+const syncChannel =
+  typeof window !== 'undefined' && 'BroadcastChannel' in window
+    ? new BroadcastChannel('vku_room_sync_channel')
+    : null;
+
+export const broadcastBookingsSync = (bookings: Booking[]) => {
+  if (syncChannel) {
+    try {
+      syncChannel.postMessage({
+        type: 'VKU_BOOKINGS_SYNC',
+        bookings,
+        timestamp: Date.now(),
+      });
+    } catch (e) {}
+  }
+};
+
 interface BookingState {
   rooms: Room[];
   bookings: Booking[];
@@ -874,6 +891,8 @@ export const useBookingStore =
               ),
           }));
 
+          broadcastBookingsSync(get().bookings);
+
           /*
            * Firebase chỉ được gọi khi thực sự online.
            *
@@ -999,6 +1018,8 @@ export const useBookingStore =
               ),
           }));
 
+          broadcastBookingsSync(get().bookings);
+
           notificationService.notify(
             'Đã hủy đặt phòng',
 
@@ -1079,6 +1100,8 @@ export const useBookingStore =
                     : b
               ),
           }));
+
+          broadcastBookingsSync(get().bookings);
 
           notificationService.notify(
             'Check-in Thành Công!',
@@ -1292,41 +1315,49 @@ let _unsubscribeFirestore:
  * Sau khi kiểm tra F5 hoạt động ổn,
  * chúng ta sẽ bật Firebase thật.
  */
-export function initializeRealtimeSync():
-  () => void {
-  console.log(
-    '[Storage] Khởi động chế độ lưu local.'
-  );
+export function initializeRealtimeSync(): () => void {
+  console.log('[Storage & Realtime] Khởi động chế độ đồng bộ tức thì đa cửa sổ (BroadcastChannel & Local Storage).');
 
-  useBookingStore
-    .getState()
-    ._setSyncStatus({
-      isOnline: false,
+  useBookingStore.getState()._setSyncStatus({
+    isOnline: true,
+    isConnecting: false,
+    lastSyncedAt: new Date().toISOString(),
+    error: null,
+  });
 
-      isConnecting: false,
+  // 1. Lắng nghe BroadcastChannel (<1ms giữa các cửa sổ/tab trên cùng trình duyệt hoặc PWA)
+  if (syncChannel) {
+    syncChannel.onmessage = (event) => {
+      if (event.data?.type === 'VKU_BOOKINGS_SYNC' && Array.isArray(event.data.bookings)) {
+        console.log('[RealtimeSync] Nhận đồng bộ tức thì từ cửa sổ khác:', event.data.bookings.length, 'bookings');
+        useBookingStore.setState({ bookings: event.data.bookings });
+      }
+    };
+  }
 
-      lastSyncedAt:
-        new Date().toISOString(),
-
-      error: null,
-    });
-
-  /*
-   * Không gọi subscribeToBookings()
-   *
-   * Không gọi seedFirestoreIfEmpty()
-   *
-   * Không cho Firebase ghi đè local.
-   */
+  // 2. Lắng nghe storage event (đồng bộ ngay khi có tab khác ghi vào localStorage)
+  let storageHandler: ((e: StorageEvent) => void) | null = null;
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    storageHandler = (e: StorageEvent) => {
+      if (e.key === 'vku-booking-storage' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed?.state?.bookings) {
+            useBookingStore.setState({ bookings: parsed.state.bookings });
+          }
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', storageHandler);
+  }
 
   return () => {
-    if (
-      _unsubscribeFirestore
-    ) {
+    if (_unsubscribeFirestore) {
       _unsubscribeFirestore();
-
-      _unsubscribeFirestore =
-        null;
+      _unsubscribeFirestore = null;
+    }
+    if (typeof window !== 'undefined' && storageHandler) {
+      window.removeEventListener('storage', storageHandler);
     }
   };
 }

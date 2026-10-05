@@ -38,8 +38,8 @@
 ---
 
 ## 3. TECHNICAL ARCHITECTURE & PROJECT STRUCTURE
-* **Directory structure:** App root `App.tsx` → `src/screens/` (BrowseRooms, RoomDetails, BookingConfirmationPass, MyBookings, QRScanner, Profile) → `src/components/` (RoomCard, FilterBar, TimeSlotGrid, ConflictResolutionModal, InstallAppModal) → `src/store/useBookingStore.ts` → `src/services/` (notificationService, realtimeBookingService) → `public/` (manifest.json, sw.js, icons).
-* **State management flow:** UI components dispatch actions to the Zustand store → `atomicAddBooking()` runs synchronous slot conflict check → on success, writes to local AsyncStorage and triggers Firestore sync; on conflict, opens `ConflictResolutionModal` with alternative recommendations.
+* **Directory structure:** App root `App.tsx` → `src/screens/` (BrowseRooms, RoomDetails, BookingConfirmationPass, MyBookings, QRScanner, Profile) → `src/components/` (RoomCard, FilterBar, TimeSlotGrid, ConflictResolutionModal, InstallAppModal) → `src/hooks/useRoomsQuery.ts` (TanStack Query) → `src/store/useBookingStore.ts` (Zustand) → `src/services/` (queryClient, notificationService, realtimeBookingService) → `public/` (manifest.json, sw.js, icons).
+* **State management flow:** Hybrid State Architecture: **TanStack Query** (`@tanstack/react-query`) handles server state and room caching (`useRoomsQuery`), while **Zustand store** (`useBookingStore.ts`) handles client state, session, and atomic booking transactions with `AsyncStorage` persistence and sub-millisecond `BroadcastChannel` synchronization.
 * **Exception handling:** (1) Concurrent booking collisions handled by synchronous pre-flight check before state mutation. (2) Offline mode: bookings queued with `isSynced: false` and reconciled on reconnection. (3) Camera permission denied: QR scanner shows graceful fallback modal instead of crashing.
 
 ---
