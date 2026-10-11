@@ -15,6 +15,7 @@ import { useBookingStore } from '../store/useBookingStore';
 import { Booking, BookingStatus } from '../types/booking';
 import { TIME_SLOTS } from '../data/roomsData';
 import { CameraQRScannerModal } from '../components/CameraQRScannerModal';
+import { openFieldSurveyEvaluation } from '../services/fieldSurveyLinkService';
 
 type FilterType = 'ALL' | BookingStatus;
 
@@ -165,6 +166,33 @@ export const MyBookingsScreen: React.FC = () => {
             }
           >
             <Text style={styles.viewPassBtnText}>🎟️ Mở Thẻ QR</Text>
+          </Pressable>
+
+          <Pressable
+            style={{
+              backgroundColor: '#f0fdf4',
+              borderWidth: 1,
+              borderColor: '#86efac',
+              borderRadius: 10,
+              paddingVertical: 10,
+              paddingHorizontal: 11,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onPress={() =>
+              openFieldSurveyEvaluation({
+                roomCode: item.roomCode,
+                roomName: item.roomName,
+                building: item.building,
+                floor: item.floor,
+                studentName: item.studentName,
+                studentId: item.studentId,
+              })
+            }
+          >
+            <Text style={{ color: '#15803d', fontSize: 12.5, fontWeight: '800' }}>
+              📊 Đánh Giá CSVC
+            </Text>
           </Pressable>
 
           {isConfirmed && (

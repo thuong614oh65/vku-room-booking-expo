@@ -18,6 +18,7 @@ import { RoomCard } from '../components/RoomCard';
 import { FilterBar } from '../components/FilterBar';
 import { Room } from '../types/booking';
 import { useRoomsQuery } from '../hooks/useRoomsQuery';
+import { openFieldSurveyEvaluation } from '../services/fieldSurveyLinkService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -171,6 +172,18 @@ export const BrowseRoomsScreen: React.FC = () => {
         </View>
 
         <View style={styles.statusBar}>
+          <Pressable
+            style={[styles.btnInstall, { backgroundColor: '#16a34a', borderColor: '#22c55e' }]}
+            onPress={() =>
+              openFieldSurveyEvaluation({
+                studentName: currentUser?.name,
+                studentId: currentUser?.studentId,
+              })
+            }
+          >
+            <Text style={styles.btnInstallText}>📊 Đánh Giá CSVC</Text>
+          </Pressable>
+
           {!isStandaloneApp && (
             <Pressable
               style={styles.btnInstall}

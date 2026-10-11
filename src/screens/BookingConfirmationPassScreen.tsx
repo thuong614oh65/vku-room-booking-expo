@@ -13,6 +13,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { useBookingStore } from '../store/useBookingStore';
 import { CameraQRScannerModal } from '../components/CameraQRScannerModal';
+import { openFieldSurveyEvaluation } from '../services/fieldSurveyLinkService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingConfirmationPass'>;
 
@@ -221,6 +222,34 @@ export const BookingConfirmationPassScreen: React.FC<Props> = ({ route, navigati
                 <Text style={styles.checkedInTimeText}>Thời gian: {booking.checkedInAt || 'Vừa xong'}</Text>
               </View>
             )}
+
+            {/* Nút Đánh Giá & Khảo Sát Thực Địa Cơ Sở Vật Chất Phòng Học (Mini Project 1 - VKU Field Survey) */}
+            <Pressable
+              style={{
+                marginTop: 12,
+                backgroundColor: '#f0fdf4',
+                borderWidth: 1.5,
+                borderColor: '#86efac',
+                borderRadius: 12,
+                paddingVertical: 13,
+                paddingHorizontal: 14,
+                alignItems: 'center',
+              }}
+              onPress={() =>
+                openFieldSurveyEvaluation({
+                  roomCode: booking.roomCode,
+                  roomName: booking.roomName,
+                  building: booking.building,
+                  floor: booking.floor,
+                  studentName: booking.studentName,
+                  studentId: booking.studentId,
+                })
+              }
+            >
+              <Text style={{ color: '#15803d', fontSize: 13.5, fontWeight: '800', textAlign: 'center' }}>
+                📊 Đánh Giá CSVC Phòng {booking.roomCode} (VKU Field Survey) ↗
+              </Text>
+            </Pressable>
 
             {/* Cancel Button */}
             {!isCheckedIn && !isCancelled && (

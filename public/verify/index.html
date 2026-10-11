@@ -162,6 +162,23 @@
     .btn-primary:hover {
       background: #0369a1;
     }
+    .btn-survey {
+      width: 100%;
+      background: #f0fdf4;
+      color: #15803d;
+      border: 1.5px solid #86efac;
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+    }
+    .btn-survey:hover {
+      background: #dcfce7;
+    }
     .security-note {
       font-size: 11px;
       color: #94a3b8;
@@ -217,6 +234,7 @@
 
     <div class="receipt-footer">
       <a id="openAppBtn" href="/" class="btn-primary">🚀 Mở Ứng Dụng VKU Room Booking</a>
+      <a id="surveyBtn" href="https://vku-field-survey-28x.pages.dev/" target="_blank" class="btn-survey">📊 Đánh Giá CSVC Phòng Này (VKU Field Survey) ↗</a>
       <div class="security-note">
         Biên lai điện tử đã tự động đồng bộ trạng thái Check-in lên đám mây theo thời gian thực.
       </div>
@@ -266,6 +284,27 @@
       openAppBtn.href = externalBrowserUrl;
     } else if (openAppBtn) {
       openAppBtn.href = targetAppPath;
+    }
+
+    const surveyUrl =
+      'https://vku-field-survey-28x.pages.dev/?room=' +
+      encodeURIComponent(room) +
+      '&rname=' +
+      encodeURIComponent(rname) +
+      '&student=' +
+      encodeURIComponent(student) +
+      '&mssv=' +
+      encodeURIComponent(mssv);
+    const surveyWithoutProto = surveyUrl.replace(/^https?:\/\//i, '');
+    const surveyBtn = document.getElementById('surveyBtn');
+    if (surveyBtn) {
+      surveyBtn.href = isInAppWebView
+        ? isIOS
+          ? 'x-safari-https://' + surveyWithoutProto
+          : isAndroid
+          ? 'intent://' + surveyWithoutProto + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(surveyUrl) + ';end'
+          : surveyUrl
+        : surveyUrl;
     }
 
     // 1. Đồng bộ trên cùng thiết bị (nếu mở tab khác)

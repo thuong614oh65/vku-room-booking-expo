@@ -17,6 +17,7 @@ import { DateSelector } from '../components/DateSelector';
 import { TimeSlotGrid } from '../components/TimeSlotGrid';
 import { ConflictResolutionModal } from '../components/ConflictResolutionModal';
 import { notificationService } from '../services/notificationService';
+import { openFieldSurveyEvaluation } from '../services/fieldSurveyLinkService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoomDetails'>;
 
@@ -187,6 +188,33 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             ))}
           </View>
+
+          <Pressable
+            style={{
+              marginTop: 14,
+              backgroundColor: '#f0fdf4',
+              borderWidth: 1.5,
+              borderColor: '#86efac',
+              borderRadius: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+              alignItems: 'center',
+            }}
+            onPress={() =>
+              openFieldSurveyEvaluation({
+                roomCode: room.code,
+                roomName: room.name,
+                building: room.building,
+                floor: room.floor,
+                studentName: currentUser?.name,
+                studentId: currentUser?.studentId,
+              })
+            }
+          >
+            <Text style={{ color: '#15803d', fontSize: 13, fontWeight: '800', textAlign: 'center' }}>
+              📊 Đánh Giá & Khảo Sát CSVC Phòng {room.code} (VKU Field Survey) ↗
+            </Text>
+          </Pressable>
         </View>
 
         {/* 7-Day Date Selector */}
