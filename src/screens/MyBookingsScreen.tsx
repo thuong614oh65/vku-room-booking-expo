@@ -14,6 +14,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useBookingStore } from '../store/useBookingStore';
 import { Booking, BookingStatus } from '../types/booking';
 import { TIME_SLOTS } from '../data/roomsData';
+import { CameraQRScannerModal } from '../components/CameraQRScannerModal';
 
 type FilterType = 'ALL' | BookingStatus;
 
@@ -28,6 +29,7 @@ export const MyBookingsScreen: React.FC = () => {
     setAuthModalVisible,
   } = useBookingStore();
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('ALL');
+  const [scannerBooking, setScannerBooking] = useState<Booking | null>(null);
 
   // Lọc danh sách đặt phòng của sinh viên hiện tại
   const myBookings = useMemo(() => {
@@ -160,9 +162,9 @@ export const MyBookingsScreen: React.FC = () => {
             <View style={styles.confirmedActions}>
               <Pressable
                 style={styles.checkInQuickBtn}
-                onPress={() => checkInBooking(item.id)}
+                onPress={() => setScannerBooking(item)}
               >
-                <Text style={styles.checkInQuickBtnText}>Nhận phòng</Text>
+                <Text style={styles.checkInQuickBtnText}>📷 Quét QR</Text>
               </Pressable>
               <Pressable
                 style={styles.cancelQuickBtn}
@@ -195,12 +197,25 @@ export const MyBookingsScreen: React.FC = () => {
             {currentUser?.name} • MSSV: {currentUser?.studentId}
           </Text>
         </View>
-        <Pressable
-          style={styles.newBookingHeaderBtn}
-          onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
-        >
-          <Text style={styles.newBookingHeaderBtnText}>+ Đặt phòng mới</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          {confirmedCount > 0 && (
+            <Pressable
+              style={[styles.newBookingHeaderBtn, { backgroundColor: '#16a34a' }]}
+              onPress={() => {
+                const firstConfirmed = myBookings.find((b) => b.status === 'CONFIRMED');
+                if (firstConfirmed) setScannerBooking(firstConfirmed);
+              }}
+            >
+              <Text style={styles.newBookingHeaderBtnText}>📷 Quét QR</Text>
+            </Pressable>
+          )}
+          <Pressable
+            style={styles.newBookingHeaderBtn}
+            onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
+          >
+            <Text style={styles.newBookingHeaderBtnText}>+ Đặt phòng</Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Filter Tabs */}
@@ -369,6 +384,20 @@ export const MyBookingsScreen: React.FC = () => {
           </View>
         }
       />
+
+      {scannerBooking && (
+        <CameraQRScannerModal
+          visible={Boolean(scannerBooking)}
+          expectedRoomCode={scannerBooking.roomCode}
+          expectedBookingId={scannerBooking.id}
+          onClose={() => setScannerBooking(null)}
+          onScanSuccess={(_decoded) => {
+            const targetId = scannerBooking.id;
+            setScannerBooking(null);
+            checkInBooking(targetId);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };

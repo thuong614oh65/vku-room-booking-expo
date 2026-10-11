@@ -1625,8 +1625,23 @@ export function initializeRealtimeSync(): () => void {
       if (event.data?.type === 'VKU_BOOKINGS_SYNC' && Array.isArray(event.data.bookings)) {
         console.log('[RealtimeSync] Nhận đồng bộ tức thì từ cửa sổ khác:', event.data.bookings.length, 'bookings');
         useBookingStore.setState({ bookings: event.data.bookings });
+      } else if (event.data?.type === 'VKU_QR_CHECKIN_ID' && event.data.bookingId) {
+        useBookingStore.getState().checkInBooking(event.data.bookingId);
       }
     };
+  }
+
+  // Nếu người dùng bấm từ trang biên lai xác thực QR (?checked_in_id=...)
+  if (typeof window !== 'undefined' && window.location?.search) {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const checkedInId = params.get('checked_in_id');
+      if (checkedInId) {
+        setTimeout(() => {
+          useBookingStore.getState().checkInBooking(checkedInId);
+        }, 400);
+      }
+    } catch (_) {}
   }
 
   // 2. Lắng nghe storage event (đồng bộ ngay khi có tab khác ghi vào localStorage)

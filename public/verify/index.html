@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Xác Thực Thẻ QR Phòng Học - VKU Smart Campus</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .receipt-card {
+      width: 100%;
+      max-width: 420px;
+      background: #ffffff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .receipt-header {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      padding: 28px 24px 24px;
+      text-align: center;
+      color: #ffffff;
+    }
+    .check-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 32px;
+      background: #22c55e;
+      color: #ffffff;
+      font-size: 34px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+      box-shadow: 0 6px 18px rgba(34, 197, 94, 0.45);
+      border: 3px solid #ffffff;
+    }
+    .header-title {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+    .header-sub {
+      font-size: 12.5px;
+      color: #e0f2fe;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    .amount-like-box {
+      background: #f0f9ff;
+      border-bottom: 1px dashed #cbd5e1;
+      padding: 18px 24px;
+      text-align: center;
+    }
+    .room-code-big {
+      font-size: 30px;
+      font-weight: 900;
+      color: #0284c7;
+      letter-spacing: 0.5px;
+    }
+    .room-name-sub {
+      font-size: 14px;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 2px;
+    }
+    .status-pill {
+      display: inline-block;
+      margin-top: 8px;
+      background: #dcfce7;
+      color: #15803d;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 999px;
+    }
+    .receipt-body {
+      padding: 20px 24px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+      gap: 12px;
+    }
+    .row:last-child {
+      border-bottom: none;
+    }
+    .label {
+      font-size: 12.5px;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .val {
+      font-size: 13px;
+      color: #0f172a;
+      font-weight: 700;
+      text-align: right;
+    }
+    .val-highlight {
+      color: #0284c7;
+      font-weight: 800;
+    }
+    .receipt-footer {
+      padding: 16px 24px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn-primary {
+      width: 100%;
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+    .security-note {
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: center;
+      line-height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt-card">
+    <div class="receipt-header">
+      <div class="check-badge">✓</div>
+      <div class="header-title">XÁC THỰC QR THÀNH CÔNG</div>
+      <div class="header-sub">Hệ thống Quản lý Phòng học Thông minh VKU</div>
+    </div>
+
+    <div class="amount-like-box">
+      <div class="room-code-big" id="roomCode">V.A201</div>
+      <div class="room-name-sub" id="roomName">Phòng Lab AI & Khoa Học Dữ Liệu</div>
+      <div class="status-pill">✅ ĐÃ KÍCH HOẠT MỞ CỬA PHÒNG (CHECKED-IN)</div>
+    </div>
+
+    <div class="receipt-body">
+      <div class="row">
+        <span class="label">Mã biên lai QR</span>
+        <span class="val" id="bookingId">VKU-PASS</span>
+      </div>
+      <div class="row">
+        <span class="label">Sinh viên đăng ký</span>
+        <span class="val" id="studentName">Nguyễn Thị Thương</span>
+      </div>
+      <div class="row">
+        <span class="label">Mã số sinh viên</span>
+        <span class="val val-highlight" id="studentId">23IT.B219</span>
+      </div>
+      <div class="row">
+        <span class="label">Ngày sử dụng</span>
+        <span class="val" id="dateText">--/--/----</span>
+      </div>
+      <div class="row">
+        <span class="label">Khung giờ ca học</span>
+        <span class="val val-highlight" id="slotText">Ca học</span>
+      </div>
+      <div class="row">
+        <span class="label">Thời điểm quét QR</span>
+        <span class="val" id="scanTime">--:--:--</span>
+      </div>
+    </div>
+
+    <div class="receipt-footer">
+      <a id="openAppBtn" href="/" class="btn-primary">🚀 Mở Ứng Dụng VKU Room Booking</a>
+      <div class="security-note">
+        Biên lai điện tử được xác thực tự động qua giao thức QR Check-in VKU Smart Campus.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id') || 'VKU-PASS-2026';
+    const room = params.get('room') || 'V.A201';
+    const rname = params.get('rname') || 'Phòng học / Phòng Lab VKU';
+    const student = params.get('student') || 'Nguyễn Thị Thương';
+    const mssv = params.get('mssv') || '23IT.B219';
+    const date = params.get('date') || new Date().toISOString().slice(0, 10);
+    const slot = params.get('slot') || '07:30 - 09:30';
+
+    document.getElementById('bookingId').textContent = id;
+    document.getElementById('roomCode').textContent = room;
+    document.getElementById('roomName').textContent = rname;
+    document.getElementById('studentName').textContent = student;
+    document.getElementById('studentId').textContent = mssv;
+    document.getElementById('dateText').textContent = date;
+    document.getElementById('slotText').textContent = slot;
+    document.getElementById('scanTime').textContent = new Date().toLocaleString('vi-VN');
+    document.getElementById('openAppBtn').href = '/?checked_in_id=' + encodeURIComponent(id);
+
+    // Đồng bộ trạng thái CHECKED_IN vào localStorage & BroadcastChannel nếu mở trên cùng thiết bị
+    try {
+      const ch = new BroadcastChannel('vku_bookings_realtime_channel');
+      ch.postMessage({ type: 'VKU_QR_CHECKIN_ID', bookingId: id });
+    } catch (e) {}
+  </script>
+</body>
+</html>

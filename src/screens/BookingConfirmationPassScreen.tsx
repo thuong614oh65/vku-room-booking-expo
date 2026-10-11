@@ -142,16 +142,16 @@ export const BookingConfirmationPassScreen: React.FC<Props> = ({ route, navigati
               <View style={styles.qrImageFrame}>
                 <Image
                   source={{
-                    uri: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data=${encodeURIComponent(
-                      booking.qrCodeData ||
-                        JSON.stringify({
-                          vkuPass: true,
-                          bookingId: booking.id,
-                          roomCode: booking.roomCode,
-                          studentId: booking.studentId,
-                          date: booking.date,
-                          slot: booking.slotLabel,
-                        })
+                    uri: `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&ecc=M&data=${encodeURIComponent(
+                      `https://vku-room-booking-17t.pages.dev/verify/index.html?id=${encodeURIComponent(
+                        booking.id
+                      )}&room=${encodeURIComponent(booking.roomCode)}&rname=${encodeURIComponent(
+                        booking.roomName
+                      )}&student=${encodeURIComponent(
+                        booking.studentName
+                      )}&mssv=${encodeURIComponent(booking.studentId)}&date=${encodeURIComponent(
+                        booking.date
+                      )}&slot=${encodeURIComponent(booking.slotLabel)}`
                     )}`,
                   }}
                   style={styles.realQrImage}
@@ -162,8 +162,43 @@ export const BookingConfirmationPassScreen: React.FC<Props> = ({ route, navigati
               <Text style={styles.qrHint}>
                 {isCheckedIn
                   ? `✅ ĐÃ NHẬN PHÒNG • PHÒNG ${booking.roomCode}`
-                  : 'Đưa mã QR này vào thiết bị đọc tại cửa phòng hoặc quét mã phòng học để xác nhận nhận phòng.'}
+                  : 'Dùng Camera điện thoại / Zalo quét trực tiếp mã QR này hoặc bấm "Quét Mã QR" bên dưới để xác thực nhận phòng.'}
               </Text>
+
+              <Pressable
+                style={styles.downloadQrBtn}
+                onPress={async () => {
+                  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=12&ecc=M&data=${encodeURIComponent(
+                    `https://vku-room-booking-17t.pages.dev/verify/index.html?id=${encodeURIComponent(
+                      booking.id
+                    )}&room=${encodeURIComponent(booking.roomCode)}&rname=${encodeURIComponent(
+                      booking.roomName
+                    )}&student=${encodeURIComponent(
+                      booking.studentName
+                    )}&mssv=${encodeURIComponent(booking.studentId)}&date=${encodeURIComponent(
+                      booking.date
+                    )}&slot=${encodeURIComponent(booking.slotLabel)}`
+                  )}`;
+                  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+                    try {
+                      const res = await fetch(qrImageUrl);
+                      const blob = await res.blob();
+                      const blobUrl = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = blobUrl;
+                      a.download = `VKU_QR_${booking.roomCode}_${booking.date}.png`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(blobUrl);
+                    } catch (_) {
+                      window.open(qrImageUrl, '_blank');
+                    }
+                  }
+                }}
+              >
+                <Text style={styles.downloadQrBtnText}>📥 Lưu Ảnh Mã QR Về Máy</Text>
+              </Pressable>
             </View>
 
             {/* Check-In Action Buttons */}
@@ -173,11 +208,9 @@ export const BookingConfirmationPassScreen: React.FC<Props> = ({ route, navigati
                   style={styles.openCameraBtn}
                   onPress={() => setIsCameraScannerVisible(true)}
                 >
-                  <Text style={styles.openCameraBtnText}>📷 Quét Mã QR Tại Cửa Phòng</Text>
-                </Pressable>
-
-                <Pressable style={styles.checkInBtn} onPress={handleCheckIn}>
-                  <Text style={styles.checkInBtnText}>✓ Xác Nhận Nhận Phòng (Check-in)</Text>
+                  <Text style={styles.openCameraBtnText}>
+                    📷 Quét Mã QR Nhận Phòng (Camera / Ảnh QR)
+                  </Text>
                 </Pressable>
               </View>
             )}
@@ -542,6 +575,20 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
     paddingHorizontal: 16,
+  },
+  downloadQrBtn: {
+    marginTop: 10,
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  downloadQrBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0369a1',
   },
   checkInBtn: {
     backgroundColor: '#16a34a',
