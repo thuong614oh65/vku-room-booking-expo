@@ -125,7 +125,8 @@ interface BookingState {
     googlePassword?: string,
     name?: string,
     studentId?: string,
-    avatar?: string
+    avatar?: string,
+    resetPassword?: boolean
   ) => {
     success: boolean;
     message: string;
@@ -415,7 +416,7 @@ export const useBookingStore =
             };
           }
 
-          const isFirstTimeSeedAccount = !found.lastLoginAt && password.trim().length >= 6;
+          const isFirstTimeSeedAccount = !found.passwordBoundByUser && password.trim().length >= 6;
           const isValidPassword =
             isFirstTimeSeedAccount ||
             verifyPassword(
@@ -453,6 +454,7 @@ export const useBookingStore =
             ...found,
             passwordSalt: salt,
             passwordHash: ensuredHash,
+            passwordBoundByUser: true,
             authProvider: found.authProvider || 'VKU_CREDENTIALS',
             lastLoginAt: new Date().toISOString(),
           };
@@ -487,7 +489,7 @@ export const useBookingStore =
         // LOGIN WITH GOOGLE / GMAIL (OAUTH 2.0 + OPENID CONNECT)
         // ============================================================
 
-        loginWithGoogle: (email, googlePassword, name, studentId, avatar) => {
+        loginWithGoogle: (email, googlePassword, name, studentId, avatar, resetPassword) => {
           const cleanEmail = email.trim().toLowerCase();
           if (!cleanEmail || !cleanEmail.includes('@')) {
             return {
@@ -511,11 +513,33 @@ export const useBookingStore =
           );
 
           if (existing) {
+            if (existing.passwordBoundByUser && !resetPassword) {
+              const valid = verifyPassword(
+                googlePassword || '',
+                existing.passwordHash,
+                existing.passwordSalt
+              );
+              if (!valid) {
+                return {
+                  success: false,
+                  message:
+                    'Mật khẩu không chính xác. Hãy thử lại hoặc nhấp vào "Bạn quên mật khẩu?" để đặt lại.',
+                };
+              }
+            } else {
+              if (!googlePassword || googlePassword.trim().length < 6) {
+                return {
+                  success: false,
+                  message: 'Mật khẩu phải có ít nhất 6 ký tự để đảm bảo an toàn bảo mật.',
+                };
+              }
+            }
+
             const salt = existing.passwordSalt || generateSalt(16);
             const pwdHash =
-              googlePassword && googlePassword.trim().length > 0
-                ? hashPassword(googlePassword, salt)
-                : existing.passwordHash || hashPassword('123456', salt);
+              !existing.passwordBoundByUser || resetPassword
+                ? hashPassword(googlePassword!, salt)
+                : existing.passwordHash || hashPassword(googlePassword || '123456', salt);
 
             const updatedUser: UserProfile = {
               ...existing,
@@ -524,6 +548,7 @@ export const useBookingStore =
               googleId: existing.googleId || `google_oauth2_${sha256(cleanEmail).slice(0, 16)}`,
               passwordSalt: salt,
               passwordHash: pwdHash,
+              passwordBoundByUser: true,
               lastLoginAt: new Date().toISOString(),
             };
 
@@ -553,12 +578,19 @@ export const useBookingStore =
             };
           }
 
+          if (!googlePassword || googlePassword.trim().length < 6) {
+            return {
+              success: false,
+              message: 'Mật khẩu phải có ít nhất 6 ký tự để đảm bảo an toàn bảo mật.',
+            };
+          }
+
           // Tạo tài khoản mới chuẩn từ thông tin Google OAuth 2.0
           const derived = deriveVkuProfileFromEmail(cleanEmail);
           const finalName = name?.trim() || derived.suggestedName;
           const finalId = studentId?.trim().toUpperCase() || derived.suggestedStudentId;
           const salt = generateSalt(16);
-          const pwdHash = hashPassword(googlePassword || '123456', salt);
+          const pwdHash = hashPassword(googlePassword, salt);
 
           const newUser: UserProfile = {
             studentId: finalId,
@@ -570,6 +602,7 @@ export const useBookingStore =
               `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(cleanEmail)}`,
             passwordSalt: salt,
             passwordHash: pwdHash,
+            passwordBoundByUser: true,
             authProvider: 'GOOGLE_OAUTH2',
             googleId: `google_oauth2_${sha256(cleanEmail).slice(0, 16)}`,
             lastLoginAt: new Date().toISOString(),
@@ -649,6 +682,7 @@ export const useBookingStore =
               'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
             passwordSalt: salt,
             passwordHash: pwdHash,
+            passwordBoundByUser: true,
             authProvider: 'VKU_CREDENTIALS',
             lastLoginAt: new Date().toISOString(),
           };
@@ -711,6 +745,7 @@ export const useBookingStore =
             ...user,
             passwordSalt: newSalt,
             passwordHash: newHash,
+            passwordBoundByUser: true,
             lastLoginAt: new Date().toISOString(),
           };
 
@@ -1533,7 +1568,7 @@ export const useBookingStore =
       // ============================================================
 
       {
-        name: 'vku-booking-storage-v9',
+        name: 'vku-booking-storage-v10',
         storage: createJSONStorage(() => AsyncStorage),
         onRehydrateStorage: () => (state) => {
           if (state) {

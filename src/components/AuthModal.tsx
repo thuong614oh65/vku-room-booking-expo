@@ -141,8 +141,8 @@ export const AuthModal: React.FC = () => {
     if (Platform.OS === 'web') {
       const opened = openRealGooglePopupWindow(
         availableUsers,
-        ({ email, password: gPass, name }) => {
-          loginWithGoogle(email, gPass, name);
+        ({ email, password: gPass, name, resetPassword }) => {
+          loginWithGoogle(email, gPass, name, undefined, undefined, resetPassword);
           resetForm();
           setMode('LOGIN');
         }

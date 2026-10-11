@@ -19,7 +19,7 @@ export interface Room {
   equipment: Equipment[];
   image: string;
   description: string;
-  type: 'Lab máy tính' | 'Phòng học nhóm' | 'Phòng hội thảo' | 'Phòng nghiên cứu';
+  type: 'Lab máy tính' | 'Phòng học nhóm' | 'Phòng hội thảo' | 'Phòng nghiên cứu' | 'Phòng sáng tạo';
 }
 
 export type BookingStatus = 'CONFIRMED' | 'CANCELLED' | 'CHECKED_IN';
@@ -83,6 +83,7 @@ export interface UserProfile {
   avatar: string;
   passwordHash?: string;
   passwordSalt?: string;
+  passwordBoundByUser?: boolean;
   authProvider?: AuthProviderType;
   googleId?: string;
   lastLoginAt?: string;
