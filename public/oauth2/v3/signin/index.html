@@ -371,12 +371,12 @@
         <p class="subtitle">Tiếp tục tới <span class="app-link">VKU Room Booking</span></p>
 
         <div class="field-wrap">
-          <label id="emailLabel" class="floating-label">Email hoặc số điện thoại</label>
+          <label id="emailLabel" class="floating-label">Email sinh viên VKU (@vku.udn.vn)</label>
           <input
             id="emailInput"
             type="email"
             class="floating-input"
-            placeholder="Nhập địa chỉ Gmail hoặc @vku.udn.vn"
+            placeholder="VD: thuongnt.23itb@vku.udn.vn"
             autocomplete="username"
           />
         </div>
@@ -551,15 +551,19 @@
       clearErrors();
       let val = document.getElementById('emailInput').value.trim().toLowerCase();
       if (!val || val.length < 3) {
-        showEmailError('Hãy nhập email hoặc số điện thoại.');
+        showEmailError('Hãy nhập địa chỉ email sinh viên VKU của bạn.');
         return;
       }
       if (!val.includes('@')) {
-        val = val + '@gmail.com';
+        val = val + '@vku.udn.vn';
       }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(val)) {
         showEmailError('Không tìm thấy Tài khoản Google của bạn.');
+        return;
+      }
+      if (!val.endsWith('@vku.udn.vn')) {
+        showEmailError('Chỉ cho phép đăng nhập bằng tài khoản Google thuộc tổ chức VKU (@vku.udn.vn).');
         return;
       }
       selectedEmail = val;

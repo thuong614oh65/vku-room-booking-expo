@@ -169,13 +169,19 @@ export const AuthModal: React.FC = () => {
     setGoogleError('');
     const clean = googleEmail.trim().toLowerCase();
     if (!clean || clean.length < 3) {
-      setGoogleError('Hãy nhập email hoặc số điện thoại.');
+      setGoogleError('Hãy nhập địa chỉ email sinh viên VKU của bạn.');
       return;
     }
     const finalEmail = clean.includes('@') ? clean : `${clean}@vku.udn.vn`;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(finalEmail)) {
       setGoogleError('Không tìm thấy Tài khoản Google của bạn.');
+      return;
+    }
+    if (!finalEmail.endsWith('@vku.udn.vn')) {
+      setGoogleError(
+        'Chỉ cho phép đăng nhập bằng tài khoản Google thuộc tổ chức VKU (đuôi @vku.udn.vn).'
+      );
       return;
     }
 
@@ -346,13 +352,13 @@ export const AuthModal: React.FC = () => {
                   </Text>
 
                   <View style={styles.googleFloatingFieldWrap}>
-                    <Text style={styles.googleFloatingLabel}>Email hoặc số điện thoại</Text>
+                    <Text style={styles.googleFloatingLabel}>Email sinh viên VKU (@vku.udn.vn)</Text>
                     <TextInput
                       style={[
                         styles.googleMaterialInput,
                         googleError ? { borderColor: '#d93025' } : null,
                       ]}
-                      placeholder="Nhập địa chỉ Gmail hoặc @vku.udn.vn"
+                      placeholder="VD: thuongnt.23itb@vku.udn.vn"
                       placeholderTextColor="#80868b"
                       value={googleEmail}
                       onChangeText={(val) => {

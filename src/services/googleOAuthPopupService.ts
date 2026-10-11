@@ -30,12 +30,14 @@ export function openRealGooglePopupWindow(
   const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2));
 
   try {
-    const accountsData = availableUsers.map((u) => ({
-      name: u.name,
-      email: u.email,
-      avatar: u.avatar,
-      studentId: u.studentId,
-    }));
+    const accountsData = availableUsers
+      .filter((u) => u.email.toLowerCase().endsWith('@vku.udn.vn'))
+      .map((u) => ({
+        name: u.name,
+        email: u.email,
+        avatar: u.avatar,
+        studentId: u.studentId,
+      }));
     window.localStorage?.setItem('vku_google_oauth_accounts', JSON.stringify(accountsData));
     window.localStorage?.removeItem('vku_google_oauth_result');
   } catch (_e) {}
@@ -43,7 +45,7 @@ export function openRealGooglePopupWindow(
   const origin = window.location.origin;
   const oauthUrl = `${origin}/oauth2/v3/signin/index.html?client_id=829410582914-vku89a1bc2d.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(
     origin
-  )}&response_type=token+id_token&scope=openid+email+profile&service=lso&o2v=2&flowName=GeneralOAuthFlow`;
+  )}&response_type=token+id_token&scope=openid+email+profile&hd=vku.udn.vn&service=lso&o2v=2&flowName=GeneralOAuthFlow`;
 
   const popup = window.open(
     oauthUrl,

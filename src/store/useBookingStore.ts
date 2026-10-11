@@ -496,6 +496,14 @@ export const useBookingStore =
             };
           }
 
+          if (!cleanEmail.endsWith('@vku.udn.vn')) {
+            return {
+              success: false,
+              message:
+                'Chỉ cho phép đăng nhập bằng tài khoản Google thuộc tổ chức VKU (đuôi @vku.udn.vn).',
+            };
+          }
+
           const existing = get().availableUsers.find(
             (u) =>
               u.email.toLowerCase() === cleanEmail ||

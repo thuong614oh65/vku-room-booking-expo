@@ -82,7 +82,7 @@ export const ProfileScreen: React.FC = () => {
             <Text style={styles.guestIcon}>👤</Text>
             <Text style={styles.guestTitle}>Tài Khoản Sinh Viên VKU</Text>
             <Text style={styles.guestDesc}>
-              Đăng nhập tài khoản sinh viên hoặc Google (@vku.udn.vn / @gmail.com) để quản lý lịch đặt phòng, nhận thông báo nhắc lịch và sử dụng mã QR Check-in.
+              Đăng nhập bằng tài khoản sinh viên hoặc Google VKU (@vku.udn.vn) để quản lý lịch đặt phòng, nhận thông báo nhắc lịch và sử dụng mã QR Check-in.
             </Text>
             <Pressable style={styles.loginBtn} onPress={() => setAuthModalVisible(true)}>
               <Text style={styles.loginBtnText}>Đăng Nhập Tài Khoản</Text>
