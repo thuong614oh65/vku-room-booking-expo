@@ -61,6 +61,15 @@ export const MyBookingsScreen: React.FC = () => {
     });
   }, [myBookings, selectedFilter, dateFilter, slotFilter]);
 
+  const myWaitlist = useMemo(() => {
+    if (!currentUser) return [];
+    return waitlist.filter((w) => w.studentId === currentUser.studentId);
+  }, [waitlist, currentUser]);
+
+  const confirmedCount = myBookings.filter((b) => b.status === 'CONFIRMED').length;
+  const checkedInCount = myBookings.filter((b) => b.status === 'CHECKED_IN').length;
+  const cancelledCount = myBookings.filter((b) => b.status === 'CANCELLED').length;
+
   const handleCancel = (booking: Booking) => {
     cancelBooking(booking.id);
   };
@@ -178,14 +187,6 @@ export const MyBookingsScreen: React.FC = () => {
       </View>
     );
   };
-
-  const myWaitlist = useMemo(() => {
-    return waitlist.filter((w) => w.studentId === currentUser?.studentId);
-  }, [waitlist, currentUser?.studentId]);
-
-  const confirmedCount = myBookings.filter((b) => b.status === 'CONFIRMED').length;
-  const checkedInCount = myBookings.filter((b) => b.status === 'CHECKED_IN').length;
-  const cancelledCount = myBookings.filter((b) => b.status === 'CANCELLED').length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
