@@ -9,23 +9,17 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Image,
-  ActivityIndicator,
 } from 'react-native';
 import { useBookingStore } from '../store/useBookingStore';
-import {
-  evaluatePasswordStrength,
-  verifyPassword,
-} from '../services/authSecurityService';
+import { evaluatePasswordStrength } from '../services/authSecurityService';
 import {
   GOOGLE_G_SVG,
-  GOOGLE_WORDMARK_SVG,
   isEmbeddedWebView,
+  openInExternalSystemBrowser,
   openRealGooglePopupWindow,
 } from '../services/googleOAuthPopupService';
 
-type AuthViewMode = 'LOGIN' | 'REGISTER' | 'GOOGLE_OAUTH';
-type GoogleStep = 'CHOOSE_ACCOUNT' | 'ENTER_EMAIL' | 'ENTER_PASSWORD';
+type AuthViewMode = 'LOGIN' | 'REGISTER';
 
 const GoogleGIcon: React.FC = () => {
   if (Platform.OS === 'web') {
@@ -48,25 +42,6 @@ const GoogleGIcon: React.FC = () => {
   );
 };
 
-const GoogleWordmarkLogo: React.FC = () => {
-  if (Platform.OS === 'web') {
-    return React.createElement('div', {
-      style: { display: 'flex', justifyContent: 'center', marginBottom: 14 },
-      dangerouslySetInnerHTML: { __html: GOOGLE_WORDMARK_SVG },
-    });
-  }
-  return (
-    <View style={styles.googleWordmarkRow}>
-      <Text style={[styles.googleLetter, { color: '#4285F4' }]}>G</Text>
-      <Text style={[styles.googleLetter, { color: '#EA4335' }]}>o</Text>
-      <Text style={[styles.googleLetter, { color: '#FBBC05' }]}>o</Text>
-      <Text style={[styles.googleLetter, { color: '#4285F4' }]}>g</Text>
-      <Text style={[styles.googleLetter, { color: '#34A853' }]}>l</Text>
-      <Text style={[styles.googleLetter, { color: '#EA4335' }]}>e</Text>
-    </View>
-  );
-};
-
 export const AuthModal: React.FC = () => {
   const {
     authModalVisible,
@@ -84,6 +59,8 @@ export const AuthModal: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showZaloBrowserGuide, setShowZaloBrowserGuide] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Standard Register states
   const [regName, setRegName] = useState('');
@@ -94,15 +71,6 @@ export const AuthModal: React.FC = () => {
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
 
-  // Fallback In-App Google OAuth 2.0 states (if popup blocked or on mobile native)
-  const [googleStep, setGoogleStep] = useState<GoogleStep>('CHOOSE_ACCOUNT');
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [googlePassword, setGooglePassword] = useState('');
-  const [googleSelectedName, setGoogleSelectedName] = useState('');
-  const [showGooglePass, setShowGooglePass] = useState(false);
-  const [isGoogleVerifying, setIsGoogleVerifying] = useState(false);
-  const [googleError, setGoogleError] = useState('');
-
   const registerStrength = useMemo(
     () => evaluatePasswordStrength(regPassword),
     [regPassword]
@@ -110,7 +78,8 @@ export const AuthModal: React.FC = () => {
 
   const resetForm = () => {
     setErrorMsg('');
-    setGoogleError('');
+    setShowZaloBrowserGuide(false);
+    setCopiedLink(false);
     setIdentifier('');
     setPassword('');
     setShowPassword(false);
@@ -120,12 +89,6 @@ export const AuthModal: React.FC = () => {
     setRegPassword('');
     setRegConfirmPassword('');
     setShowRegPassword(false);
-    setGoogleStep('CHOOSE_ACCOUNT');
-    setGoogleEmail('');
-    setGooglePassword('');
-    setGoogleSelectedName('');
-    setShowGooglePass(false);
-    setIsGoogleVerifying(false);
   };
 
   const handleClose = () => {
@@ -136,11 +99,16 @@ export const AuthModal: React.FC = () => {
 
   const openGoogleOAuth = () => {
     setErrorMsg('');
-    setGoogleError('');
+    setCopiedLink(false);
 
-    // Trên trình duyệt Web: Mở Cửa sổ Popup Google OAuth 2.0 chính chủ (accounts.google.com)
     if (Platform.OS === 'web') {
-      const opened = openRealGooglePopupWindow(
+      if (isEmbeddedWebView()) {
+        setShowZaloBrowserGuide(true);
+        openInExternalSystemBrowser();
+        return;
+      }
+
+      openRealGooglePopupWindow(
         availableUsers,
         ({ email, password: gPass, name, avatar, resetPassword }) => {
           loginWithGoogle(email, gPass, name, undefined, avatar, resetPassword);
@@ -151,76 +119,20 @@ export const AuthModal: React.FC = () => {
           setErrorMsg(errMsg);
         }
       );
-      if (opened) {
-        return;
-      }
-    }
-
-    // Fallback trên điện thoại hoặc khi chặn popup
-    setGoogleStep('CHOOSE_ACCOUNT');
-    setMode('GOOGLE_OAUTH');
-  };
-
-  const handleSelectSavedGoogleAccount = (email: string, name: string) => {
-    setGoogleError('');
-    setGoogleEmail(email);
-    setGoogleSelectedName(name);
-    setGooglePassword('');
-    setGoogleStep('ENTER_PASSWORD');
-  };
-
-  const handleGoogleEmailNext = () => {
-    setGoogleError('');
-    const clean = googleEmail.trim().toLowerCase();
-    if (!clean || clean.length < 3) {
-      setGoogleError('Hãy nhập địa chỉ email sinh viên VKU của bạn.');
-      return;
-    }
-    const finalEmail = clean.includes('@') ? clean : `${clean}@vku.udn.vn`;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(finalEmail)) {
-      setGoogleError('Không tìm thấy Tài khoản Google của bạn.');
-      return;
-    }
-    if (!finalEmail.endsWith('@vku.udn.vn')) {
-      setGoogleError(
-        'Chỉ cho phép đăng nhập bằng tài khoản Google thuộc tổ chức VKU (đuôi @vku.udn.vn).'
-      );
       return;
     }
 
-    setGoogleEmail(finalEmail);
-    const existing = availableUsers.find(
-      (u) => u.email.toLowerCase() === finalEmail
+    setErrorMsg(
+      'Xác thực Google OAuth 2.0 chính chủ (accounts.google.com) yêu cầu mở trên trình duyệt Safari hoặc Chrome.'
     );
-    setGoogleSelectedName(existing ? existing.name : '');
-    setGoogleStep('ENTER_PASSWORD');
   };
 
-  const handleGooglePasswordSubmit = () => {
-    setGoogleError('');
-    if (!googlePassword || googlePassword.trim().length < 1) {
-      setGoogleError('Hãy nhập mật khẩu.');
-      return;
+  const handleCopyUrl = () => {
+    if (typeof window !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        setCopiedLink(true);
+      });
     }
-
-    const cleanEmail = googleEmail.trim().toLowerCase();
-
-    setIsGoogleVerifying(true);
-    setTimeout(() => {
-      setIsGoogleVerifying(false);
-      const res = loginWithGoogle(
-        cleanEmail,
-        googlePassword,
-        googleSelectedName || undefined
-      );
-      if (!res.success) {
-        setGoogleError(res.message);
-      } else {
-        resetForm();
-        setMode('LOGIN');
-      }
-    }, 450);
   };
 
   const handleLogin = () => {
@@ -281,479 +193,263 @@ export const AuthModal: React.FC = () => {
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {mode === 'GOOGLE_OAUTH' ? (
-          /* ═══════════════════════════════════════════════════════════════════
-           * GIAO DIỆN GOOGLE SIGN-IN CHUẨN 1:1 (accounts.google.com)
-           * ═══════════════════════════════════════════════════════════════════ */
-          <View style={styles.googleModalCard}>
-            <View style={styles.googleSubHeader}>
-              <GoogleGIcon />
-              <Text style={styles.googleSubHeaderText}>Đăng nhập bằng Google</Text>
-              <Pressable onPress={() => setMode('LOGIN')} style={styles.googleCloseBtn}>
-                <Text style={styles.googleCloseText}>✕</Text>
-              </Pressable>
+        <View style={styles.modalCard}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.schoolTag}>
+                TRƯỜNG ĐẠI HỌC CNTT & TT VIỆT - HÀN (VKU)
+              </Text>
+              <Text style={styles.headerTitle}>
+                {mode === 'LOGIN' ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Tài Khoản Sinh Viên'}
+              </Text>
             </View>
+            <Pressable onPress={handleClose} style={styles.closeBtn}>
+              <Text style={styles.closeBtnText}>✕</Text>
+            </Pressable>
+          </View>
 
-            {isGoogleVerifying && (
-              <View style={styles.googleLoadingBar}>
-                <ActivityIndicator size="small" color="#1a73e8" />
+          {/* Mode Tabs */}
+          <View style={styles.tabRow}>
+            <Pressable
+              style={[styles.tabBtn, mode === 'LOGIN' && styles.tabBtnActive]}
+              onPress={() => {
+                setMode('LOGIN');
+                setErrorMsg('');
+              }}
+            >
+              <Text style={[styles.tabBtnText, mode === 'LOGIN' && styles.tabBtnTextActive]}>
+                Đăng Nhập
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.tabBtn, mode === 'REGISTER' && styles.tabBtnActive]}
+              onPress={() => {
+                setMode('REGISTER');
+                setErrorMsg('');
+              }}
+            >
+              <Text style={[styles.tabBtnText, mode === 'REGISTER' && styles.tabBtnTextActive]}>
+                Đăng Ký Mới
+              </Text>
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+            {errorMsg ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            ) : null}
+
+            {/* Nút Google OAuth 2.0 chuẩn Google Identity Services (100% accounts.google.com) */}
+            <Pressable style={styles.googleBtn} onPress={openGoogleOAuth}>
+              <GoogleGIcon />
+              <Text style={styles.googleBtnText}>Tiếp tục với Google (@vku.udn.vn)</Text>
+            </Pressable>
+
+            {showZaloBrowserGuide && (
+              <View style={styles.zaloSecurityBox}>
+                <Text style={styles.zaloSecurityTitle}>
+                  🔒 Bảo mật Google OAuth 2.0 (accounts.google.com)
+                </Text>
+                <Text style={styles.zaloSecurityDesc}>
+                  Theo tiêu chuẩn bảo mật của Google (RFC 8252), đăng nhập Google thật chỉ thực hiện trên trình duyệt chuẩn (<Text style={{ fontWeight: '800' }}>Safari / Chrome</Text>) và chặn trình duyệt nhúng của Zalo để bảo vệ tài khoản <Text style={{ fontWeight: '800' }}>@vku.udn.vn</Text> không bị ứng dụng thứ ba theo dõi.
+                </Text>
+
+                <View style={styles.zaloActionRow}>
+                  <Pressable
+                    style={styles.zaloOpenBrowserBtn}
+                    onPress={() => openInExternalSystemBrowser()}
+                  >
+                    <Text style={styles.zaloOpenBrowserBtnText}>
+                      🧭 Mở ngay bằng Safari / Chrome
+                    </Text>
+                  </Pressable>
+
+                  <Pressable style={styles.zaloCopyBtn} onPress={handleCopyUrl}>
+                    <Text style={styles.zaloCopyBtnText}>
+                      {copiedLink ? '✅ Đã chép link' : '📋 Chép link'}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.zaloStepHint}>
+                  💡 Hoặc bấm biểu tượng <Text style={{ fontWeight: '800' }}>•••</Text> ở góc trên bên phải Zalo ➔ chọn <Text style={{ fontWeight: '800' }}>"Mở bằng trình duyệt / Safari"</Text>.
+                </Text>
               </View>
             )}
 
-            <ScrollView style={styles.googleBody} showsVerticalScrollIndicator={false}>
-              <GoogleWordmarkLogo />
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>HOẶC ĐĂNG NHẬP VỚI TÀI KHOẢN VKU</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-              {Platform.OS === 'web' && isEmbeddedWebView() && (
-                <View
-                  style={{
-                    backgroundColor: '#eff6ff',
-                    borderColor: '#bfdbfe',
-                    borderWidth: 1,
-                    borderRadius: 10,
-                    padding: 10,
-                    marginBottom: 14,
+            {mode === 'LOGIN' ? (
+              <View>
+                <Text style={styles.label}>Mã Sinh Viên (MSSV) hoặc Email VKU</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="VD: 23IT.B219 hoặc thuongnt.23itb@vku.udn.vn"
+                  placeholderTextColor="#94a3b8"
+                  value={identifier}
+                  onChangeText={(t) => {
+                    setIdentifier(t);
+                    setErrorMsg('');
                   }}
-                >
-                  <Text style={{ fontSize: 11.5, color: '#1e40af', lineHeight: 16 }}>
-                    💡 <Text style={{ fontWeight: '700' }}>Trình duyệt nhúng Zalo/Messenger:</Text>{' '}
-                    Do Zalo chặn cửa sổ Popup của Google (gây màn hình trắng), hệ thống đã tự động mở{' '}
-                    <Text style={{ fontWeight: '700' }}>Cổng xác thực Google VKU trực tiếp</Text> tại
-                    đây (Mật khẩu mặc định SV: <Text style={{ fontWeight: '700' }}>123456</Text>), hoặc
-                    bạn có thể bấm <Text style={{ fontWeight: '700' }}>••• ➔ Mở bằng Safari/Chrome</Text>.
-                  </Text>
-                </View>
-              )}
+                  autoCapitalize="none"
+                />
 
-              {googleStep === 'CHOOSE_ACCOUNT' && (
-                <View>
-                  <Text style={styles.googleMainTitle}>Chọn một tài khoản</Text>
-                  <Text style={styles.googleSubTitle}>
-                    để tiếp tục tới{' '}
-                    <Text style={styles.googleAppHighlight}>VKU Room Booking</Text>
-                  </Text>
-
-                  <View style={styles.googleAccountList}>
-                    {availableUsers.map((u) => (
-                      <Pressable
-                        key={u.email}
-                        style={styles.googleChooserItem}
-                        onPress={() => handleSelectSavedGoogleAccount(u.email, u.name)}
-                      >
-                        <Image source={{ uri: u.avatar }} style={styles.googleChooserAvatar} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.googleChooserName}>{u.name}</Text>
-                          <Text style={styles.googleChooserEmail}>{u.email}</Text>
-                        </View>
-                      </Pressable>
-                    ))}
-
-                    <Pressable
-                      style={[styles.googleChooserItem, { borderBottomWidth: 0 }]}
-                      onPress={() => {
-                        setGoogleEmail('');
-                        setGoogleError('');
-                        setGoogleStep('ENTER_EMAIL');
-                      }}
-                    >
-                      <View style={styles.googleUseAnotherIcon}>
-                        <Text style={{ fontSize: 15, color: '#5f6368' }}>👤</Text>
-                      </View>
-                      <Text style={styles.googleUseAnotherText}>Sử dụng một tài khoản khác</Text>
-                    </Pressable>
-                  </View>
-
-                  <Text style={styles.googlePrivacyNote}>
-                    Để tiếp tục, Google sẽ chia sẻ tên, địa chỉ email, ngôn ngữ ưu tiên và ảnh hồ sơ của bạn với VKU Room Booking.
-                  </Text>
-                </View>
-              )}
-
-              {googleStep === 'ENTER_EMAIL' && (
-                <View>
-                  <Text style={styles.googleMainTitle}>Đăng nhập</Text>
-                  <Text style={styles.googleSubTitle}>
-                    Tiếp tục tới{' '}
-                    <Text style={styles.googleAppHighlight}>VKU Room Booking</Text>
-                  </Text>
-
-                  <View style={styles.googleFloatingFieldWrap}>
-                    <Text style={styles.googleFloatingLabel}>Email sinh viên VKU (@vku.udn.vn)</Text>
-                    <TextInput
-                      style={[
-                        styles.googleMaterialInput,
-                        googleError ? { borderColor: '#d93025' } : null,
-                      ]}
-                      placeholder="VD: thuongnt.23itb@vku.udn.vn"
-                      placeholderTextColor="#80868b"
-                      value={googleEmail}
-                      onChangeText={(val) => {
-                        setGoogleEmail(val);
-                        setGoogleError('');
-                      }}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                    />
-                  </View>
-
-                  {googleError ? (
-                    <Text style={styles.googleErrorInline}>⚠️ {googleError}</Text>
-                  ) : null}
-
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Mật khẩu</Text>
                   <Pressable
                     onPress={() => {
-                      setGoogleEmail('thuongnt.23itb@vku.udn.vn');
-                      setGoogleError('');
-                    }}
-                  >
-                    <Text style={styles.googleForgotLink}>Bạn quên địa chỉ email?</Text>
-                  </Pressable>
-
-                  <Text style={styles.googleGuestNote}>
-                    Không phải máy tính của bạn? Hãy sử dụng cửa sổ duyệt web riêng tư để đăng nhập.{' '}
-                    <Text style={{ color: '#1a73e8', fontWeight: '600' }}>
-                      Tìm hiểu thêm về cách sử dụng Chế độ khách
-                    </Text>
-                  </Text>
-
-                  <View style={styles.googleActionRow}>
-                    <Pressable
-                      style={styles.googleTextBtn}
-                      onPress={() => {
-                        setGoogleError('');
-                        setGoogleStep('CHOOSE_ACCOUNT');
-                      }}
-                    >
-                      <Text style={styles.googleTextBtnLabel}>Quay lại</Text>
-                    </Pressable>
-
-                    <Pressable style={styles.googleNextBtn} onPress={handleGoogleEmailNext}>
-                      <Text style={styles.googleNextBtnLabel}>Tiếp theo</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              )}
-
-              {googleStep === 'ENTER_PASSWORD' && (
-                <View>
-                  <Text style={styles.googleMainTitle}>Chào mừng</Text>
-
-                  <Pressable
-                    style={styles.googleUserPill}
-                    onPress={() => {
-                      setGoogleError('');
-                      setGoogleStep('CHOOSE_ACCOUNT');
-                    }}
-                  >
-                    <View style={styles.googlePillIcon}>
-                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
-                        {(googleSelectedName || googleEmail || 'G').charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={styles.googlePillEmail} numberOfLines={1}>
-                      {googleEmail}
-                    </Text>
-                    <Text style={styles.googlePillChevron}>▾</Text>
-                  </Pressable>
-
-                  <View style={styles.googleFloatingFieldWrap}>
-                    <Text style={styles.googleFloatingLabel}>Nhập mật khẩu của bạn</Text>
-                    <TextInput
-                      style={[
-                        styles.googleMaterialInput,
-                        googleError ? { borderColor: '#d93025' } : null,
-                      ]}
-                      placeholder="Nhập mật khẩu Google"
-                      placeholderTextColor="#80868b"
-                      secureTextEntry={!showGooglePass}
-                      value={googlePassword}
-                      onChangeText={(t) => {
-                        setGooglePassword(t);
-                        setGoogleError('');
-                      }}
-                    />
-                  </View>
-
-                  {googleError ? (
-                    <Text style={styles.googleErrorInline}>⚠️ {googleError}</Text>
-                  ) : null}
-
-                  <Pressable
-                    style={styles.googleCheckboxRow}
-                    onPress={() => setShowGooglePass(!showGooglePass)}
-                  >
-                    <View
-                      style={[
-                        styles.googleCheckbox,
-                        showGooglePass && styles.googleCheckboxChecked,
-                      ]}
-                    >
-                      {showGooglePass && <Text style={styles.googleCheckmark}>✓</Text>}
-                    </View>
-                    <Text style={styles.googleCheckboxLabel}>Hiện mật khẩu</Text>
-                  </Pressable>
-
-                  <View style={[styles.googleActionRow, { marginTop: 28 }]}>
-                    <Pressable
-                      style={styles.googleTextBtn}
-                      onPress={() => {
-                        setGooglePassword('123456');
-                        setGoogleError('');
-                      }}
-                    >
-                      <Text style={styles.googleTextBtnLabel}>Bạn quên mật khẩu?</Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={[styles.googleNextBtn, isGoogleVerifying && { opacity: 0.7 }]}
-                      onPress={handleGooglePasswordSubmit}
-                      disabled={isGoogleVerifying}
-                    >
-                      <Text style={styles.googleNextBtnLabel}>Tiếp theo</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              )}
-            </ScrollView>
-
-            <View style={styles.googleFooterBar}>
-              <Text style={styles.googleFooterLang}>Tiếng Việt ▾</Text>
-              <View style={{ flexDirection: 'row', gap: 16 }}>
-                <Text style={styles.googleFooterItem}>Trợ giúp</Text>
-                <Text style={styles.googleFooterItem}>Bảo mật</Text>
-                <Text style={styles.googleFooterItem}>Điều khoản</Text>
-              </View>
-            </View>
-          </View>
-        ) : (
-          /* ═══════════════════════════════════════════════════════════════════
-           * GIAO DIỆN ĐĂNG NHẬP & ĐĂNG KÝ TÀI KHOẢN SINH VIÊN VKU
-           * ═══════════════════════════════════════════════════════════════════ */
-          <View style={styles.modalCard}>
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.schoolTag}>
-                  TRƯỜNG ĐẠI HỌC CNTT & TT VIỆT - HÀN (VKU)
-                </Text>
-                <Text style={styles.headerTitle}>
-                  {mode === 'LOGIN' ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Tài Khoản Sinh Viên'}
-                </Text>
-              </View>
-              <Pressable onPress={handleClose} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>✕</Text>
-              </Pressable>
-            </View>
-
-            {/* Mode Tabs */}
-            <View style={styles.tabRow}>
-              <Pressable
-                style={[styles.tabBtn, mode === 'LOGIN' && styles.tabBtnActive]}
-                onPress={() => {
-                  setMode('LOGIN');
-                  setErrorMsg('');
-                }}
-              >
-                <Text style={[styles.tabBtnText, mode === 'LOGIN' && styles.tabBtnTextActive]}>
-                  Đăng Nhập
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.tabBtn, mode === 'REGISTER' && styles.tabBtnActive]}
-                onPress={() => {
-                  setMode('REGISTER');
-                  setErrorMsg('');
-                }}
-              >
-                <Text style={[styles.tabBtnText, mode === 'REGISTER' && styles.tabBtnTextActive]}>
-                  Đăng Ký Mới
-                </Text>
-              </Pressable>
-            </View>
-
-            <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-              {errorMsg ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{errorMsg}</Text>
-                </View>
-              ) : null}
-
-              {/* Nút Google OAuth 2.0 chuẩn Google Identity Services */}
-              <Pressable style={styles.googleBtn} onPress={openGoogleOAuth}>
-                <GoogleGIcon />
-                <Text style={styles.googleBtnText}>Tiếp tục với Google</Text>
-              </Pressable>
-
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>HOẶC ĐĂNG NHẬP VỚI TÀI KHOẢN VKU</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {mode === 'LOGIN' ? (
-                <View>
-                  <Text style={styles.label}>Mã Sinh Viên (MSSV) hoặc Email VKU</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="VD: 23IT.B219 hoặc thuongnt.23itb@vku.udn.vn"
-                    placeholderTextColor="#94a3b8"
-                    value={identifier}
-                    onChangeText={(t) => {
-                      setIdentifier(t);
+                      if (!identifier.trim()) {
+                        setIdentifier('23IT.B219');
+                      }
+                      setPassword('123456');
                       setErrorMsg('');
                     }}
-                    autoCapitalize="none"
-                  />
-
-                  <View style={styles.labelRow}>
-                    <Text style={styles.label}>Mật khẩu</Text>
-                    <Pressable
-                      onPress={() => {
-                        if (!identifier.trim()) {
-                          setIdentifier('23IT.B219');
-                        }
-                        setPassword('123456');
-                        setErrorMsg('');
-                      }}
-                    >
-                      <Text style={styles.forgotLinkText}>Quên mật khẩu?</Text>
-                    </Pressable>
-                  </View>
-
-                  <View style={styles.passwordInputWrap}>
-                    <TextInput
-                      style={styles.passwordInput}
-                      placeholder="Nhập mật khẩu của bạn"
-                      placeholderTextColor="#94a3b8"
-                      secureTextEntry={!showPassword}
-                      value={password}
-                      onChangeText={(t) => {
-                        setPassword(t);
-                        setErrorMsg('');
-                      }}
-                    />
-                    <Pressable
-                      style={styles.eyeBtn}
-                      onPress={() => setShowPassword(!showPassword)}
-                    >
-                      <Text style={styles.eyeBtnText}>{showPassword ? 'Ẩn' : 'Hiện'}</Text>
-                    </Pressable>
-                  </View>
-
-                  <Pressable style={styles.primaryBtn} onPress={handleLogin}>
-                    <Text style={styles.primaryBtnText}>Đăng Nhập</Text>
+                  >
+                    <Text style={styles.forgotLinkText}>Quên mật khẩu?</Text>
                   </Pressable>
                 </View>
-              ) : (
-                <View>
-                  <Text style={styles.label}>Họ và tên sinh viên *</Text>
+
+                <View style={styles.passwordInputWrap}>
                   <TextInput
-                    style={styles.input}
-                    placeholder="VD: Nguyễn Thị Thương"
+                    style={styles.passwordInput}
+                    placeholder="Nhập mật khẩu của bạn"
                     placeholderTextColor="#94a3b8"
-                    value={regName}
-                    onChangeText={setRegName}
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={(t) => {
+                      setPassword(t);
+                      setErrorMsg('');
+                    }}
                   />
+                  <Pressable
+                    style={styles.eyeBtn}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Text style={styles.eyeBtnText}>{showPassword ? 'Ẩn' : 'Hiện'}</Text>
+                  </Pressable>
+                </View>
 
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.label}>Mã sinh viên (MSSV) *</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="VD: 23IT.B219"
-                        placeholderTextColor="#94a3b8"
-                        value={regStudentId}
-                        onChangeText={setRegStudentId}
-                        autoCapitalize="characters"
-                      />
-                    </View>
-                    <View style={{ flex: 1.2 }}>
-                      <Text style={styles.label}>Lớp / Chuyên ngành</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="VD: Kỹ Thuật Phần Mềm (23SE4)"
-                        placeholderTextColor="#94a3b8"
-                        value={regMajor}
-                        onChangeText={setRegMajor}
-                      />
-                    </View>
-                  </View>
+                <Pressable style={styles.primaryBtn} onPress={handleLogin}>
+                  <Text style={styles.primaryBtnText}>Đăng Nhập</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.label}>Họ và tên sinh viên *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="VD: Nguyễn Thị Thương"
+                  placeholderTextColor="#94a3b8"
+                  value={regName}
+                  onChangeText={setRegName}
+                />
 
-                  <Text style={styles.label}>Email sinh viên VKU *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="VD: thuongnt.23itb@vku.udn.vn"
-                    placeholderTextColor="#94a3b8"
-                    value={regEmail}
-                    onChangeText={setRegEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                  />
-
-                  <Text style={styles.label}>Mật khẩu (tối thiểu 6 ký tự) *</Text>
-                  <View style={styles.passwordInputWrap}>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Mã sinh viên (MSSV) *</Text>
                     <TextInput
-                      style={styles.passwordInput}
-                      placeholder="Tạo mật khẩu đăng nhập"
+                      style={styles.input}
+                      placeholder="VD: 23IT.B219"
                       placeholderTextColor="#94a3b8"
-                      secureTextEntry={!showRegPassword}
-                      value={regPassword}
-                      onChangeText={setRegPassword}
+                      value={regStudentId}
+                      onChangeText={setRegStudentId}
+                      autoCapitalize="characters"
                     />
-                    <Pressable
-                      style={styles.eyeBtn}
-                      onPress={() => setShowRegPassword(!showRegPassword)}
-                    >
-                      <Text style={styles.eyeBtnText}>{showRegPassword ? 'Ẩn' : 'Hiện'}</Text>
-                    </Pressable>
                   </View>
+                  <View style={{ flex: 1.2 }}>
+                    <Text style={styles.label}>Lớp / Chuyên ngành</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="VD: Kỹ Thuật Phần Mềm (23SE4)"
+                      placeholderTextColor="#94a3b8"
+                      value={regMajor}
+                      onChangeText={setRegMajor}
+                    />
+                  </View>
+                </View>
 
-                  {regPassword.length > 0 && (
-                    <View style={styles.strengthBox}>
-                      <View style={styles.strengthBarsRow}>
-                        {[1, 2, 3, 4].map((lvl) => (
-                          <View
-                            key={lvl}
-                            style={[
-                              styles.strengthBarSegment,
-                              {
-                                backgroundColor:
-                                  registerStrength.score >= lvl
-                                    ? registerStrength.color
-                                    : '#e2e8f0',
-                              },
-                            ]}
-                          />
-                        ))}
-                      </View>
-                      <Text style={[styles.strengthLabel, { color: registerStrength.color }]}>
-                        Độ mạnh mật khẩu: {registerStrength.label}
-                      </Text>
-                    </View>
-                  )}
+                <Text style={styles.label}>Email sinh viên VKU *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="VD: thuongnt.23itb@vku.udn.vn"
+                  placeholderTextColor="#94a3b8"
+                  value={regEmail}
+                  onChangeText={setRegEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
 
-                  <Text style={styles.label}>Xác nhận lại mật khẩu *</Text>
+                <Text style={styles.label}>Mật khẩu (tối thiểu 6 ký tự) *</Text>
+                <View style={styles.passwordInputWrap}>
                   <TextInput
-                    style={[
-                      styles.input,
-                      regConfirmPassword.length > 0 && regConfirmPassword !== regPassword
-                        ? { borderColor: '#ef4444' }
-                        : null,
-                    ]}
-                    placeholder="Nhập lại mật khẩu bên trên"
+                    style={styles.passwordInput}
+                    placeholder="Tạo mật khẩu đăng nhập"
                     placeholderTextColor="#94a3b8"
                     secureTextEntry={!showRegPassword}
-                    value={regConfirmPassword}
-                    onChangeText={setRegConfirmPassword}
+                    value={regPassword}
+                    onChangeText={setRegPassword}
                   />
-
-                  <Pressable style={styles.primaryBtn} onPress={handleRegister}>
-                    <Text style={styles.primaryBtnText}>Đăng Ký Tài Khoản</Text>
+                  <Pressable
+                    style={styles.eyeBtn}
+                    onPress={() => setShowRegPassword(!showRegPassword)}
+                  >
+                    <Text style={styles.eyeBtnText}>{showRegPassword ? 'Ẩn' : 'Hiện'}</Text>
                   </Pressable>
                 </View>
-              )}
-            </ScrollView>
-          </View>
-        )}
+
+                {regPassword.length > 0 && (
+                  <View style={styles.strengthBox}>
+                    <View style={styles.strengthBarsRow}>
+                      {[1, 2, 3, 4].map((lvl) => (
+                        <View
+                          key={lvl}
+                          style={[
+                            styles.strengthBarSegment,
+                            {
+                              backgroundColor:
+                                registerStrength.score >= lvl
+                                  ? registerStrength.color
+                                  : '#e2e8f0',
+                            },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                    <Text style={[styles.strengthLabel, { color: registerStrength.color }]}>
+                      Độ mạnh mật khẩu: {registerStrength.label}
+                    </Text>
+                  </View>
+                )}
+
+                <Text style={styles.label}>Xác nhận lại mật khẩu *</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    regConfirmPassword.length > 0 && regConfirmPassword !== regPassword
+                      ? { borderColor: '#ef4444' }
+                      : null,
+                  ]}
+                  placeholder="Nhập lại mật khẩu bên trên"
+                  placeholderTextColor="#94a3b8"
+                  secureTextEntry={!showRegPassword}
+                  value={regConfirmPassword}
+                  onChangeText={setRegConfirmPassword}
+                />
+
+                <Pressable style={styles.primaryBtn} onPress={handleRegister}>
+                  <Text style={styles.primaryBtnText}>Đăng Ký Tài Khoản</Text>
+                </Pressable>
+              </View>
+            )}
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -901,6 +597,65 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#3c4043',
   },
+  zaloSecurityBox: {
+    marginTop: 10,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    borderRadius: 12,
+    padding: 12,
+  },
+  zaloSecurityTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#1e3a8a',
+    marginBottom: 5,
+  },
+  zaloSecurityDesc: {
+    fontSize: 11.5,
+    color: '#1e40af',
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  zaloActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  zaloOpenBrowserBtn: {
+    flex: 1,
+    backgroundColor: '#0284c7',
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zaloOpenBrowserBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  zaloCopyBtn: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zaloCopyBtnText: {
+    color: '#0369a1',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  zaloStepHint: {
+    fontSize: 11,
+    color: '#1d4ed8',
+    lineHeight: 15,
+  },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1011,277 +766,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '800',
-  },
-
-  /* ═══════════════════════════════════════════════════════════════════
-   * STYLES CHO CỬA SỔ GOOGLE OAUTH 2.0 CHUẨN MATERIAL 3 (accounts.google.com)
-   * ═══════════════════════════════════════════════════════════════════ */
-  googleModalCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    width: '100%',
-    maxWidth: 448,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#dadce0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.22,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  googleSubHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: '#dadce0',
-    backgroundColor: '#ffffff',
-  },
-  googleSubHeaderText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#5f6368',
-    fontWeight: '500',
-  },
-  googleCloseBtn: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  googleCloseText: {
-    fontSize: 16,
-    color: '#5f6368',
-  },
-  googleLoadingBar: {
-    paddingVertical: 4,
-    backgroundColor: '#e8f0fe',
-    alignItems: 'center',
-  },
-  googleBody: {
-    paddingHorizontal: 36,
-    paddingTop: 32,
-    paddingBottom: 24,
-  },
-  googleWordmarkRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  googleLetter: {
-    fontSize: 23,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  googleMainTitle: {
-    fontSize: 24,
-    fontWeight: '400',
-    color: '#202124',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  googleSubTitle: {
-    fontSize: 16,
-    color: '#202124',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  googleAppHighlight: {
-    color: '#1a73e8',
-    fontWeight: '500',
-  },
-  googleAccountList: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#dadce0',
-    marginBottom: 20,
-  },
-  googleChooserItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f4',
-  },
-  googleChooserAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-    backgroundColor: '#e8f0fe',
-  },
-  googleChooserName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#3c4043',
-  },
-  googleChooserEmail: {
-    fontSize: 12,
-    color: '#5f6368',
-    marginTop: 1,
-  },
-  googleUseAnotherIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  googleUseAnotherText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#3c4043',
-  },
-  googlePrivacyNote: {
-    fontSize: 12,
-    color: '#5f6368',
-    lineHeight: 18,
-    marginBottom: 10,
-  },
-  googleFloatingFieldWrap: {
-    marginTop: 8,
-    marginBottom: 8,
-    position: 'relative',
-  },
-  googleFloatingLabel: {
-    fontSize: 12,
-    color: '#1a73e8',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  googleMaterialInput: {
-    borderWidth: 1.5,
-    borderColor: '#1a73e8',
-    borderRadius: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 16,
-    color: '#202124',
-    backgroundColor: '#ffffff',
-  },
-  googleErrorInline: {
-    fontSize: 12,
-    color: '#d93025',
-    marginTop: 4,
-    marginBottom: 6,
-  },
-  googleForgotLink: {
-    fontSize: 14,
-    color: '#1a73e8',
-    fontWeight: '500',
-    marginTop: 4,
-    marginBottom: 24,
-  },
-  googleGuestNote: {
-    fontSize: 14,
-    color: '#5f6368',
-    lineHeight: 20,
-    marginBottom: 28,
-  },
-  googleActionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  googleTextBtn: {
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-  },
-  googleTextBtnLabel: {
-    color: '#1a73e8',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  googleNextBtn: {
-    backgroundColor: '#1a73e8',
-    borderRadius: 4,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-  },
-  googleNextBtnLabel: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  googleUserPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    borderWidth: 1,
-    borderColor: '#dadce0',
-    borderRadius: 16,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    marginBottom: 24,
-    maxWidth: '90%',
-  },
-  googlePillIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#1a73e8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  googlePillEmail: {
-    fontSize: 14,
-    color: '#3c4043',
-    fontWeight: '500',
-    marginRight: 6,
-  },
-  googlePillChevron: {
-    fontSize: 12,
-    color: '#3c4043',
-  },
-  googleCheckboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  googleCheckbox: {
-    width: 18,
-    height: 18,
-    borderWidth: 2,
-    borderColor: '#5f6368',
-    borderRadius: 2,
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleCheckboxChecked: {
-    backgroundColor: '#1a73e8',
-    borderColor: '#1a73e8',
-  },
-  googleCheckmark: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  googleCheckboxLabel: {
-    fontSize: 14,
-    color: '#202124',
-  },
-  googleFooterBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#f1f3f4',
-  },
-  googleFooterLang: {
-    fontSize: 12,
-    color: '#5f6368',
-  },
-  googleFooterItem: {
-    fontSize: 12,
-    color: '#5f6368',
   },
 });

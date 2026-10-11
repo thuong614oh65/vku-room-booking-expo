@@ -1,7 +1,8 @@
 /**
  * googleOAuthPopupService.ts
  *
- * Dịch vụ Đăng nhập Google OAuth 2.0 Chính Chủ (Google Identity Services - accounts.google.com)
+ * Dịch vụ Đăng nhập Google OAuth 2.0 Chính Chủ 100% (Google Identity Services - accounts.google.com)
+ * Tuyệt đối không sử dụng màn hình giả lập nội bộ.
  * Client ID thuộc tổ chức VKU (vku.udn.vn):
  * 1003178768971-qn13952kqgsbbkqcdkebet5jblf748je.apps.googleusercontent.com
  */
@@ -20,8 +21,6 @@ export interface GoogleOAuthResult {
 }
 
 export const GOOGLE_G_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>`;
-
-export const GOOGLE_WORDMARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 75 24" width="75" height="24"><path fill="#4285F4" d="M9.24 8.19v2.46h5.88c-.18 1.38-.64 2.39-1.34 3.1-.86.86-2.2 1.8-4.54 1.8-3.62 0-6.45-2.92-6.45-6.54s2.83-6.54 6.45-6.54c1.95 0 3.38.77 4.43 1.76L15.4 2.5C13.94 1.08 11.98 0 9.24 0 4.28 0 .11 4.04.11 9s4.17 9 9.13 9c2.68 0 4.7-.88 6.28-2.52 1.62-1.62 2.13-3.91 2.13-5.75 0-.57-.04-1.1-.13-1.54H9.24z"/><path fill="#EA4335" d="M25 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z"/><path fill="#4285F4" d="M53.58 7.49h-.09c-.57-.68-1.67-1.3-3.06-1.3C47.53 6.19 45 8.72 45 12c0 3.26 2.53 5.81 5.43 5.81 1.39 0 2.49-.62 3.06-1.32h.09v.81c0 2.22-1.19 3.41-3.1 3.41-1.56 0-2.53-1.12-2.93-2.07l-2.22.92c.64 1.54 2.33 3.43 5.15 3.43 2.99 0 5.52-1.76 5.52-6.05V6.49h-2.42v1zm-2.93 8.03c-1.76 0-3.1-1.5-3.1-3.52 0-2.05 1.34-3.52 3.1-3.52 1.74 0 3.1 1.5 3.1 3.54.01 2.03-1.36 3.5-3.1 3.5z"/><path fill="#FBBC05" d="M38 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z"/><path fill="#34A853" d="M58 .24h2.51v17.57H58z"/><path fill="#EA4335" d="M68.26 15.52c-1.3 0-2.22-.59-2.82-1.76l7.77-3.21-.26-.66c-.48-1.3-1.96-3.7-4.97-3.7-2.99 0-5.48 2.35-5.48 5.81 0 3.26 2.46 5.81 5.76 5.81 2.66 0 4.2-1.63 4.84-2.57l-1.98-1.32c-.66.96-1.56 1.6-2.86 1.6zm-.18-7.15c1.03 0 1.91.53 2.2 1.28l-5.25 2.17c0-2.44 1.73-3.45 3.05-3.45z"/></svg>`;
 
 function ensureGoogleGsiScriptLoaded(): Promise<boolean> {
   if (typeof window === 'undefined') return Promise.resolve(false);
@@ -58,7 +57,6 @@ function ensureGoogleGsiScriptLoaded(): Promise<boolean> {
 export function isEmbeddedWebView(): boolean {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
-  // Phát hiện trình duyệt nhúng trong ứng dụng (Zalo, Messenger, Facebook, Instagram, Line, TikTok, WeChat, Android WebView)
   if (
     /Zalo|FBAN|FBAV|FB_IAB|FBIOS|Instagram|Line|MicroMessenger|BytedanceWebview|TikTok|\bwv\b|WebView/i.test(
       ua
@@ -66,13 +64,37 @@ export function isEmbeddedWebView(): boolean {
   ) {
     return true;
   }
-  // Trên iOS: trình duyệt thật (Safari, Chrome, Firefox, Edge) luôn có hậu tố Safari/ hoặc CriOS/FxiOS/EdgiOS
   const isIOS = /iPhone|iPad|iPod/i.test(ua);
   const isRealIOSBrowser = /Safari\/|CriOS\/|FxiOS\/|EdgiOS\/|OPiOS\//i.test(ua);
   if (isIOS && !isRealIOSBrowser) {
     return true;
   }
   return false;
+}
+
+/**
+ * Chuyển hướng thoát khỏi trình duyệt nhúng (Zalo / Messenger) sang thẳng Safari (iOS) hoặc Chrome (Android)
+ * để đăng nhập Google OAuth 2.0 chính chủ an toàn tuyệt đối.
+ */
+export function openInExternalSystemBrowser(targetUrl?: string): void {
+  if (typeof window === 'undefined') return;
+  const fullUrl = targetUrl || window.location.href;
+  const ua = navigator.userAgent || '';
+  const withoutProtocol = fullUrl.replace(/^https?:\/\//i, '');
+
+  if (/iPhone|iPad|iPod/i.test(ua)) {
+    window.location.href = `x-safari-https://${withoutProtocol}`;
+    return;
+  }
+
+  if (/Android/i.test(ua)) {
+    window.location.href = `intent://${withoutProtocol}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(
+      fullUrl
+    )};end`;
+    return;
+  }
+
+  window.open(fullUrl, '_blank', 'noopener,noreferrer');
 }
 
 export function openRealGooglePopupWindow(
@@ -82,10 +104,9 @@ export function openRealGooglePopupWindow(
 ): boolean {
   if (typeof window === 'undefined') return false;
 
-  // Trong trình duyệt nhúng của Zalo / Messenger / Facebook:
-  // Google chặn popup OAuth (disallowed_useragent) và WKWebView làm mất window.opener gây màn hình trắng.
-  // Trả về false để ứng dụng mở ngay Cổng xác thực Google VKU tích hợp bên trong màn hình hiện tại!
   if (isEmbeddedWebView()) {
+    // Tự động kích hoạt mở sang Safari (trên iPhone) hoặc Chrome (trên Android)
+    openInExternalSystemBrowser();
     return false;
   }
 
@@ -171,4 +192,3 @@ export function openRealGooglePopupWindow(
 
   return true;
 }
-

@@ -243,7 +243,36 @@
     document.getElementById('dateText').textContent = date;
     document.getElementById('slotText').textContent = slot;
     document.getElementById('scanTime').textContent = nowFormatted;
-    document.getElementById('openAppBtn').href = '/?checked_in_id=' + encodeURIComponent(id);
+    const targetAppPath = '/?checked_in_id=' + encodeURIComponent(id);
+    const fullAppUrl = window.location.origin + targetAppPath;
+    const openAppBtn = document.getElementById('openAppBtn');
+    openAppBtn.href = targetAppPath;
+
+    const ua = navigator.userAgent || '';
+    const isInAppWebView = /Zalo|FBAN|FBAV|FB_IAB|FBIOS|Instagram|Line|MicroMessenger|\bwv\b|WebView/i.test(ua) ||
+      (/iPhone|iPad|iPod/i.test(ua) && !/Safari\/|CriOS\/|FxiOS\/|EdgiOS\//i.test(ua));
+
+    if (isInAppWebView && openAppBtn) {
+      openAppBtn.textContent = '🧭 Mở Ứng Dụng Trên Safari / Chrome';
+      openAppBtn.addEventListener('click', function (e) {
+        const withoutProtocol = fullAppUrl.replace(/^https?:\/\//i, '');
+        if (/iPhone|iPad|iPod/i.test(ua)) {
+          e.preventDefault();
+          window.location.href = 'x-safari-https://' + withoutProtocol;
+          setTimeout(function () {
+            window.location.href = targetAppPath;
+          }, 900);
+        } else if (/Android/i.test(ua)) {
+          e.preventDefault();
+          window.location.href =
+            'intent://' +
+            withoutProtocol +
+            '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' +
+            encodeURIComponent(fullAppUrl) +
+            ';end';
+        }
+      });
+    }
 
     // 1. Đồng bộ trên cùng thiết bị (nếu mở tab khác)
     try {
