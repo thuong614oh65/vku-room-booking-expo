@@ -79,6 +79,61 @@
         });
       }
     </script>
+
+    <!-- Tự động chuyển hướng từ trình duyệt nhúng Zalo/Messenger sang thẳng Safari (iOS) hoặc Chrome (Android) -->
+    <script>
+      (function() {
+        var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+        var isIOS = /iPhone|iPad|iPod/i.test(ua);
+        var isAndroid = /Android/i.test(ua);
+        var isEmbedded = /Zalo|FBAN|FBAV|FB_IAB|FBIOS|Instagram|Line|MicroMessenger|BytedanceWebview|TikTok|\bwv\b|WebView/i.test(ua) ||
+          (isIOS && !/Safari\/|CriOS\/|FxiOS\/|EdgiOS\/|OPiOS\//i.test(ua));
+
+        if (!isEmbedded) return;
+
+        var fullUrl = window.location.href;
+        var withoutProtocol = fullUrl.replace(/^https?:\/\//i, '');
+        var safariSchemeUrl = 'x-safari-https://' + withoutProtocol;
+        var chromeIntentUrl = 'intent://' + withoutProtocol + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(fullUrl) + ';end';
+        var targetExternalUrl = isIOS ? safariSchemeUrl : (isAndroid ? chromeIntentUrl : fullUrl);
+
+        window.__vkuOpenExternalBrowser = function() {
+          try {
+            var a = document.createElement('a');
+            a.href = targetExternalUrl;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() {
+              if (a.parentNode) a.parentNode.removeChild(a);
+            }, 300);
+          } catch (e) {}
+          try {
+            window.location.href = targetExternalUrl;
+          } catch (e2) {}
+        };
+
+        window.addEventListener('DOMContentLoaded', function() {
+          // 1. Tạo thanh điều hướng nổi (Native HTML <a>) ở trên cùng màn hình Zalo
+          var bar = document.createElement('div');
+          bar.id = 'vku-zalo-safari-bar';
+          bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:linear-gradient(90deg,#0284c7,#1d4ed8);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,0.35);font-family:-apple-system,BlinkMacSystemFont,sans-serif;';
+          bar.innerHTML =
+            '<div style="flex:1;font-size:12px;line-height:1.35;font-weight:600;">' +
+              '🧭 Bạn đang mở trong <b>Zalo</b>. Chuyển sang <b>' + (isIOS ? 'Safari' : 'Chrome') + '</b> để đăng nhập Google @vku.udn.vn:' +
+            '</div>' +
+            '<a href="' + targetExternalUrl + '" style="background:#ffffff;color:#0284c7;text-decoration:none;font-size:12px;font-weight:800;padding:8px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.2);">' +
+              'Mở ' + (isIOS ? 'Safari ↗' : 'Chrome ↗') +
+            '</a>';
+          document.body.appendChild(bar);
+
+          // 2. Tự động kích hoạt chuyển sang Safari / Chrome ngay khi vừa bấm link trong Zalo
+          setTimeout(function() {
+            window.__vkuOpenExternalBrowser();
+          }, 180);
+        });
+      })();
+    </script>
   </head>
 
   <body>

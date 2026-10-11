@@ -245,33 +245,27 @@
     document.getElementById('scanTime').textContent = nowFormatted;
     const targetAppPath = '/?checked_in_id=' + encodeURIComponent(id);
     const fullAppUrl = window.location.origin + targetAppPath;
-    const openAppBtn = document.getElementById('openAppBtn');
-    openAppBtn.href = targetAppPath;
-
+    const withoutProtocol = fullAppUrl.replace(/^https?:\/\//i, '');
     const ua = navigator.userAgent || '';
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isAndroid = /Android/i.test(ua);
     const isInAppWebView = /Zalo|FBAN|FBAV|FB_IAB|FBIOS|Instagram|Line|MicroMessenger|\bwv\b|WebView/i.test(ua) ||
-      (/iPhone|iPad|iPod/i.test(ua) && !/Safari\/|CriOS\/|FxiOS\/|EdgiOS\//i.test(ua));
+      (isIOS && !/Safari\/|CriOS\/|FxiOS\/|EdgiOS\//i.test(ua));
 
+    const externalBrowserUrl = isIOS
+      ? 'x-safari-https://' + withoutProtocol
+      : isAndroid
+      ? 'intent://' + withoutProtocol + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(fullAppUrl) + ';end'
+      : fullAppUrl;
+
+    const openAppBtn = document.getElementById('openAppBtn');
     if (isInAppWebView && openAppBtn) {
-      openAppBtn.textContent = '🧭 Mở Ứng Dụng Trên Safari / Chrome';
-      openAppBtn.addEventListener('click', function (e) {
-        const withoutProtocol = fullAppUrl.replace(/^https?:\/\//i, '');
-        if (/iPhone|iPad|iPod/i.test(ua)) {
-          e.preventDefault();
-          window.location.href = 'x-safari-https://' + withoutProtocol;
-          setTimeout(function () {
-            window.location.href = targetAppPath;
-          }, 900);
-        } else if (/Android/i.test(ua)) {
-          e.preventDefault();
-          window.location.href =
-            'intent://' +
-            withoutProtocol +
-            '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' +
-            encodeURIComponent(fullAppUrl) +
-            ';end';
-        }
-      });
+      openAppBtn.textContent = isIOS
+        ? '🧭 Chuyển Sang Safari Để Tiếp Tục ↗'
+        : '🧭 Chuyển Sang Chrome Để Tiếp Tục ↗';
+      openAppBtn.href = externalBrowserUrl;
+    } else if (openAppBtn) {
+      openAppBtn.href = targetAppPath;
     }
 
     // 1. Đồng bộ trên cùng thiết bị (nếu mở tab khác)
@@ -281,6 +275,7 @@
     } catch (e) {}
 
     // 2. Đồng bộ ĐÁM MÂY ĐA THIẾT BỊ (Từ Điện Thoại -> Máy Tính tức thì < 0.5s)
+    let hasTriggeredSafariRedirect = false;
     async function broadcastCrossDeviceCheckIn() {
       const payload = JSON.stringify({
         type: 'VKU_QR_CHECKIN_ID',
@@ -308,6 +303,16 @@
         }
       } catch (err) {
         console.warn('Cloud sync retry:', err);
+      }
+
+      // 3. Nếu đang quét từ Zalo, sau khi gửi tín hiệu mở cửa phòng xong sẽ tự động bật hộp thoại chuyển sang Safari / Chrome!
+      if (isInAppWebView && !hasTriggeredSafariRedirect) {
+        hasTriggeredSafariRedirect = true;
+        setTimeout(function() {
+          try {
+            window.location.href = externalBrowserUrl;
+          } catch (e) {}
+        }, 450);
       }
     }
 
