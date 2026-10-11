@@ -20,6 +20,7 @@ import {
 import {
   GOOGLE_G_SVG,
   GOOGLE_WORDMARK_SVG,
+  isEmbeddedWebView,
   openRealGooglePopupWindow,
 } from '../services/googleOAuthPopupService';
 
@@ -301,6 +302,27 @@ export const AuthModal: React.FC = () => {
 
             <ScrollView style={styles.googleBody} showsVerticalScrollIndicator={false}>
               <GoogleWordmarkLogo />
+
+              {Platform.OS === 'web' && isEmbeddedWebView() && (
+                <View
+                  style={{
+                    backgroundColor: '#eff6ff',
+                    borderColor: '#bfdbfe',
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    padding: 10,
+                    marginBottom: 14,
+                  }}
+                >
+                  <Text style={{ fontSize: 11.5, color: '#1e40af', lineHeight: 16 }}>
+                    💡 <Text style={{ fontWeight: '700' }}>Trình duyệt nhúng Zalo/Messenger:</Text>{' '}
+                    Do Zalo chặn cửa sổ Popup của Google (gây màn hình trắng), hệ thống đã tự động mở{' '}
+                    <Text style={{ fontWeight: '700' }}>Cổng xác thực Google VKU trực tiếp</Text> tại
+                    đây (Mật khẩu mặc định SV: <Text style={{ fontWeight: '700' }}>123456</Text>), hoặc
+                    bạn có thể bấm <Text style={{ fontWeight: '700' }}>••• ➔ Mở bằng Safari/Chrome</Text>.
+                  </Text>
+                </View>
+              )}
 
               {googleStep === 'CHOOSE_ACCOUNT' && (
                 <View>

@@ -55,12 +55,39 @@ function ensureGoogleGsiScriptLoaded(): Promise<boolean> {
   });
 }
 
+export function isEmbeddedWebView(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+  // Phát hiện trình duyệt nhúng trong ứng dụng (Zalo, Messenger, Facebook, Instagram, Line, TikTok, WeChat, Android WebView)
+  if (
+    /Zalo|FBAN|FBAV|FB_IAB|FBIOS|Instagram|Line|MicroMessenger|BytedanceWebview|TikTok|\bwv\b|WebView/i.test(
+      ua
+    )
+  ) {
+    return true;
+  }
+  // Trên iOS: trình duyệt thật (Safari, Chrome, Firefox, Edge) luôn có hậu tố Safari/ hoặc CriOS/FxiOS/EdgiOS
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isRealIOSBrowser = /Safari\/|CriOS\/|FxiOS\/|EdgiOS\/|OPiOS\//i.test(ua);
+  if (isIOS && !isRealIOSBrowser) {
+    return true;
+  }
+  return false;
+}
+
 export function openRealGooglePopupWindow(
   _availableUsers: UserProfile[],
   onSuccess: (result: GoogleOAuthResult) => void,
   onError?: (errorMessage: string) => void
 ): boolean {
   if (typeof window === 'undefined') return false;
+
+  // Trong trình duyệt nhúng của Zalo / Messenger / Facebook:
+  // Google chặn popup OAuth (disallowed_useragent) và WKWebView làm mất window.opener gây màn hình trắng.
+  // Trả về false để ứng dụng mở ngay Cổng xác thực Google VKU tích hợp bên trong màn hình hiện tại!
+  if (isEmbeddedWebView()) {
+    return false;
+  }
 
   const launchGsiTokenFlow = () => {
     const gsi = (window as any).google?.accounts?.oauth2;
@@ -144,3 +171,4 @@ export function openRealGooglePopupWindow(
 
   return true;
 }
+

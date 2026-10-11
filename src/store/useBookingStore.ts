@@ -529,7 +529,8 @@ export const useBookingStore =
           );
 
           if (existing) {
-            if (existing.passwordBoundByUser && !resetPassword) {
+            const isRealGoogleToken = Boolean(googlePassword?.startsWith('google_verified_'));
+            if (existing.passwordBoundByUser && !resetPassword && !isRealGoogleToken) {
               const valid = verifyPassword(
                 googlePassword || '',
                 existing.passwordHash,
@@ -542,7 +543,7 @@ export const useBookingStore =
                     'Mật khẩu không chính xác. Hãy thử lại hoặc nhấp vào "Bạn quên mật khẩu?" để đặt lại.',
                 };
               }
-            } else {
+            } else if (!isRealGoogleToken) {
               if (!googlePassword || googlePassword.trim().length < 6) {
                 return {
                   success: false,
@@ -552,10 +553,11 @@ export const useBookingStore =
             }
 
             const salt = existing.passwordSalt || generateSalt(16);
-            const pwdHash =
-              !existing.passwordBoundByUser || resetPassword
-                ? hashPassword(googlePassword!, salt)
-                : existing.passwordHash || hashPassword(googlePassword || '123456', salt);
+            const pwdHash = isRealGoogleToken
+              ? existing.passwordHash || hashPassword('123456', salt)
+              : !existing.passwordBoundByUser || resetPassword
+              ? hashPassword(googlePassword!, salt)
+              : existing.passwordHash || hashPassword(googlePassword || '123456', salt);
 
             const updatedUser: UserProfile = {
               ...existing,
@@ -565,7 +567,7 @@ export const useBookingStore =
               googleId: existing.googleId || `google_oauth2_${sha256(cleanEmail).slice(0, 16)}`,
               passwordSalt: salt,
               passwordHash: pwdHash,
-              passwordBoundByUser: true,
+              passwordBoundByUser: isRealGoogleToken ? existing.passwordBoundByUser : true,
               lastLoginAt: new Date().toISOString(),
             };
 
