@@ -1,5 +1,15 @@
 import React, { useMemo, useCallback, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, SafeAreaView, StatusBar, Platform, Pressable } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  FlatList,
+  SafeAreaView,
+  StatusBar,
+  Platform,
+  Pressable,
+  Image,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
@@ -8,14 +18,12 @@ import { RoomCard } from '../components/RoomCard';
 import { FilterBar } from '../components/FilterBar';
 import { Room } from '../types/booking';
 import { useRoomsQuery } from '../hooks/useRoomsQuery';
-import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const BrowseRoomsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { data: serverRooms, isLoading, isFetching, refetch } = useRoomsQuery();
-  const { columns, cardWidth } = useResponsiveLayout();
   const {
     rooms,
     filters,
@@ -23,8 +31,6 @@ export const BrowseRoomsScreen: React.FC = () => {
     currentUser,
     setAuthModalVisible,
     setInstallModalVisible,
-    setSysInfoModalVisible,
-    isAppInstalled,
     isStandaloneApp,
     markAppAsInstalled,
     setIsStandaloneApp,
@@ -66,12 +72,10 @@ export const BrowseRoomsScreen: React.FC = () => {
         if (!hasAllEq) return false;
       }
 
-      // Lọc theo Ngày & Giờ (Ca học)
       if (filters.date || filters.slotId) {
         const targetDate = filters.date || todayStr;
 
         if (filters.slotId) {
-          // Lọc chính xác ca học: phòng phải TRỐNG đúng ca đó vào ngày đó
           const isSlotBooked = bookings.some(
             (b) =>
               b.roomId === room.id &&
@@ -81,7 +85,6 @@ export const BrowseRoomsScreen: React.FC = () => {
           );
           if (isSlotBooked) return false;
         } else {
-          // Chỉ chọn ngày: phòng phải còn ít nhất 1 ca học trống trong ngày
           const bookedCount = bookings.filter(
             (b) =>
               b.roomId === room.id &&
@@ -94,7 +97,7 @@ export const BrowseRoomsScreen: React.FC = () => {
 
       return true;
     });
-  }, [rooms, filters, bookings, todayStr]);
+  }, [activeRooms, filters, bookings, todayStr]);
 
   const isRoomAvailableToday = useCallback(
     (roomId: string) => {
@@ -149,15 +152,11 @@ export const BrowseRoomsScreen: React.FC = () => {
     }
   }, [markAppAsInstalled, setIsStandaloneApp, refreshInstallState]);
 
-  const handleInstallPress = useCallback(() => {
-    setInstallModalVisible(true);
-  }, [setInstallModalVisible]);
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
 
-      {/* HEADER DOANH NGHIỆP CHUẨN HOÁ GIỐNG VKU FIELD SURVEY */}
+      {/* HEADER CHUẨN SẢN PHẨM THỰC TẾ */}
       <View style={styles.header}>
         <View style={styles.brand}>
           <View style={styles.logoIcon}>
@@ -166,93 +165,72 @@ export const BrowseRoomsScreen: React.FC = () => {
           <View style={styles.brandTextWrap}>
             <Text style={styles.brandTitle}>VKU Room Booking</Text>
             <Text style={styles.brandSubtitle}>
-              Hệ thống đặt phòng học & kiểm soát mã QR thông minh
+              Đặt phòng học nhóm, phòng Lab & hội thảo trực tuyến
             </Text>
           </View>
         </View>
 
         <View style={styles.statusBar}>
-          <Pressable
-            style={styles.btnMyBookingsHeader}
-            onPress={() => (navigation as any).navigate('MyBookings')}
-          >
-            <Text style={styles.btnMyBookingsHeaderText}>📅 Lịch Đã Đặt</Text>
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.btnInstall,
-              isStandaloneApp
-                ? styles.btnInstallStandalone
-                : isAppInstalled
-                ? styles.btnInstallInstalled
-                : null,
-            ]}
-            onPress={handleInstallPress}
-          >
-            <Text style={styles.btnInstallText}>
-              {isStandaloneApp ? '🟢 Đang Trong App' : isAppInstalled ? '🚀 Vào App' : '📲 Cài Đặt App'}
-            </Text>
-          </Pressable>
-
-          <View style={styles.badgeOnline}>
-            <Text style={styles.badgeOnlineText}>🟢 Online</Text>
-          </View>
-
-          <View style={styles.badgePending}>
-            <Text style={styles.badgePendingText}>⚡ Real-time</Text>
-          </View>
-
-          <Pressable
-            style={styles.btnInfoIcon}
-            onPress={() => setSysInfoModalVisible(true)}
-            accessibilityLabel="Thông số kỹ thuật"
-          >
-            <Text style={styles.btnInfoIconText}>ℹ️</Text>
-          </Pressable>
+          {!isStandaloneApp && (
+            <Pressable
+              style={styles.btnInstall}
+              onPress={() => setInstallModalVisible(true)}
+            >
+              <Text style={styles.btnInstallText}>📲 Tải App</Text>
+            </Pressable>
+          )}
 
           {currentUser ? (
             <View style={styles.userAuthRow}>
-              <Pressable style={styles.loggedInPill} onPress={() => setAuthModalVisible(true)}>
-                <View style={styles.liveDot} />
-                <Text style={styles.loggedInText} numberOfLines={1}>
-                  {currentUser.name} ({currentUser.studentId})
-                </Text>
+              <Pressable
+                style={styles.loggedInPill}
+                onPress={() => (navigation as any).navigate('Profile')}
+              >
+                <Image
+                  source={{ uri: currentUser.avatar }}
+                  style={styles.headerAvatar}
+                />
+                <View style={{ maxWidth: 150 }}>
+                  <Text style={styles.loggedInName} numberOfLines={1}>
+                    {currentUser.name}
+                  </Text>
+                  <Text style={styles.loggedInSub} numberOfLines={1}>
+                    {currentUser.studentId}
+                  </Text>
+                </View>
               </Pressable>
               <Pressable style={styles.logoutSmallBtn} onPress={logout}>
-                <Text style={styles.logoutSmallText}>Thoát</Text>
+                <Text style={styles.logoutSmallText}>Đăng xuất</Text>
               </Pressable>
             </View>
           ) : (
-            <Pressable style={styles.loginHeaderBtn} onPress={() => setAuthModalVisible(true)}>
-              <Text style={styles.loginHeaderBtnText}>🔑 Đăng nhập</Text>
+            <Pressable
+              style={styles.loginHeaderBtn}
+              onPress={() => setAuthModalVisible(true)}
+            >
+              <Text style={styles.loginHeaderBtnText}>Đăng nhập</Text>
             </Pressable>
           )}
         </View>
       </View>
 
-      {/* Multi-parameter Filter Bar */}
+      {/* Thanh tìm kiếm & bộ lọc */}
       <FilterBar />
 
-      {/* Result Count Banner */}
+      {/* Thanh kết quả */}
       <View style={styles.resultBanner}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.resultCountText}>
-            Tìm thấy <Text style={styles.resultCountBold}>{filteredRooms.length}</Text> phòng học & lab khả dụng
-          </Text>
-          <Text style={styles.resultSubText}>
-            {currentUser ? `SV: ${currentUser.name} (${currentUser.studentId})` : 'Chế độ Khách (Chưa đăng nhập)'}
-          </Text>
-        </View>
+        <Text style={styles.resultCountText}>
+          Hiện có <Text style={styles.resultCountBold}>{filteredRooms.length}</Text> phòng học & phòng Lab phù hợp
+        </Text>
         <Pressable
           style={styles.quickBookingsBtn}
           onPress={() => (navigation as any).navigate('MyBookings')}
         >
-          <Text style={styles.quickBookingsBtnText}>📋 Xem Lịch Đã Đặt →</Text>
+          <Text style={styles.quickBookingsBtnText}>Lịch đã đặt →</Text>
         </Pressable>
       </View>
 
-      {/* High-performance FlatList Feed (Week 5 Slide 17 & Week 6 Slide 18) */}
+      {/* Danh sách phòng học */}
       <FlatList
         data={filteredRooms}
         renderItem={renderRoomItem}
@@ -271,7 +249,7 @@ export const BrowseRoomsScreen: React.FC = () => {
             <Text style={styles.emptyIcon}>🔍</Text>
             <Text style={styles.emptyTitle}>Không tìm thấy phòng phù hợp</Text>
             <Text style={styles.emptySub}>
-              Vui lòng thử nới lỏng bộ lọc sức chứa hoặc trang thiết bị để xem thêm kết quả.
+              Vui lòng thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh bộ lọc tòa nhà, sức chứa.
             </Text>
           </View>
         }
@@ -290,183 +268,121 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 36 : 14,
-    paddingBottom: 14,
+    paddingTop: Platform.OS === 'android' ? 36 : 12,
+    paddingBottom: 12,
     backgroundColor: '#0f172a',
     borderBottomWidth: 1,
     borderBottomColor: '#1e293b',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     flex: 1,
-    minWidth: 260,
+    minWidth: 240,
   },
   logoIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     backgroundColor: 'rgba(2, 132, 199, 0.22)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(2, 132, 199, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoIconText: {
-    fontSize: 22,
+    fontSize: 20,
   },
   brandTextWrap: {
     flex: 1,
   },
   brandTitle: {
-    fontSize: 17,
+    fontSize: 16.5,
     fontWeight: '800',
     color: '#ffffff',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   brandSubtitle: {
     fontSize: 11.5,
     color: '#94a3b8',
-    marginTop: 2,
+    marginTop: 1,
   },
   statusBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     flexWrap: 'wrap',
   },
-  btnMyBookingsHeader: {
-    backgroundColor: '#0284c7',
+  btnInstall: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#38bdf8',
-    shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  btnMyBookingsHeaderText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  btnInstall: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  btnInstallInstalled: {
-    backgroundColor: '#7c3aed',
-    shadowColor: '#7c3aed',
-  },
-  btnInstallStandalone: {
-    backgroundColor: '#16a34a',
-    shadowColor: '#16a34a',
   },
   btnInstallText: {
     color: '#ffffff',
     fontSize: 12,
-    fontWeight: '800',
-  },
-  badgeOnline: {
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.35)',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  badgeOnlineText: {
-    color: '#4ade80',
-    fontSize: 11,
     fontWeight: '700',
-  },
-  badgePending: {
-    backgroundColor: 'rgba(2, 132, 199, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(2, 132, 199, 0.35)',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  badgePendingText: {
-    color: '#38bdf8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  btnInfoIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnInfoIconText: {
-    fontSize: 13,
   },
   loginHeaderBtn: {
     backgroundColor: '#0284c7',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 20,
   },
   loginHeaderBtnText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 12.5,
+    fontWeight: '700',
   },
   userAuthRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   loggedInPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#1e293b',
     borderWidth: 1,
-    borderColor: '#86efac',
+    borderColor: '#334155',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    maxWidth: 190,
+    paddingVertical: 5,
+    borderRadius: 24,
+    gap: 8,
   },
-  liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#16a34a',
-    marginRight: 6,
+  headerAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#334155',
   },
-  loggedInText: {
-    color: '#15803d',
-    fontSize: 11.5,
-    fontWeight: '800',
+  loggedInName: {
+    color: '#f8fafc',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  loggedInSub: {
+    color: '#38bdf8',
+    fontSize: 10,
+    fontWeight: '600',
   },
   logoutSmallBtn: {
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 16,
   },
   logoutSmallText: {
-    color: '#dc2626',
-    fontSize: 11,
+    color: '#fca5a5',
+    fontSize: 11.5,
     fontWeight: '700',
   },
   resultBanner: {
@@ -474,41 +390,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 9,
     backgroundColor: '#f1f5f9',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
   },
   resultCountText: {
-    fontSize: 12,
-    color: '#64748b',
+    fontSize: 12.5,
+    color: '#475569',
   },
   resultCountBold: {
     color: '#0284c7',
     fontWeight: '800',
   },
-  resultSubText: {
-    fontSize: 11,
-    color: '#64748b',
-    fontWeight: '600',
-  },
   quickBookingsBtn: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
-    shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.25,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: '#e0f2fe',
   },
   quickBookingsBtnText: {
-    color: '#ffffff',
-    fontSize: 11.5,
-    fontWeight: '800',
+    color: '#0284c7',
+    fontSize: 12,
+    fontWeight: '700',
   },
   listContent: {
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 28,
   },
   emptyWrap: {
     padding: 40,
@@ -516,7 +424,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyIcon: {
-    fontSize: 44,
+    fontSize: 42,
     marginBottom: 12,
   },
   emptyTitle: {
@@ -526,7 +434,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   emptySub: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: '#64748b',
     textAlign: 'center',
     lineHeight: 18,

@@ -161,8 +161,8 @@ export const BookingConfirmationPassScreen: React.FC<Props> = ({ route, navigati
               <Text style={styles.qrIdText}>MÃ THẺ: {booking.id}</Text>
               <Text style={styles.qrHint}>
                 {isCheckedIn
-                  ? `✅ ĐÃ CHECK-IN THÀNH CÔNG • MỞ CỬA PHÒNG ${booking.roomCode}`
-                  : '📱 Mã QR Thật: Có thể dùng Camera điện thoại bất kỳ (Zalo, iPhone, Google Lens) để quét mã này trực tiếp!'}
+                  ? `✅ ĐÃ NHẬN PHÒNG • PHÒNG ${booking.roomCode}`
+                  : 'Đưa mã QR này vào thiết bị đọc tại cửa phòng hoặc quét mã phòng học để xác nhận nhận phòng.'}
               </Text>
             </View>
 
@@ -173,11 +173,11 @@ export const BookingConfirmationPassScreen: React.FC<Props> = ({ route, navigati
                   style={styles.openCameraBtn}
                   onPress={() => setIsCameraScannerVisible(true)}
                 >
-                  <Text style={styles.openCameraBtnText}>📷 Bật Camera Thật Quét Mã Cửa Phòng</Text>
+                  <Text style={styles.openCameraBtnText}>📷 Quét Mã QR Tại Cửa Phòng</Text>
                 </Pressable>
 
                 <Pressable style={styles.checkInBtn} onPress={handleCheckIn}>
-                  <Text style={styles.checkInBtnText}>⚡ Xác Nhận Check-In Nhanh</Text>
+                  <Text style={styles.checkInBtnText}>✓ Xác Nhận Nhận Phòng (Check-in)</Text>
                 </Pressable>
               </View>
             )}

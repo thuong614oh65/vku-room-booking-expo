@@ -45,7 +45,7 @@ export const RoomDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [groupSize, setGroupSize] = useState<number>(4);
-  const [purpose, setPurpose] = useState<string>('Họp nhóm đồ án Lập trình đa nền tảng');
+  const [purpose, setPurpose] = useState<string>('Học nhóm & Thảo luận chuyên đề');
   const [isBooking, setIsBooking] = useState<boolean>(false);
 
   const [formError, setFormError] = useState<string>('');

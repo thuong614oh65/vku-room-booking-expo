@@ -6,7 +6,6 @@ import {
   FlatList,
   Pressable,
   SafeAreaView,
-  Alert,
   ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -27,7 +26,6 @@ export const MyBookingsScreen: React.FC = () => {
     checkInBooking,
     currentUser,
     setAuthModalVisible,
-    resetToSeedBookings,
   } = useBookingStore();
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('ALL');
 
@@ -41,13 +39,13 @@ export const MyBookingsScreen: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [slotFilter, setSlotFilter] = useState<string | null>(null);
 
-  // Các ngày thực sự có lịch đặt (mới nhất trước) để chọn nhanh
   const bookingDates = useMemo(() => {
     const set = new Set(myBookings.map((b) => b.date));
     return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
   }, [myBookings]);
 
   const formatDate = (iso: string) => {
+    if (!iso || !iso.includes('-')) return iso;
     const [y, m, d] = iso.split('-');
     return `${d}/${m}/${y}`;
   };
@@ -68,20 +66,20 @@ export const MyBookingsScreen: React.FC = () => {
   if (!currentUser) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 28 }}>
-          <Text style={{ fontSize: 48, marginBottom: 12 }}>🔒</Text>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 6, textAlign: 'center' }}>
-            Bạn chưa đăng nhập tài khoản
-          </Text>
-          <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginBottom: 20, lineHeight: 19 }}>
-            Vui lòng Đăng nhập hoặc Đăng ký tài khoản sinh viên VKU để xem danh sách các phòng bạn đã đặt và lấy mã QR Check-in.
-          </Text>
-          <Pressable
-            style={{ backgroundColor: '#0284c7', paddingHorizontal: 22, paddingVertical: 13, borderRadius: 12 }}
-            onPress={() => setAuthModalVisible(true)}
-          >
-            <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '800' }}>🔑 Đăng Nhập / Đăng Ký Ngay</Text>
-          </Pressable>
+        <View style={styles.guestContainer}>
+          <View style={styles.guestCard}>
+            <Text style={styles.guestIcon}>📅</Text>
+            <Text style={styles.guestTitle}>Lịch Đặt Phòng Của Tôi</Text>
+            <Text style={styles.guestDesc}>
+              Đăng nhập tài khoản sinh viên VKU để theo dõi các phòng đã đặt, quản lý thời gian nhận phòng và mở mã QR Check-in tại cửa phòng.
+            </Text>
+            <Pressable
+              style={styles.guestLoginBtn}
+              onPress={() => setAuthModalVisible(true)}
+            >
+              <Text style={styles.guestLoginBtnText}>Đăng Nhập Tài Khoản</Text>
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -95,7 +93,7 @@ export const MyBookingsScreen: React.FC = () => {
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={styles.roomCode}>{item.roomCode}</Text>
             <Text style={styles.roomName}>{item.roomName}</Text>
           </View>
@@ -119,7 +117,7 @@ export const MyBookingsScreen: React.FC = () => {
                   : styles.statusTextConfirmed,
               ]}
             >
-              {isCheckedIn ? 'Đã Check-in' : isCancelled ? 'Đã huỷ' : 'Đã xác nhận'}
+              {isCheckedIn ? 'Đã nhận phòng' : isCancelled ? 'Đã huỷ' : 'Sắp tới'}
             </Text>
           </View>
         </View>
@@ -127,19 +125,23 @@ export const MyBookingsScreen: React.FC = () => {
         <View style={styles.cardBody}>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>📍 Vị trí:</Text>
-            <Text style={styles.infoValue}>{item.building} • {item.floor}</Text>
+            <Text style={styles.infoValue}>
+              {item.building} • {item.floor}
+            </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>📅 Ngày:</Text>
-            <Text style={styles.infoValue}>{item.date}</Text>
+            <Text style={styles.infoValue}>{formatDate(item.date)}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>⏰ Khung giờ:</Text>
+            <Text style={styles.infoLabel}>⏰ Ca học:</Text>
             <Text style={styles.infoValueHighlight}>{item.slotLabel}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>🎯 Mục đích:</Text>
-            <Text style={styles.infoValue} numberOfLines={1}>{item.purpose}</Text>
+            <Text style={styles.infoLabel}>📝 Nội dung:</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>
+              {item.purpose}
+            </Text>
           </View>
         </View>
 
@@ -147,9 +149,11 @@ export const MyBookingsScreen: React.FC = () => {
         <View style={styles.cardActions}>
           <Pressable
             style={styles.viewPassBtn}
-            onPress={() => navigation.navigate('BookingConfirmationPass', { bookingId: item.id })}
+            onPress={() =>
+              navigation.navigate('BookingConfirmationPass', { bookingId: item.id })
+            }
           >
-            <Text style={styles.viewPassBtnText}>🎟️ Xem Thẻ Pass QR</Text>
+            <Text style={styles.viewPassBtnText}>🎟️ Mở Thẻ QR</Text>
           </Pressable>
 
           {isConfirmed && (
@@ -158,13 +162,13 @@ export const MyBookingsScreen: React.FC = () => {
                 style={styles.checkInQuickBtn}
                 onPress={() => checkInBooking(item.id)}
               >
-                <Text style={styles.checkInQuickBtnText}>Check-in</Text>
+                <Text style={styles.checkInQuickBtnText}>Nhận phòng</Text>
               </Pressable>
               <Pressable
                 style={styles.cancelQuickBtn}
                 onPress={() => handleCancel(item)}
               >
-                <Text style={styles.cancelQuickBtnText}>Huỷ</Text>
+                <Text style={styles.cancelQuickBtnText}>Huỷ lịch</Text>
               </Pressable>
             </View>
           )}
@@ -177,10 +181,14 @@ export const MyBookingsScreen: React.FC = () => {
     return waitlist.filter((w) => w.studentId === currentUser?.studentId);
   }, [waitlist, currentUser?.studentId]);
 
+  const confirmedCount = myBookings.filter((b) => b.status === 'CONFIRMED').length;
+  const checkedInCount = myBookings.filter((b) => b.status === 'CHECKED_IN').length;
+  const cancelledCount = myBookings.filter((b) => b.status === 'CANCELLED').length;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
-      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+      <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Lịch Đặt Phòng Của Tôi</Text>
           <Text style={styles.headerSub}>
@@ -188,10 +196,10 @@ export const MyBookingsScreen: React.FC = () => {
           </Text>
         </View>
         <Pressable
-          style={{ backgroundColor: '#0284c7', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20 }}
-          onPress={resetToSeedBookings}
+          style={styles.newBookingHeaderBtn}
+          onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
         >
-          <Text style={{ color: '#fff', fontSize: 11.5, fontWeight: '800' }}>🔄 Nạp Lịch Sử Mẫu</Text>
+          <Text style={styles.newBookingHeaderBtnText}>+ Đặt phòng mới</Text>
         </Pressable>
       </View>
 
@@ -200,9 +208,9 @@ export const MyBookingsScreen: React.FC = () => {
         {(
           [
             { key: 'ALL', label: `Tất cả (${myBookings.length})` },
-            { key: 'CONFIRMED', label: 'Sắp tới' },
-            { key: 'CHECKED_IN', label: 'Đã vào phòng' },
-            { key: 'CANCELLED', label: 'Đã huỷ' },
+            { key: 'CONFIRMED', label: `Sắp tới (${confirmedCount})` },
+            { key: 'CHECKED_IN', label: `Đã nhận (${checkedInCount})` },
+            { key: 'CANCELLED', label: `Đã huỷ (${cancelledCount})` },
           ] as { key: FilterType; label: string }[]
         ).map((tab) => {
           const isActive = selectedFilter === tab.key;
@@ -212,7 +220,12 @@ export const MyBookingsScreen: React.FC = () => {
               style={[styles.filterChip, isActive && styles.filterChipActive]}
               onPress={() => setSelectedFilter(tab.key)}
             >
-              <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+              <Text
+                style={[
+                  styles.filterChipText,
+                  isActive && styles.filterChipTextActive,
+                ]}
+              >
                 {tab.label}
               </Text>
             </Pressable>
@@ -221,72 +234,110 @@ export const MyBookingsScreen: React.FC = () => {
       </View>
 
       {/* Date & Time Filter */}
-      <View style={styles.dateTimeFilterWrap}>
-        <Text style={styles.dateTimeTitle}>📅 Ngày</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateTimeChips}>
-          <Pressable
-            style={[styles.filterChip, dateFilter === null && styles.filterChipActive]}
-            onPress={() => setDateFilter(null)}
+      {myBookings.length > 0 && (
+        <View style={styles.dateTimeFilterWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.dateTimeChips}
           >
-            <Text style={[styles.filterChipText, dateFilter === null && styles.filterChipTextActive]}>Tất cả ngày</Text>
-          </Pressable>
-          {bookingDates.map((d) => {
-            const active = dateFilter === d;
-            return (
-              <Pressable
-                key={d}
-                style={[styles.filterChip, active && styles.filterChipActive]}
-                onPress={() => setDateFilter(active ? null : d)}
+            <Pressable
+              style={[styles.filterChip, dateFilter === null && styles.filterChipActive]}
+              onPress={() => setDateFilter(null)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  dateFilter === null && styles.filterChipTextActive,
+                ]}
               >
-                <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{formatDate(d)}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+                Tất cả ngày
+              </Text>
+            </Pressable>
+            {bookingDates.map((d) => {
+              const active = dateFilter === d;
+              return (
+                <Pressable
+                  key={d}
+                  style={[styles.filterChip, active && styles.filterChipActive]}
+                  onPress={() => setDateFilter(active ? null : d)}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      active && styles.filterChipTextActive,
+                    ]}
+                  >
+                    📅 {formatDate(d)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
-        <Text style={styles.dateTimeTitle}>⏰ Giờ (ca học)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateTimeChips}>
-          <Pressable
-            style={[styles.filterChip, slotFilter === null && styles.filterChipActive]}
-            onPress={() => setSlotFilter(null)}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.dateTimeChips, { marginTop: 6 }]}
           >
-            <Text style={[styles.filterChipText, slotFilter === null && styles.filterChipTextActive]}>Tất cả ca</Text>
-          </Pressable>
-          {TIME_SLOTS.map((slot) => {
-            const active = slotFilter === slot.id;
-            return (
-              <Pressable
-                key={slot.id}
-                style={[styles.filterChip, active && styles.filterChipActive]}
-                onPress={() => setSlotFilter(active ? null : slot.id)}
+            <Pressable
+              style={[styles.filterChip, slotFilter === null && styles.filterChipActive]}
+              onPress={() => setSlotFilter(null)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  slotFilter === null && styles.filterChipTextActive,
+                ]}
               >
-                <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{slot.label}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+                Tất cả ca học
+              </Text>
+            </Pressable>
+            {TIME_SLOTS.map((slot) => {
+              const active = slotFilter === slot.id;
+              return (
+                <Pressable
+                  key={slot.id}
+                  style={[styles.filterChip, active && styles.filterChipActive]}
+                  onPress={() => setSlotFilter(active ? null : slot.id)}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      active && styles.filterChipTextActive,
+                    ]}
+                  >
+                    ⏰ {slot.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
-        {(dateFilter || slotFilter) && (
-          <Pressable
-            onPress={() => {
-              setDateFilter(null);
-              setSlotFilter(null);
-            }}
-          >
-            <Text style={styles.clearDateTimeText}>✕ Bỏ lọc ngày/giờ • {filteredBookings.length} kết quả</Text>
-          </Pressable>
-        )}
-      </View>
+          {(dateFilter || slotFilter) && (
+            <Pressable
+              onPress={() => {
+                setDateFilter(null);
+                setSlotFilter(null);
+              }}
+            >
+              <Text style={styles.clearDateTimeText}>
+                ✕ Xóa bộ lọc thời gian ({filteredBookings.length} kết quả)
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      )}
 
-      {/* Waitlist Notice Card (If any active queue) */}
+      {/* Waitlist Notice Card */}
       {myWaitlist.length > 0 && (
         <View style={styles.waitlistBanner}>
           <Text style={styles.waitlistBannerTitle}>
-            🔔 Bạn đang theo dõi {myWaitlist.length} khung giờ trong Hàng Đợi (Waitlist):
+            🔔 Danh sách chờ phòng trống ({myWaitlist.length}):
           </Text>
           {myWaitlist.map((w) => (
             <Text key={w.id} style={styles.waitlistItemText}>
-              • Ngày {w.date} - Ca học: {w.slotId} (Sẽ báo ngay khi có phòng trống)
+              • Ngày {formatDate(w.date)} - Ca học: {w.slotId} (Hệ thống sẽ thông báo ngay khi có phòng trống)
             </Text>
           ))}
         </View>
@@ -307,22 +358,14 @@ export const MyBookingsScreen: React.FC = () => {
             <Text style={styles.emptyIcon}>📋</Text>
             <Text style={styles.emptyTitle}>Chưa có lịch đặt phòng nào</Text>
             <Text style={styles.emptySub}>
-              Khám phá danh sách phòng học VKU và đặt lịch để cùng học nhóm ngay hôm nay!
+              Bạn chưa có lịch mượn phòng học hoặc phòng Lab nào trong mục này. Hãy chọn phòng phù hợp để đặt lịch học nhóm hoặc nghiên cứu.
             </Text>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Pressable
-                style={styles.emptyButton}
-                onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
-              >
-                <Text style={styles.emptyButtonText}>🔍 Tìm phòng học ngay</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.emptyButton, { backgroundColor: '#0284c7' }]}
-                onPress={resetToSeedBookings}
-              >
-                <Text style={styles.emptyButtonText}>🔄 Nạp Lịch Sử Mẫu VKU</Text>
-              </Pressable>
-            </View>
+            <Pressable
+              style={styles.emptyButton}
+              onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
+            >
+              <Text style={styles.emptyButtonText}>Tìm và đặt phòng ngay</Text>
+            </Pressable>
           </View>
         }
       />
@@ -335,17 +378,65 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  guestCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    width: '100%',
+    maxWidth: 400,
+  },
+  guestIcon: {
+    fontSize: 44,
+    marginBottom: 12,
+  },
+  guestTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  guestDesc: {
+    fontSize: 13,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 22,
+    lineHeight: 19,
+  },
+  guestLoginBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  guestLoginBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 12,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 19,
+    fontWeight: '800',
     color: '#0f172a',
   },
   headerSub: {
@@ -354,12 +445,24 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: '600',
   },
+  newBookingHeaderBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  newBookingHeaderBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 8,
     backgroundColor: '#ffffff',
+    flexWrap: 'wrap',
   },
   filterChip: {
     paddingHorizontal: 12,
@@ -372,35 +475,29 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#64748b',
   },
   filterChipTextActive: {
     color: '#ffffff',
+    fontWeight: '700',
   },
   dateTimeFilterWrap: {
     backgroundColor: '#ffffff',
     paddingHorizontal: 16,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  dateTimeTitle: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: '#334155',
-    marginTop: 4,
-    marginBottom: 6,
+    borderBottomColor: '#e2e8f0',
   },
   dateTimeChips: {
     gap: 8,
-    paddingBottom: 4,
+    paddingBottom: 2,
   },
   clearDateTimeText: {
     fontSize: 11.5,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#ef4444',
-    marginTop: 6,
+    marginTop: 8,
   },
   waitlistBanner: {
     backgroundColor: '#faf5ff',
@@ -454,15 +551,15 @@ const styles = StyleSheet.create({
     color: '#0284c7',
   },
   roomName: {
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '800',
     color: '#0f172a',
     marginTop: 2,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 20,
   },
   statusBadgeConfirmed: {
     backgroundColor: '#e0f2fe',
@@ -475,7 +572,7 @@ const styles = StyleSheet.create({
   },
   statusBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   statusTextConfirmed: {
     color: '#0284c7',
@@ -500,34 +597,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   infoValue: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: '#0f172a',
     flex: 1,
     fontWeight: '600',
   },
   infoValueHighlight: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: '#0284c7',
     flex: 1,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   cardActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
   },
   viewPassBtn: {
     backgroundColor: '#0f172a',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   viewPassBtnText: {
     color: '#ffffff',
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '700',
   },
   confirmedActions: {
@@ -537,32 +634,32 @@ const styles = StyleSheet.create({
   checkInQuickBtn: {
     backgroundColor: '#16a34a',
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   checkInQuickBtnText: {
     color: '#ffffff',
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '700',
   },
   cancelQuickBtn: {
     backgroundColor: '#fee2e2',
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   cancelQuickBtnText: {
     color: '#dc2626',
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '700',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 56,
     paddingHorizontal: 32,
   },
   emptyIcon: {
-    fontSize: 48,
+    fontSize: 44,
     marginBottom: 12,
   },
   emptyTitle: {
@@ -572,16 +669,17 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   emptySub: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: '#64748b',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 19,
     marginBottom: 20,
+    maxWidth: 420,
   },
   emptyButton: {
     backgroundColor: '#0284c7',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
     borderRadius: 10,
   },
   emptyButtonText: {

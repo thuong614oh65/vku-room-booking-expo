@@ -29,19 +29,24 @@ const BottomTabs = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarLabelPosition: 'below-icon',
         tabBarActiveTintColor: '#0284c7',
         tabBarInactiveTintColor: '#64748b',
         tabBarStyle: {
           backgroundColor: '#ffffff',
           borderTopColor: '#e2e8f0',
           borderTopWidth: 1,
-          height: 64,
+          height: 66,
           paddingBottom: 8,
           paddingTop: 6,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
         tabBarLabelStyle: {
           fontSize: 11.5,
           fontWeight: '700',
+          marginTop: 2,
         },
       }}
     >
@@ -49,7 +54,7 @@ const BottomTabs = () => {
         name="BrowseRooms"
         component={BrowseRoomsScreen}
         options={{
-          tabBarLabel: 'Tìm Phòng VKU',
+          tabBarLabel: 'Tìm Phòng',
           tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="🏫" focused={focused} />,
         }}
       />
@@ -60,10 +65,14 @@ const BottomTabs = () => {
           tabBarLabel: 'Lịch Đã Đặt',
           tabBarBadge: activeBookingsCount > 0 ? activeBookingsCount : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: '#0284c7',
+            backgroundColor: '#ef4444',
             color: '#ffffff',
             fontSize: 10,
             fontWeight: '800',
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
+            lineHeight: 14,
           },
           tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="📅" focused={focused} />,
         }}
@@ -72,8 +81,8 @@ const BottomTabs = () => {
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Tài Khoản SV',
-          tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="🎓" focused={focused} />,
+          tabBarLabel: 'Tài Khoản',
+          tabBarIcon: ({ focused }) => <TabBadgeIcon symbol="👤" focused={focused} />,
         }}
       />
     </Tab.Navigator>
@@ -110,7 +119,7 @@ export const AppNavigator = () => {
 
 const styles = StyleSheet.create({
   iconWrap: {
-    width: 34,
+    width: 44,
     height: 28,
     borderRadius: 14,
     alignItems: 'center',

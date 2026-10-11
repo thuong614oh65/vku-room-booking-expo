@@ -382,7 +382,7 @@ export const useBookingStore =
             const remainSec = Math.ceil((lockUntil - now) / 1000);
             return {
               success: false,
-              message: `🔒 Tài khoản đang tạm khóa bảo vệ chống dò mật khẩu. Vui lòng thử lại sau ${remainSec} giây!`,
+              message: `Tài khoản đang tạm khóa do nhập sai nhiều lần. Vui lòng thử lại sau ${remainSec} giây.`,
             };
           }
 
@@ -390,14 +390,14 @@ export const useBookingStore =
           if (!q) {
             return {
               success: false,
-              message: 'Vui lòng nhập Mã sinh viên (MSSV) hoặc Email VKU!',
+              message: 'Vui lòng nhập Mã sinh viên (MSSV) hoặc Email VKU.',
             };
           }
 
           if (!password || !password.trim()) {
             return {
               success: false,
-              message: 'Vui lòng nhập mật khẩu để xác thực bảo mật!',
+              message: 'Vui lòng nhập mật khẩu của bạn.',
             };
           }
 
@@ -411,7 +411,7 @@ export const useBookingStore =
             return {
               success: false,
               message:
-                'Không tìm thấy tài khoản với MSSV/Email này. Vui lòng chuyển sang tab "Đăng Ký Mới" hoặc đăng nhập bằng Google!',
+                'Không tìm thấy tài khoản phù hợp. Vui lòng kiểm tra lại MSSV/Email hoặc đăng ký tài khoản mới.',
             };
           }
 
@@ -431,13 +431,13 @@ export const useBookingStore =
               return {
                 success: false,
                 message:
-                  '🔒 Nhập sai mật khẩu 5 lần liên tiếp! Hệ thống tự động khóa bảo vệ trong 30 giây.',
+                  'Bạn đã nhập sai mật khẩu 5 lần liên tiếp. Vui lòng thử lại sau 30 giây.',
               };
             }
             set({ failedLoginAttempts: attempts });
             return {
               success: false,
-              message: `❌ Mật khẩu không chính xác! Mã băm SHA-256 không khớp (Còn ${5 - attempts} lần thử).`,
+              message: `Mật khẩu không chính xác. Vui lòng kiểm tra lại (còn ${5 - attempts} lần thử).`,
             };
           }
 
@@ -467,8 +467,8 @@ export const useBookingStore =
           }));
 
           notificationService.notify(
-            `🔐 Xác thực thành công: ${updatedUser.name}`,
-            `Đã cấp phát phiên JWT (HMAC-SHA256) cho MSSV ${updatedUser.studentId}.`,
+            `Xin chào, ${updatedUser.name}!`,
+            `Đăng nhập thành công (${updatedUser.studentId}).`,
             'SUCCESS'
           );
 
@@ -487,7 +487,7 @@ export const useBookingStore =
           if (!cleanEmail || !cleanEmail.includes('@')) {
             return {
               success: false,
-              message: 'Địa chỉ Email Google không hợp lệ!',
+              message: 'Địa chỉ email không hợp lệ.',
             };
           }
 
@@ -528,8 +528,8 @@ export const useBookingStore =
             }));
 
             notificationService.notify(
-              `🌐 Google OAuth 2.0: ${updatedUser.name}`,
-              `Đã xác thực tài khoản Google (${cleanEmail}) & cấp phát JWT Token.`,
+              `Xin chào, ${updatedUser.name}!`,
+              `Đã đăng nhập bằng tài khoản Google (${cleanEmail}).`,
               'SUCCESS'
             );
 
@@ -574,8 +574,8 @@ export const useBookingStore =
           }));
 
           notificationService.notify(
-            `🌐 Liên kết Google OAuth 2.0: ${finalName}`,
-            `Tài khoản ${cleanEmail} (MSSV: ${finalId}) đã được mã hóa SHA-256 & kích hoạt!`,
+            `Xin chào, ${finalName}!`,
+            `Đã liên kết tài khoản Google (${cleanEmail}) thành công.`,
             'SUCCESS'
           );
 
@@ -599,14 +599,14 @@ export const useBookingStore =
           if (!cleanName || !cleanId) {
             return {
               success: false,
-              message: 'Vui lòng nhập đầy đủ Họ tên và Mã số sinh viên (MSSV)!',
+              message: 'Vui lòng nhập đầy đủ Họ và tên và Mã số sinh viên (MSSV).',
             };
           }
 
           if (!password || password.length < 6) {
             return {
               success: false,
-              message: 'Mật khẩu bảo mật phải có ít nhất 6 ký tự!',
+              message: 'Mật khẩu phải có ít nhất 6 ký tự.',
             };
           }
 
@@ -619,7 +619,7 @@ export const useBookingStore =
           if (exists) {
             return {
               success: false,
-              message: `Tài khoản với MSSV ${cleanId} hoặc Email ${cleanEmail} đã tồn tại. Vui lòng chuyển sang tab Đăng Nhập!`,
+              message: `Tài khoản với MSSV ${cleanId} hoặc Email ${cleanEmail} đã được đăng ký trước đó.`,
             };
           }
 
@@ -652,8 +652,8 @@ export const useBookingStore =
           }));
 
           notificationService.notify(
-            `🎉 Đăng ký & Mã hóa thành công: ${cleanName}`,
-            `Mật khẩu đã được băm SHA-256 + Salt và cấp phát phiên JWT cho MSSV ${cleanId}.`,
+            `Chào mừng, ${cleanName}!`,
+            `Tạo tài khoản sinh viên (${cleanId}) thành công.`,
             'SUCCESS'
           );
 
@@ -672,21 +672,21 @@ export const useBookingStore =
           if (!user) {
             return {
               success: false,
-              message: 'Bạn cần đăng nhập để đổi mật khẩu!',
+              message: 'Bạn cần đăng nhập để đổi mật khẩu.',
             };
           }
 
           if (!verifyPassword(currentPassword, user.passwordHash, user.passwordSalt)) {
             return {
               success: false,
-              message: '❌ Mật khẩu hiện tại không chính xác!',
+              message: 'Mật khẩu hiện tại không chính xác.',
             };
           }
 
           if (!newPassword || newPassword.length < 6) {
             return {
               success: false,
-              message: '⚠️ Mật khẩu mới phải có ít nhất 6 ký tự!',
+              message: 'Mật khẩu mới phải có ít nhất 6 ký tự.',
             };
           }
 
@@ -714,8 +714,8 @@ export const useBookingStore =
           }));
 
           notificationService.notify(
-            '🔐 Đã cập nhật mật khẩu mới',
-            'Mật khẩu đã được tái mã hóa SHA-256 với Salt mới và cấp lại khóa phiên JWT.',
+            'Cập nhật thành công',
+            'Mật khẩu tài khoản của bạn đã được thay đổi.',
             'SUCCESS'
           );
 
@@ -740,8 +740,8 @@ export const useBookingStore =
 
           if (prev) {
             notificationService.notify(
-              '🚪 Đã đăng xuất an toàn',
-              `Đã thu hồi khóa phiên JWT và đăng xuất khỏi tài khoản ${prev.name} (${prev.studentId}).`,
+              'Đã đăng xuất',
+              `Hẹn gặp lại ${prev.name}!`,
               'REMINDER'
             );
           }

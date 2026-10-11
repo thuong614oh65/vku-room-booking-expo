@@ -4,7 +4,7 @@
  * Fallback: Cache Storage for offline-first resilience
  */
 
-const CACHE_NAME = 'vku-booking-cache-v20';
+const CACHE_NAME = 'vku-booking-cache-v21';
 const APP_SHELL_ASSETS = [
   './',
   './index.html',

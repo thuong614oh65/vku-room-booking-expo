@@ -15,7 +15,6 @@ import {
 import { useBookingStore } from '../store/useBookingStore';
 import {
   evaluatePasswordStrength,
-  sha256,
   verifyPassword,
 } from '../services/authSecurityService';
 import {
@@ -30,7 +29,14 @@ type GoogleStep = 'CHOOSE_ACCOUNT' | 'ENTER_EMAIL' | 'ENTER_PASSWORD';
 const GoogleGIcon: React.FC = () => {
   if (Platform.OS === 'web') {
     return React.createElement('div', {
-      style: { width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+      style: {
+        width: 20,
+        height: 20,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+      },
       dangerouslySetInnerHTML: { __html: GOOGLE_G_SVG },
     });
   }
@@ -77,7 +83,6 @@ export const AuthModal: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [showDemoHint, setShowDemoHint] = useState(false);
 
   // Standard Register states
   const [regName, setRegName] = useState('');
@@ -97,23 +102,10 @@ export const AuthModal: React.FC = () => {
   const [isGoogleVerifying, setIsGoogleVerifying] = useState(false);
   const [googleError, setGoogleError] = useState('');
 
-  // Live SHA-256 preview
-  const loginPasswordHashPreview = useMemo(() => {
-    if (!password) return null;
-    const h = sha256(`vku_salt:${password}`);
-    return `sha256$${h.slice(0, 16)}...${h.slice(-8)}`;
-  }, [password]);
-
   const registerStrength = useMemo(
     () => evaluatePasswordStrength(regPassword),
     [regPassword]
   );
-
-  const regPasswordHashPreview = useMemo(() => {
-    if (!regPassword) return null;
-    const h = sha256(`vku_reg_salt:${regPassword}`);
-    return `sha256$${h.slice(0, 16)}...${h.slice(-8)}`;
-  }, [regPassword]);
 
   const resetForm = () => {
     setErrorMsg('');
@@ -147,11 +139,14 @@ export const AuthModal: React.FC = () => {
 
     // Trên trình duyệt Web: Mở Cửa sổ Popup Google OAuth 2.0 thật (window.open)
     if (Platform.OS === 'web') {
-      const opened = openRealGooglePopupWindow(availableUsers, ({ email, password: gPass, name }) => {
-        loginWithGoogle(email, gPass, name);
-        resetForm();
-        setMode('LOGIN');
-      });
+      const opened = openRealGooglePopupWindow(
+        availableUsers,
+        ({ email, password: gPass, name }) => {
+          loginWithGoogle(email, gPass, name);
+          resetForm();
+          setMode('LOGIN');
+        }
+      );
       if (opened) {
         return;
       }
@@ -212,7 +207,7 @@ export const AuthModal: React.FC = () => {
       );
       if (!ok) {
         setGoogleError(
-          'Mật khẩu không chính xác. Hãy thử lại hoặc bấm "Bạn quên mật khẩu?" để điền mật khẩu mặc định (123456).'
+          'Mật khẩu không chính xác. Hãy thử lại hoặc nhấp vào "Bạn quên mật khẩu?" để đặt lại.'
         );
         return;
       }
@@ -238,11 +233,11 @@ export const AuthModal: React.FC = () => {
   const handleLogin = () => {
     setErrorMsg('');
     if (!identifier.trim()) {
-      setErrorMsg('Vui lòng nhập Mã sinh viên (MSSV) hoặc Email VKU!');
+      setErrorMsg('Vui lòng nhập Mã sinh viên (MSSV) hoặc Email VKU.');
       return;
     }
     if (!password) {
-      setErrorMsg('Vui lòng nhập mật khẩu để xác thực mã băm SHA-256!');
+      setErrorMsg('Vui lòng nhập mật khẩu của bạn.');
       return;
     }
     const res = login(identifier, password);
@@ -256,21 +251,22 @@ export const AuthModal: React.FC = () => {
   const handleRegister = () => {
     setErrorMsg('');
     if (!regName.trim() || !regStudentId.trim()) {
-      setErrorMsg('Vui lòng nhập đầy đủ Họ và tên và Mã số sinh viên (MSSV)!');
+      setErrorMsg('Vui lòng nhập đầy đủ Họ và tên và Mã số sinh viên (MSSV).');
       return;
     }
     if (!regPassword || regPassword.length < 6) {
-      setErrorMsg('Mật khẩu bảo mật phải có ít nhất 6 ký tự!');
+      setErrorMsg('Mật khẩu phải có ít nhất 6 ký tự.');
       return;
     }
     if (regPassword !== regConfirmPassword) {
-      setErrorMsg('Mật khẩu xác nhận không khớp! Vui lòng kiểm tra lại.');
+      setErrorMsg('Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.');
       return;
     }
     const res = register(
       regName,
       regStudentId,
-      regEmail || `${regStudentId.trim().toLowerCase().replace('.', '')}@vku.udn.vn`,
+      regEmail ||
+        `${regStudentId.trim().toLowerCase().replace('.', '')}@vku.udn.vn`,
       regMajor || 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
       regPassword
     );
@@ -281,14 +277,13 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  const fillDemoAccount = (mssv: string) => {
-    setIdentifier(mssv);
-    setPassword('123456');
-    setErrorMsg('');
-  };
-
   return (
-    <Modal visible={authModalVisible} transparent animationType="fade" onRequestClose={handleClose}>
+    <Modal
+      visible={authModalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleClose}
+    >
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -319,7 +314,8 @@ export const AuthModal: React.FC = () => {
                 <View>
                   <Text style={styles.googleMainTitle}>Chọn một tài khoản</Text>
                   <Text style={styles.googleSubTitle}>
-                    để tiếp tục tới <Text style={styles.googleAppHighlight}>VKU Room Booking</Text>
+                    để tiếp tục tới{' '}
+                    <Text style={styles.googleAppHighlight}>VKU Room Booking</Text>
                   </Text>
 
                   <View style={styles.googleAccountList}>
@@ -362,7 +358,8 @@ export const AuthModal: React.FC = () => {
                 <View>
                   <Text style={styles.googleMainTitle}>Đăng nhập</Text>
                   <Text style={styles.googleSubTitle}>
-                    Tiếp tục tới <Text style={styles.googleAppHighlight}>VKU Room Booking</Text>
+                    Tiếp tục tới{' '}
+                    <Text style={styles.googleAppHighlight}>VKU Room Booking</Text>
                   </Text>
 
                   <View style={styles.googleFloatingFieldWrap}>
@@ -515,17 +512,17 @@ export const AuthModal: React.FC = () => {
           </View>
         ) : (
           /* ═══════════════════════════════════════════════════════════════════
-           * GIAO DIỆN ĐĂNG NHẬP & ĐĂNG KÝ CHUẨN BẢO MẬT VKU (SHA-256 + JWT)
+           * GIAO DIỆN ĐĂNG NHẬP & ĐĂNG KÝ TÀI KHOẢN SINH VIÊN VKU
            * ═══════════════════════════════════════════════════════════════════ */
           <View style={styles.modalCard}>
             {/* Header */}
             <View style={styles.header}>
               <View style={{ flex: 1 }}>
-                <View style={styles.securityBadgeRow}>
-                  <Text style={styles.schoolTag}>🛡️ VKU SSO • SHA-256 + JWT SECURITY</Text>
-                </View>
+                <Text style={styles.schoolTag}>
+                  TRƯỜNG ĐẠI HỌC CNTT & TT VIỆT - HÀN (VKU)
+                </Text>
                 <Text style={styles.headerTitle}>
-                  {mode === 'LOGIN' ? '🔐 Đăng Nhập Hệ Thống' : '✨ Đăng Ký Tài Khoản VKU'}
+                  {mode === 'LOGIN' ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Tài Khoản Sinh Viên'}
                 </Text>
               </View>
               <Pressable onPress={handleClose} style={styles.closeBtn}>
@@ -580,10 +577,10 @@ export const AuthModal: React.FC = () => {
 
               {mode === 'LOGIN' ? (
                 <View>
-                  <Text style={styles.label}>Mã Sinh Viên (MSSV) hoặc Email VKU *</Text>
+                  <Text style={styles.label}>Mã Sinh Viên (MSSV) hoặc Email VKU</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Nhập MSSV (VD: 23IT.B219) hoặc Email VKU"
+                    placeholder="VD: 23IT.B219 hoặc thuongnt.23itb@vku.udn.vn"
                     placeholderTextColor="#94a3b8"
                     value={identifier}
                     onChangeText={(t) => {
@@ -593,7 +590,21 @@ export const AuthModal: React.FC = () => {
                     autoCapitalize="none"
                   />
 
-                  <Text style={styles.label}>Mật khẩu bảo mật *</Text>
+                  <View style={styles.labelRow}>
+                    <Text style={styles.label}>Mật khẩu</Text>
+                    <Pressable
+                      onPress={() => {
+                        if (!identifier.trim()) {
+                          setIdentifier('23IT.B219');
+                        }
+                        setPassword('123456');
+                        setErrorMsg('');
+                      }}
+                    >
+                      <Text style={styles.forgotLinkText}>Quên mật khẩu?</Text>
+                    </Pressable>
+                  </View>
+
                   <View style={styles.passwordInputWrap}>
                     <TextInput
                       style={styles.passwordInput}
@@ -610,54 +621,13 @@ export const AuthModal: React.FC = () => {
                       style={styles.eyeBtn}
                       onPress={() => setShowPassword(!showPassword)}
                     >
-                      <Text style={styles.eyeBtnText}>{showPassword ? '🙈 Ẩn' : '👁️ Hiện'}</Text>
+                      <Text style={styles.eyeBtnText}>{showPassword ? 'Ẩn' : 'Hiện'}</Text>
                     </Pressable>
                   </View>
-
-                  {loginPasswordHashPreview && (
-                    <View style={styles.cryptoLiveBox}>
-                      <Text style={styles.cryptoLiveText}>
-                        🔒 Băm SHA-256: <Text style={styles.cryptoMono}>{loginPasswordHashPreview}</Text>
-                      </Text>
-                    </View>
-                  )}
 
                   <Pressable style={styles.primaryBtn} onPress={handleLogin}>
-                    <Text style={styles.primaryBtnText}>🔐 Xác Thực & Đăng Nhập</Text>
+                    <Text style={styles.primaryBtnText}>Đăng Nhập</Text>
                   </Pressable>
-
-                  <View style={styles.demoHintContainer}>
-                    <Pressable
-                      style={styles.demoHintHeader}
-                      onPress={() => setShowDemoHint(!showDemoHint)}
-                    >
-                      <Text style={styles.demoHintTitle}>
-                        🎓 Thông tin tài khoản mẫu phục vụ Giảng viên kiểm thử {showDemoHint ? '▴' : '▾'}
-                      </Text>
-                    </Pressable>
-
-                    {showDemoHint && (
-                      <View style={styles.demoHintBody}>
-                        <Text style={styles.demoHintSub}>
-                          Mật khẩu mặc định đã được mã hóa SHA-256 là <Text style={{ fontWeight: '800', color: '#0284c7' }}>123456</Text>. Nhấn để điền thử:
-                        </Text>
-                        <View style={styles.demoAccountRow}>
-                          <Pressable
-                            style={styles.demoAccountPill}
-                            onPress={() => fillDemoAccount('23IT.B219')}
-                          >
-                            <Text style={styles.demoPillText}>Nguyễn Thị Thương (23IT.B219)</Text>
-                          </Pressable>
-                          <Pressable
-                            style={styles.demoAccountPill}
-                            onPress={() => fillDemoAccount('23IT.B105')}
-                          >
-                            <Text style={styles.demoPillText}>Trần Văn Nam (23IT.B105)</Text>
-                          </Pressable>
-                        </View>
-                      </View>
-                    )}
-                  </View>
                 </View>
               ) : (
                 <View>
@@ -705,7 +675,7 @@ export const AuthModal: React.FC = () => {
                     keyboardType="email-address"
                   />
 
-                  <Text style={styles.label}>Mật khẩu bảo mật (tối thiểu 6 ký tự) *</Text>
+                  <Text style={styles.label}>Mật khẩu (tối thiểu 6 ký tự) *</Text>
                   <View style={styles.passwordInputWrap}>
                     <TextInput
                       style={styles.passwordInput}
@@ -719,7 +689,7 @@ export const AuthModal: React.FC = () => {
                       style={styles.eyeBtn}
                       onPress={() => setShowRegPassword(!showRegPassword)}
                     >
-                      <Text style={styles.eyeBtnText}>{showRegPassword ? '🙈 Ẩn' : '👁️ Hiện'}</Text>
+                      <Text style={styles.eyeBtnText}>{showRegPassword ? 'Ẩn' : 'Hiện'}</Text>
                     </Pressable>
                   </View>
 
@@ -741,15 +711,9 @@ export const AuthModal: React.FC = () => {
                           />
                         ))}
                       </View>
-                      <View style={styles.strengthMetaRow}>
-                        <Text style={[styles.strengthLabel, { color: registerStrength.color }]}>
-                          Độ mạnh: {registerStrength.label}
-                        </Text>
-                        {regPasswordHashPreview && (
-                          <Text style={styles.cryptoMonoSmall}>{regPasswordHashPreview}</Text>
-                        )}
-                      </View>
-                      <Text style={styles.strengthHint}>{registerStrength.hint}</Text>
+                      <Text style={[styles.strengthLabel, { color: registerStrength.color }]}>
+                        Độ mạnh mật khẩu: {registerStrength.label}
+                      </Text>
                     </View>
                   )}
 
@@ -761,7 +725,7 @@ export const AuthModal: React.FC = () => {
                         ? { borderColor: '#ef4444' }
                         : null,
                     ]}
-                    placeholder="Nhập lại chính xác mật khẩu bên trên"
+                    placeholder="Nhập lại mật khẩu bên trên"
                     placeholderTextColor="#94a3b8"
                     secureTextEntry={!showRegPassword}
                     value={regConfirmPassword}
@@ -769,7 +733,7 @@ export const AuthModal: React.FC = () => {
                   />
 
                   <Pressable style={styles.primaryBtn} onPress={handleRegister}>
-                    <Text style={styles.primaryBtnText}>✨ Mã Hóa SHA-256 & Tạo Tài Khoản</Text>
+                    <Text style={styles.primaryBtnText}>Đăng Ký Tài Khoản</Text>
                   </Pressable>
                 </View>
               )}
@@ -784,7 +748,7 @@ export const AuthModal: React.FC = () => {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -793,61 +757,55 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 20,
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 430,
     maxHeight: '92%',
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.28,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOpacity: 0.22,
+    shadowRadius: 20,
+    elevation: 10,
   },
   header: {
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  securityBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 3,
+    alignItems: 'flex-start',
   },
   schoolTag: {
-    fontSize: 10,
+    color: '#38bdf8',
+    fontSize: 10.5,
     fontWeight: '800',
-    color: '#0284c7',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
+    marginBottom: 4,
   },
   headerTitle: {
+    color: '#ffffff',
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {
-    fontSize: 15,
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: '700',
-    color: '#64748b',
   },
   tabRow: {
     flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 12,
     backgroundColor: '#f1f5f9',
+    padding: 5,
+    marginHorizontal: 20,
+    marginTop: 16,
     borderRadius: 12,
-    padding: 4,
   },
   tabBtn: {
     flex: 1,
@@ -856,7 +814,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabBtnActive: {
-    backgroundColor: '#0284c7',
+    backgroundColor: '#ffffff',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   tabBtnText: {
     fontSize: 13,
@@ -864,12 +827,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   tabBtnTextActive: {
-    color: '#ffffff',
+    color: '#0284c7',
+    fontWeight: '800',
   },
   body: {
     paddingHorizontal: 20,
     paddingTop: 14,
-    paddingBottom: 22,
+    paddingBottom: 24,
   },
   errorBox: {
     backgroundColor: '#fef2f2',
@@ -892,21 +856,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#dadce0',
-    borderRadius: 20,
+    borderRadius: 24,
     paddingVertical: 11,
     paddingHorizontal: 16,
     marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   googleFourColorLogo: {
     width: 22,
     height: 22,
     borderRadius: 11,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#4285F4',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
   googleFourColorG: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '900',
     color: '#4285F4',
   },
@@ -926,28 +898,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#e2e8f0',
   },
   dividerText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#94a3b8',
     marginHorizontal: 10,
-    letterSpacing: 0.5,
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#94a3b8',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    marginTop: 4,
   },
   label: {
     fontSize: 12.5,
     fontWeight: '700',
     color: '#334155',
     marginBottom: 6,
+    marginTop: 4,
+  },
+  forgotLinkText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0284c7',
   },
   input: {
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#cbd5e1',
-    borderRadius: 11,
+    borderRadius: 10,
     paddingHorizontal: 13,
     paddingVertical: 11,
     fontSize: 13.5,
     color: '#0f172a',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   passwordInputWrap: {
     flexDirection: 'row',
@@ -955,8 +939,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#cbd5e1',
-    borderRadius: 11,
-    marginBottom: 8,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   passwordInput: {
     flex: 1,
@@ -966,50 +950,25 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   eyeBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
   },
   eyeBtnText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '700',
     color: '#0284c7',
-  },
-  cryptoLiveBox: {
-    backgroundColor: '#f0fdf4',
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 10,
-  },
-  cryptoLiveText: {
-    fontSize: 11,
-    color: '#166534',
-    fontWeight: '600',
-  },
-  cryptoMono: {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#15803d',
-  },
-  cryptoMonoSmall: {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 10,
-    color: '#64748b',
   },
   strengthBox: {
     backgroundColor: '#f8fafc',
     borderRadius: 10,
     padding: 10,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    marginBottom: 12,
   },
   strengthBarsRow: {
     flexDirection: 'row',
-    gap: 5,
+    gap: 6,
     marginBottom: 6,
   },
   strengthBarSegment: {
@@ -1017,129 +976,72 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 3,
   },
-  strengthMetaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   strengthLabel: {
     fontSize: 11.5,
-    fontWeight: '800',
-  },
-  strengthHint: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 3,
+    fontWeight: '700',
   },
   primaryBtn: {
     backgroundColor: '#0284c7',
     borderRadius: 12,
     paddingVertical: 13,
     alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 12,
+    marginTop: 8,
+    marginBottom: 14,
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
   },
   primaryBtnText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '800',
   },
-  demoHintContainer: {
-    marginTop: 4,
-    marginBottom: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
-    overflow: 'hidden',
-  },
-  demoHintHeader: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  demoHintTitle: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  demoHintBody: {
-    paddingHorizontal: 12,
-    paddingBottom: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingTop: 8,
-  },
-  demoHintSub: {
-    fontSize: 11,
-    color: '#64748b',
-    marginBottom: 8,
-    lineHeight: 16,
-  },
-  demoAccountRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  demoAccountPill: {
-    backgroundColor: '#eff6ff',
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  demoPillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0284c7',
-  },
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // FALLBACK GOOGLE SIGN-IN CARD STYLES (Clean 1:1 Google Material 3)
-  // ───────────────────────────────────────────────────────────────────────────
+  /* ═══════════════════════════════════════════════════════════════════
+   * STYLES CHO CỬA SỔ GOOGLE OAUTH 2.0 CHUẨN MATERIAL 3 (accounts.google.com)
+   * ═══════════════════════════════════════════════════════════════════ */
   googleModalCard: {
     backgroundColor: '#ffffff',
     borderRadius: 8,
     width: '100%',
-    maxWidth: 440,
-    maxHeight: '92%',
+    maxWidth: 448,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#dadce0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 15,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 20,
+    elevation: 10,
   },
   googleSubHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
     borderBottomWidth: 1,
     borderBottomColor: '#dadce0',
+    backgroundColor: '#ffffff',
   },
   googleSubHeaderText: {
+    flex: 1,
     fontSize: 14,
     color: '#5f6368',
     fontWeight: '500',
-    flex: 1,
   },
   googleCloseBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   googleCloseText: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#5f6368',
   },
   googleLoadingBar: {
+    paddingVertical: 4,
     backgroundColor: '#e8f0fe',
-    paddingVertical: 6,
     alignItems: 'center',
   },
   googleBody: {
@@ -1150,12 +1052,12 @@ const styles = StyleSheet.create({
   googleWordmarkRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   googleLetter: {
-    fontSize: 24,
+    fontSize: 23,
     fontWeight: '700',
+    letterSpacing: -0.5,
   },
   googleMainTitle: {
     fontSize: 24,
@@ -1168,7 +1070,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#202124',
     textAlign: 'center',
-    marginBottom: 28,
+    marginBottom: 24,
   },
   googleAppHighlight: {
     color: '#1a73e8',
@@ -1176,22 +1078,23 @@ const styles = StyleSheet.create({
   },
   googleAccountList: {
     borderTopWidth: 1,
+    borderBottomWidth: 1,
     borderColor: '#dadce0',
     marginBottom: 20,
   },
   googleChooserItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#dadce0',
+    borderBottomColor: '#f1f3f4',
   },
   googleChooserAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    marginRight: 14,
+    marginRight: 12,
     backgroundColor: '#e8f0fe',
   },
   googleChooserName: {
@@ -1210,7 +1113,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: 12,
   },
   googleUseAnotherText: {
     fontSize: 14,
@@ -1221,21 +1124,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#5f6368',
     lineHeight: 18,
-    marginTop: 8,
+    marginBottom: 10,
   },
   googleFloatingFieldWrap: {
+    marginTop: 8,
+    marginBottom: 8,
     position: 'relative',
-    marginTop: 4,
-    marginBottom: 6,
   },
   googleFloatingLabel: {
     fontSize: 12,
-    fontWeight: '500',
     color: '#1a73e8',
-    marginBottom: 6,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   googleMaterialInput: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#1a73e8',
     borderRadius: 4,
     paddingHorizontal: 14,
@@ -1245,23 +1148,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   googleErrorInline: {
-    color: '#d93025',
     fontSize: 12,
+    color: '#d93025',
     marginTop: 4,
     marginBottom: 6,
   },
   googleForgotLink: {
-    color: '#1a73e8',
     fontSize: 14,
+    color: '#1a73e8',
     fontWeight: '500',
-    marginTop: 8,
-    marginBottom: 26,
+    marginTop: 4,
+    marginBottom: 24,
   },
   googleGuestNote: {
     fontSize: 14,
     color: '#5f6368',
     lineHeight: 20,
     marginBottom: 28,
+  },
+  googleActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  googleTextBtn: {
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+  },
+  googleTextBtnLabel: {
+    color: '#1a73e8',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  googleNextBtn: {
+    backgroundColor: '#1a73e8',
+    borderRadius: 4,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+  },
+  googleNextBtnLabel: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
   },
   googleUserPill: {
     flexDirection: 'row',
@@ -1270,9 +1200,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#dadce0',
     borderRadius: 16,
-    paddingVertical: 4,
+    paddingVertical: 5,
     paddingHorizontal: 10,
-    marginBottom: 26,
+    marginBottom: 24,
+    maxWidth: '90%',
   },
   googlePillIcon: {
     width: 20,
@@ -1285,28 +1216,28 @@ const styles = StyleSheet.create({
   },
   googlePillEmail: {
     fontSize: 14,
-    fontWeight: '500',
     color: '#3c4043',
+    fontWeight: '500',
     marginRight: 6,
   },
   googlePillChevron: {
     fontSize: 12,
-    color: '#5f6368',
+    color: '#3c4043',
   },
   googleCheckboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
   googleCheckbox: {
     width: 18,
     height: 18,
-    borderRadius: 3,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: '#5f6368',
+    borderRadius: 2,
+    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
   googleCheckboxChecked: {
     backgroundColor: '#1a73e8',
@@ -1321,38 +1252,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#202124',
   },
-  googleActionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  googleTextBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-  },
-  googleTextBtnLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1a73e8',
-  },
-  googleNextBtn: {
-    backgroundColor: '#1a73e8',
-    borderRadius: 4,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-  },
-  googleNextBtnLabel: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
   googleFooterBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: 24,
     paddingVertical: 14,
+    backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#f1f3f4',
   },
