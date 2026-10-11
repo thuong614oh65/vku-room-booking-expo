@@ -137,14 +137,17 @@ export const AuthModal: React.FC = () => {
     setErrorMsg('');
     setGoogleError('');
 
-    // Trên trình duyệt Web: Mở Cửa sổ Popup Google OAuth 2.0 thật (window.open)
+    // Trên trình duyệt Web: Mở Cửa sổ Popup Google OAuth 2.0 chính chủ (accounts.google.com)
     if (Platform.OS === 'web') {
       const opened = openRealGooglePopupWindow(
         availableUsers,
-        ({ email, password: gPass, name, resetPassword }) => {
-          loginWithGoogle(email, gPass, name, undefined, undefined, resetPassword);
+        ({ email, password: gPass, name, avatar, resetPassword }) => {
+          loginWithGoogle(email, gPass, name, undefined, avatar, resetPassword);
           resetForm();
           setMode('LOGIN');
+        },
+        (errMsg) => {
+          setErrorMsg(errMsg);
         }
       );
       if (opened) {

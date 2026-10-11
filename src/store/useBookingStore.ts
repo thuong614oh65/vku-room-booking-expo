@@ -560,6 +560,7 @@ export const useBookingStore =
             const updatedUser: UserProfile = {
               ...existing,
               name: name?.trim() || existing.name,
+              avatar: avatar || existing.avatar,
               authProvider: 'GOOGLE_OAUTH2',
               googleId: existing.googleId || `google_oauth2_${sha256(cleanEmail).slice(0, 16)}`,
               passwordSalt: salt,
