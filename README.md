@@ -69,6 +69,11 @@ Tuan_05_06_MiniProject2_VKU_RoomBooking/
 ├── app.json                         # Cấu hình Expo SDK 57 (Name, Slug, Web bundler metro)
 ├── package.json                     # Danh sách thư viện phụ thuộc (Zustand, React Navigation, AsyncStorage)
 ├── tsconfig.json                    # Cấu hình TypeScript
+├── public/
+│   ├── index.html                   # PWA Shell + Auto Zalo-to-Safari/Chrome Redirect
+│   ├── verify/index.html            # Biên lai xác thực QR đa thiết bị & nút Đánh giá CSVC
+│   ├── icons/                       # Bộ icon thương hiệu VKU Room Booking (192px, 512px, 180px)
+│   └── sw.js                        # Service Worker v15 hỗ trợ Offline & PWA Standalone
 ├── src/
 │   ├── types/
 │   │   └── booking.ts               # Định nghĩa kiểu dữ liệu (Room, Booking, TimeSlot, ConflictResolution...)
@@ -77,22 +82,29 @@ Tuan_05_06_MiniProject2_VKU_RoomBooking/
 │   ├── store/
 │   │   └── useBookingStore.ts       # Zustand store quản lý state, bộ lọc, xung đột, lưu trữ AsyncStorage
 │   ├── services/
+│   │   ├── authService.ts           # Đăng nhập Google OAuth 2.0 (@vku.udn.vn) & băm mật khẩu SHA-256 + Salt
+│   │   ├── googleOAuthPopupService.ts # Cổng Google Identity Services & tự động thoát Zalo WebView
+│   │   ├── cloudCheckInSyncService.ts # Đồng bộ Check-in QR đa thiết bị thời gian thực (<0.5s qua ntfy.sh SSE)
+│   │   ├── qrVerificationLink.ts    # Tạo và giải mã đường dẫn xác thực QR liên thiết bị
+│   │   ├── fieldSurveyLinkService.ts # Liên kết truyền dữ liệu phòng & SV sang VKU Field Survey (Mini-Project 1)
 │   │   └── notificationService.ts   # Quản lý thông báo nhắc nhở 15 phút, cảnh báo xung đột, thông báo waitlist
 │   ├── navigation/
 │   │   ├── types.ts                 # Type định tuyến cho Stack và Tab Navigator
 │   │   └── AppNavigator.tsx         # Bottom Tab (Browse, MyBookings, Profile) + NativeStack
 │   ├── components/
+│   │   ├── AuthModal.tsx            # Modal Đăng nhập Google VKU (@vku.udn.vn) & Đăng ký tài khoản
 │   │   ├── NotificationToast.tsx    # Animated toast hiển thị thông báo đẩy nổi
 │   │   ├── RoomCard.tsx             # Thẻ phòng học tối ưu React.memo 60 FPS
 │   │   ├── FilterBar.tsx            # Thanh tìm kiếm + chip toà nhà + lọc trang thiết bị/sức chứa
 │   │   ├── DateSelector.tsx         # Thanh chọn lịch 7 ngày liên tiếp từ hôm nay
 │   │   ├── TimeSlotGrid.tsx         # Lưới ca học 2 tiếng VKU với khoá thị giác slot đã kín
 │   │   ├── ConflictResolutionModal.tsx # Modal giải quyết xung đột thông minh
-│   │   └── QRCodeModal.tsx          # Modal mã QR Pass xác thực
+│   │   └── QRCodeModal.tsx          # Modal mã QR Pass xác thực đa thiết bị
 │   └── screens/
 │       ├── BrowseRoomsScreen.tsx    # Màn hình tra cứu & tìm kiếm phòng học (FlatList 60 FPS)
 │       ├── RoomDetailsScreen.tsx    # Màn hình chi tiết phòng, chọn ngày, chọn ca, xác nhận đặt
-│       ├── BookingConfirmationPassScreen.tsx # Vé điện tử sinh viên VKU & mã QR Check-in
+│       ├── BookingConfirmationPassScreen.tsx # Vé điện tử sinh viên VKU & mã QR Check-in thời gian thực
+│       ├── QRScannerScreen.tsx      # Màn hình quét QR bằng Camera thật + tải ảnh QR từ thư viện (jsQR)
 │       ├── MyBookingsScreen.tsx     # Danh sách phòng đã đặt (Sắp tới, Đã vào, Đã huỷ, Waitlist)
 │       └── ProfileScreen.tsx        # Hồ sơ sinh viên, thống kê hoạt động, nội quy VKU
 ```
@@ -104,19 +116,22 @@ Tuan_05_06_MiniProject2_VKU_RoomBooking/
 | STT | Tính năng yêu cầu | Trạng thái | Mô tả thực hiện |
 |:---:|:---|:---:|:---|
 | 1 | **Danh sách phòng học 60 FPS** | ✅ Hoàn thành | Dùng `FlatList` với `React.memo(RoomCard)`, hiển thị toà nhà, tầng, loại phòng, sức chứa, thiết bị. |
-| 2 | **Bộ lọc đa tiêu chí** | ✅ Hoàn thành | Lọc tức thì theo từ khoá tên/mã phòng, chip toà nhà (Khu A, B, C, V, Thư viện), sức chứa tối thiểu và trang thiết bị. |
-| 3 | **Chọn ngày linh hoạt (7 ngày)** | ✅ Hoàn thành | `DateSelector` cuộn ngang 7 ngày tính từ ngày hiện tại, đánh dấu ca "Hôm nay". |
-| 4 | **Lưới ca học chuẩn VKU (2 tiếng)** | ✅ Hoàn thành | 5 khung giờ: 07:30–09:30, 09:30–11:30, 13:00–15:00, 15:00–17:00, 17:30–19:30. |
-| 5 | **Khoá thị giác slot đã đặt** | ✅ Hoàn thành | Slot đã có người đặt hiển thị viền đỏ, badge "Đã kín", bấm vào sẽ kích hoạt giải pháp thay thế. |
-| 6 | **Xử lý xung đột First-Committed** | ✅ Hoàn thành | `checkSlotConflict()` kiểm tra xung đột nguyên tử trong Zustand store, ngăn chặn trùng phòng và trùng lịch cá nhân. |
-| 7 | **Gợi ý phòng tương đương thông minh** | ✅ Hoàn thành | Tìm phòng cùng toà nhà hoặc sức chứa tương đương đang trống ở ca đó. |
-| 8 | **Gợi ý ca học thay thế** | ✅ Hoàn thành | Tìm các khung giờ còn trống khác trong ngày của chính phòng đó. |
-| 9 | **Hàng đợi ưu tiên (Waitlist)** | ✅ Hoàn thành | Cho phép người dùng đăng ký nhận thông báo đẩy ngay khi có người huỷ lịch. |
-| 10 | **Thẻ mượn phòng số (Digital Pass)** | ✅ Hoàn thành | Hiển thị thông tin sinh viên, toà nhà, ca học, mã định danh thẻ và ma trận mã QR. |
-| 11 | **Check-in xác thực tại cửa** | ✅ Hoàn thành | Nút mô phỏng quét QR xác thực vào phòng, cập nhật trạng thái `CHECKED_IN`. |
-| 12 | **Quản lý lịch sử đặt phòng** | ✅ Hoàn thành | Tab "Lịch của tôi" phân loại: Sắp tới, Đã vào phòng, Đã huỷ; hỗ trợ huỷ phòng giải phóng tài nguyên. |
-| 13 | **Thông báo tự động 15 phút** | ✅ Hoàn thành | `notificationService` tự động hẹn giờ nhắc nhở trước khi ca học diễn ra 15 phút. |
-| 14 | **Lưu trữ bền vững (Persistence)** | ✅ Hoàn thành | Tích hợp Zustand với `AsyncStorage`, dữ liệu không bị mất khi reload hoặc tắt ứng dụng. |
+| 2 | **Đăng nhập Google OAuth 2.0 (`@vku.udn.vn`)** | ✅ Hoàn thành | Xác thực chính thức qua Google Identity Services, giới hạn email `@vku.udn.vn` và băm mật khẩu `SHA-256 + Salt`. |
+| 3 | **Tự động chuyển Zalo sang Safari/Chrome** | ✅ Hoàn thành | Phát hiện WebView Zalo/Messenger và tự động mở Safari (`x-safari-https://`) trên iOS hoặc Chrome (`intent://`) trên Android. |
+| 4 | **Bộ lọc đa tiêu chí** | ✅ Hoàn thành | Lọc tức thì theo từ khoá tên/mã phòng, chip toà nhà (Khu A, B, C, V, Thư viện), sức chứa tối thiểu và trang thiết bị. |
+| 5 | **Chọn ngày linh hoạt (7 ngày)** | ✅ Hoàn thành | `DateSelector` cuộn ngang 7 ngày tính từ ngày hiện tại, đánh dấu ca "Hôm nay". |
+| 6 | **Lưới ca học chuẩn VKU (2 tiếng)** | ✅ Hoàn thành | 5 khung giờ: 07:30–09:30, 09:30–11:30, 13:00–15:00, 15:00–17:00, 17:30–19:30. |
+| 7 | **Khoá thị giác slot đã đặt** | ✅ Hoàn thành | Slot đã có người đặt hiển thị viền đỏ, badge "Đã kín", bấm vào sẽ kích hoạt giải pháp thay thế. |
+| 8 | **Xử lý xung đột First-Committed** | ✅ Hoàn thành | `checkSlotConflict()` kiểm tra xung đột nguyên tử trong Zustand store, ngăn chặn trùng phòng và trùng lịch cá nhân. |
+| 9 | **Gợi ý phòng tương đương thông minh** | ✅ Hoàn thành | Tìm phòng cùng toà nhà hoặc sức chứa tương đương đang trống ở ca đó. |
+| 10 | **Gợi ý ca học thay thế** | ✅ Hoàn thành | Tìm các khung giờ còn trống khác trong ngày của chính phòng đó. |
+| 11 | **Hàng đợi ưu tiên (Waitlist)** | ✅ Hoàn thành | Cho phép người dùng đăng ký nhận thông báo đẩy ngay khi có người huỷ lịch. |
+| 12 | **Thẻ mượn phòng số (Digital Pass)** | ✅ Hoàn thành | Hiển thị thông tin sinh viên, toà nhà, ca học, mã định danh thẻ và ma trận mã QR URL xác thực. |
+| 13 | **Quét QR thật & Đồng bộ đám mây `<0.5s`** | ✅ Hoàn thành | Quét bằng Camera ĐT / Zalo mở `/verify/index.html` và đồng bộ trạng thái `CHECKED_IN` tức thì lên màn hình PC/ĐT qua `ntfy.sh`. |
+| 14 | **Liên thông Đánh giá CSVC (Mini-Project 1)** | ✅ Hoàn thành | Nút **`📊 Đánh Giá CSVC (VKU Field Survey)`** truyền tự động mã phòng, tòa nhà, tầng, tên SV, MSSV sang ứng dụng khảo sát. |
+| 15 | **Quản lý lịch sử đặt phòng** | ✅ Hoàn thành | Tab "Lịch của tôi" phân loại: Sắp tới, Đã vào phòng, Đã huỷ; hỗ trợ huỷ phòng giải phóng tài nguyên. |
+| 16 | **Thông báo tự động 15 phút** | ✅ Hoàn thành | `notificationService` tự động hẹn giờ nhắc nhở trước khi ca học diễn ra 15 phút. |
+| 17 | **Lưu trữ bền vững (Persistence)** | ✅ Hoàn thành | Tích hợp Zustand với `AsyncStorage`, dữ liệu không bị mất khi reload hoặc tắt ứng dụng. |
 
 ---
 
@@ -147,9 +162,10 @@ Dùng ứng dụng **Expo Go** (trên iOS hoặc Android) quét mã QR hiển th
 ---
 
 ## 🌐 7. TRIỂN KHAI LIVE DEMO & NỘP BÀI
-- **Live Demo Link (Cloudflare Pages):** [https://vku-room-booking-17t.pages.dev/](https://vku-room-booking-17t.pages.dev/)
+- **Live Demo Link (VKU Room Booking - Mini-Project 2):** [https://vku-room-booking-17t.pages.dev/](https://vku-room-booking-17t.pages.dev/)
+- **Liên kết Hệ sinh thái (VKU Field Survey - Mini-Project 1):** [https://vku-field-survey-28x.pages.dev/](https://vku-field-survey-28x.pages.dev/)
 - **Mã nguồn GitHub:** [https://github.com/thuong614oh65/vku-room-booking-expo](https://github.com/thuong614oh65/vku-room-booking-expo)
-- **Báo cáo PDF:** Đính kèm tệp `BAO_CAO_KY_THUAT_REPORT.md` (xuất bản PDF theo mẫu chuẩn VKU 2-4 trang)
+- **Báo cáo Kỹ thuật (Markdown & PDF):** Đính kèm tệp `BAO_CAO_KY_THUAT_REPORT.md`, `BAO_CAO_KY_THUAT_REPORT.pdf`, `Mini-Project-2-Report-Template (2).md` và `Mini-Project-2-Report-Template (2).pdf`.
 
 ---
-*Bản quyền © 2026 Nguyễn Thị Thương (23IT.B219) - Trường ĐH CNTT&TT Việt - Hàn (VKU).*
+*Bản quyền © 2026 Nguyễn Thị Thương (23IT.B219 - 23SE4) - Trường ĐH CNTT&TT Việt - Hàn (VKU).*

@@ -19,36 +19,40 @@ function mdToHtml(md) {
     // Inline code
     .replace(/`([^`]+)`/gim, '<code>$1</code>');
 
-  // Table and pre/code parser
   const lines = html.split('\n');
   let inTable = false;
-  let inPre = false;
+  let inCodeBlock = false;
   let tableHtml = '';
-  let preHtml = '';
   const resultLines = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const rawLine = lines[i];
+    const line = rawLine.trim();
 
     if (line.startsWith('```')) {
-      if (inPre) {
-        inPre = false;
-        resultLines.push('<pre><code>' + preHtml + '</code></pre>');
-        preHtml = '';
+      if (inTable) {
+        inTable = false;
+        tableHtml += '</tbody></table>';
+        resultLines.push(tableHtml);
+      }
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        resultLines.push('<pre><code>');
       } else {
-        inPre = true;
+        inCodeBlock = false;
+        resultLines.push('</code></pre>');
       }
       continue;
     }
 
-    if (inPre) {
-      preHtml += (preHtml ? '\n' : '') + line;
+    if (inCodeBlock) {
+      resultLines.push(rawLine);
       continue;
     }
 
     if (line.startsWith('|') && line.endsWith('|')) {
       if (line.includes('---')) {
-        continue; // delimiter row
+        continue;
       }
       const cells = line.slice(1, -1).split('|').map(c => c.trim());
       if (!inTable) {
@@ -63,18 +67,13 @@ function mdToHtml(md) {
         tableHtml += '</tbody></table>';
         resultLines.push(tableHtml);
       }
-      if (line.startsWith('* ')) {
-        resultLines.push(`<li>${line.slice(2)}</li>`);
-      } else if (/^\d+\.\s/.test(line)) {
-        resultLines.push(`<li>${line.replace(/^\d+\.\s/, '')}</li>`);
-      } else if (line.length > 0 && !line.startsWith('<h') && !line.startsWith('<hr')) {
+      if (line.length > 0 && !line.startsWith('<h') && !line.startsWith('<hr')) {
         resultLines.push(`<p>${line}</p>`);
       } else {
         resultLines.push(line);
       }
     }
   }
-
   if (inTable) {
     resultLines.push(tableHtml + '</tbody></table>');
   }
@@ -82,8 +81,8 @@ function mdToHtml(md) {
   return resultLines.join('\n');
 }
 
-function renderFile(mdFilename, pdfFilename) {
-  const mdPath = path.join(__dirname, mdFilename);
+function renderMarkdownFileToPdf(mdFileName, pdfFileName, title) {
+  const mdPath = path.join(__dirname, mdFileName);
   if (!fs.existsSync(mdPath)) return;
   const mdContent = fs.readFileSync(mdPath, 'utf-8');
   const bodyContent = mdToHtml(mdContent);
@@ -92,12 +91,9 @@ function renderFile(mdFilename, pdfFilename) {
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>${pdfFilename}</title>
+  <title>${title}</title>
   <style>
-    @page {
-      size: A4;
-      margin: 14mm 16mm;
-    }
+    @page { size: A4; margin: 14mm 16mm; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       color: #0f172a;
@@ -106,104 +102,20 @@ function renderFile(mdFilename, pdfFilename) {
       margin: 0;
       padding: 0;
     }
-    h1 {
-      font-size: 18px;
-      color: #0284c7;
-      border-bottom: 2px solid #0284c7;
-      padding-bottom: 4px;
-      margin-top: 0;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-    }
-    h2 {
-      font-size: 14px;
-      color: #0369a1;
-      border-bottom: 1px solid #cbd5e1;
-      padding-bottom: 3px;
-      margin-top: 14px;
-      margin-bottom: 6px;
-      page-break-after: avoid;
-    }
-    h3 {
-      font-size: 13px;
-      color: #1e293b;
-      margin-top: 10px;
-      margin-bottom: 4px;
-      page-break-after: avoid;
-    }
-    h4 {
-      font-size: 12px;
-      color: #0284c7;
-      margin: 8px 0 3px 0;
-    }
-    p {
-      margin: 4px 0;
-    }
-    li {
-      margin: 2px 0;
-      margin-left: 18px;
-    }
-    hr {
-      border: none;
-      border-top: 1px solid #e2e8f0;
-      margin: 10px 0;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 8px 0;
-      font-size: 11px;
-    }
-    th {
-      background: #f1f5f9;
-      color: #0f172a;
-      font-weight: 700;
-      border: 1px solid #cbd5e1;
-      padding: 5px 8px;
-      text-align: left;
-    }
-    td {
-      border: 1px solid #cbd5e1;
-      padding: 4px 8px;
-    }
-    tr {
-      page-break-inside: avoid;
-    }
-    tr:nth-child(even) {
-      background: #f8fafc;
-    }
-    code {
-      background: #f1f5f9;
-      color: #0369a1;
-      padding: 1px 4px;
-      border-radius: 4px;
-      font-family: Consolas, monospace;
-      font-size: 11px;
-    }
-    pre {
-      background: #0f172a;
-      color: #f8fafc;
-      padding: 8px 12px;
-      border-radius: 6px;
-      overflow-x: auto;
-      font-size: 10.5px;
-      line-height: 1.4;
-      page-break-inside: avoid;
-      font-family: Consolas, monospace;
-    }
-    pre code {
-      background: none;
-      color: inherit;
-      padding: 0;
-    }
-    a {
-      color: #0284c7;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    strong {
-      color: #0f172a;
-    }
+    h1 { font-size: 19px; color: #0284c7; border-bottom: 2px solid #0284c7; padding-bottom: 5px; margin-top: 0; }
+    h2 { font-size: 15px; color: #0369a1; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 14px; }
+    h3 { font-size: 13.5px; color: #1e293b; margin-top: 10px; }
+    p { margin: 5px 0; }
+    hr { border: none; border-top: 1px solid #e2e8f0; margin: 12px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 11.5px; }
+    th { background: #f1f5f9; color: #0f172a; font-weight: 700; border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+    td { border: 1px solid #cbd5e1; padding: 5px 8px; }
+    tr:nth-child(even) { background: #f8fafc; }
+    code { background: #f1f5f9; color: #0369a1; padding: 1px 4px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+    pre { background: #0f172a; color: #f8fafc; padding: 10px 12px; border-radius: 8px; overflow-x: auto; font-size: 11px; line-height: 1.4; }
+    pre code { background: none; color: inherit; padding: 0; }
+    a { color: #0284c7; text-decoration: none; font-weight: 600; }
+    strong { color: #0f172a; }
   </style>
 </head>
 <body>
@@ -211,20 +123,20 @@ function renderFile(mdFilename, pdfFilename) {
 </body>
 </html>`;
 
-  const tempHtml = path.join(__dirname, `temp_${Date.now()}.html`);
+  const tempHtml = path.join(__dirname, 'temp_report_render.html');
   fs.writeFileSync(tempHtml, htmlTemplate, 'utf-8');
 
-  const pdfOut = path.join(__dirname, pdfFilename);
+  const pdfOut = path.join(__dirname, pdfFileName);
   const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 
-  console.log(`Rendering ${pdfFilename} via Microsoft Edge...`);
+  console.log(`Rendering ${pdfFileName} via Microsoft Edge...`);
   execSync(`"${edgePath}" --headless --disable-gpu --print-to-pdf="${pdfOut}" --no-pdf-header-footer "${tempHtml}"`);
 
   if (fs.existsSync(tempHtml)) {
     fs.unlinkSync(tempHtml);
   }
-
-  console.log(`✓ PDF Generated Successfully: ${pdfOut}`);
+  console.log(`✓ Generated: ${pdfOut}`);
 }
 
-renderFile('Mini-Project-2-Report-Template (2).md', 'Mini-Project-2-Report-Template.pdf');
+renderMarkdownFileToPdf('BAO_CAO_KY_THUAT_REPORT.md', 'BAO_CAO_KY_THUAT_REPORT.pdf', 'Báo Cáo Kỹ Thuật - VKU Room Booking');
+renderMarkdownFileToPdf('Mini-Project-2-Report-Template (2).md', 'Mini-Project-2-Report-Template (2).pdf', 'Mini-Project 2 Technical Report - VKU Room Booking');
