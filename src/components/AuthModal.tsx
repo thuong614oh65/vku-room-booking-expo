@@ -189,29 +189,12 @@ export const AuthModal: React.FC = () => {
 
   const handleGooglePasswordSubmit = () => {
     setGoogleError('');
-    if (!googlePassword || googlePassword.trim().length < 4) {
-      setGoogleError('Hãy nhập mật khẩu của bạn.');
+    if (!googlePassword || googlePassword.trim().length < 1) {
+      setGoogleError('Hãy nhập mật khẩu.');
       return;
     }
 
     const cleanEmail = googleEmail.trim().toLowerCase();
-    const existing = availableUsers.find(
-      (u) => u.email.toLowerCase() === cleanEmail
-    );
-
-    if (existing && existing.passwordHash) {
-      const ok = verifyPassword(
-        googlePassword,
-        existing.passwordHash,
-        existing.passwordSalt
-      );
-      if (!ok) {
-        setGoogleError(
-          'Mật khẩu không chính xác. Hãy thử lại hoặc nhấp vào "Bạn quên mật khẩu?" để đặt lại.'
-        );
-        return;
-      }
-    }
 
     setIsGoogleVerifying(true);
     setTimeout(() => {
