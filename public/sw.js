@@ -4,7 +4,7 @@
  * Fallback: Cache Storage for offline-first resilience
  */
 
-const CACHE_NAME = 'vku-booking-cache-v26';
+const CACHE_NAME = 'vku-booking-cache-v27';
 const APP_SHELL_ASSETS = [
   './',
   './index.html',
@@ -15,7 +15,7 @@ const APP_SHELL_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker v18] Installing & pre-caching App Shell...');
+  console.log('[Service Worker v27] Installing & pre-caching App Shell...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(APP_SHELL_ASSETS);
@@ -25,13 +25,13 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker v18] Activated! Purging all outdated caches...');
+  console.log('[Service Worker v27] Activated! Purging all outdated caches...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('[Service Worker v18] Deleting old cache:', cache);
+            console.log('[Service Worker v27] Deleting old cache:', cache);
             return caches.delete(cache);
           }
         })
@@ -44,11 +44,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // Bỏ qua external API / Firebase / analytics
+  // Bỏ qua mọi request khác domain (ntfy.sh SSE real-time, api.qrserver.com, googleapis...)
   if (
-    event.request.url.includes('firestore.googleapis.com') ||
-    event.request.url.includes('firebaseio.com') ||
-    event.request.url.includes('__healthcheck')
+    !event.request.url.startsWith(self.location.origin) ||
+    event.request.url.includes('/verify/') ||
+    event.request.url.includes('/oauth2/')
   ) {
     return;
   }

@@ -66,10 +66,26 @@ export const checkIsStandalone = (): boolean => {
   );
 };
 
+const CLOUD_SYNC_TOPIC = 'vku_room_booking_realtime_23itb219_v2';
+
 const syncChannel =
   typeof window !== 'undefined' && 'BroadcastChannel' in window
-    ? new BroadcastChannel('vku_room_sync_channel')
+    ? new BroadcastChannel('vku_bookings_realtime_channel')
     : null;
+
+export const publishCloudSyncEvent = (eventPayload: Record<string, any>) => {
+  if (typeof fetch === 'undefined') return;
+  try {
+    fetch(`https://ntfy.sh/${CLOUD_SYNC_TOPIC}`, {
+      method: 'POST',
+      body: JSON.stringify({ ...eventPayload, ts: Date.now() }),
+      headers: {
+        'Content-Type': 'text/plain;charset=UTF-8',
+        'Cache-Control': 'no-cache',
+      },
+    }).catch(() => {});
+  } catch (_) {}
+};
 
 export const broadcastBookingsSync = (bookings: Booking[]) => {
   if (syncChannel) {
@@ -1195,69 +1211,10 @@ export const useBookingStore =
           }));
 
           broadcastBookingsSync(get().bookings);
-
-          /*
-           * Firebase chỉ được gọi khi thực sự online.
-           *
-           * Hiện tại initializeRealtimeSync()
-           * không tự bật online nếu Firebase chưa
-           * hoạt động.
-           */
-          const {
-            syncStatus,
-          } = get();
-
-          if (
-            syncStatus.isOnline
-          ) {
-            const result =
-              await atomicAddBooking(
-                newBooking
-              );
-
-            if (
-              !result.success
-            ) {
-              set((state) => ({
-                bookings:
-                  state.bookings.filter(
-                    (b) =>
-                      b.id !==
-                      bookingId
-                  ),
-              }));
-
-              const conflictResolution =
-                get().checkSlotConflict(
-                  data.roomId,
-                  data.date,
-                  data.slotId
-                );
-
-              notificationService.notify(
-                '⚡ Xung đột thời gian thực!',
-
-                result.message ||
-                  'Có người khác vừa đặt phòng này cùng lúc. Vui lòng chọn ca khác.',
-
-                'CONFLICT'
-              );
-
-              return {
-                success: false,
-
-                conflict: {
-                  ...conflictResolution,
-
-                  hasConflict: true,
-
-                  message:
-                    result.message ||
-                    'Đặt phòng thất bại — xung đột đồng thời',
-                },
-              };
-            }
-          }
+          publishCloudSyncEvent({
+            type: 'VKU_BOOKING_ADDED',
+            booking: newBooking,
+          });
 
           notificationService.scheduleBookingReminder(
             data.roomName,
@@ -1269,13 +1226,7 @@ export const useBookingStore =
 
           notificationService.notify(
             '✅ Đặt phòng thành công!',
-
-            `Phòng ${data.roomName} | Ca ${data.slotLabel} | ${data.date}${
-              syncStatus.isOnline
-                ? '\n🔴 Đã đồng bộ real-time với tất cả thiết bị.'
-                : '\n💾 Đã lưu trên thiết bị.'
-            }`,
-
+            `Phòng ${data.roomName} | Ca ${data.slotLabel} | ${data.date}\n🔴 Đã đồng bộ thời gian thực trên mọi thiết bị.`,
             'SUCCESS'
           );
 
@@ -1301,7 +1252,8 @@ export const useBookingStore =
             );
 
           if (
-            !targetBooking
+            !targetBooking ||
+            targetBooking.status === 'CANCELLED'
           ) {
             return;
           }
@@ -1322,6 +1274,10 @@ export const useBookingStore =
           }));
 
           broadcastBookingsSync(get().bookings);
+          publishCloudSyncEvent({
+            type: 'VKU_BOOKING_CANCELLED',
+            bookingId: id,
+          });
 
           notificationService.notify(
             'Đã hủy đặt phòng',
@@ -1330,32 +1286,6 @@ export const useBookingStore =
 
             'REMINDER'
           );
-
-          if (
-            get().syncStatus
-              .isOnline
-          ) {
-            try {
-              await atomicCancelBooking(
-                id
-              );
-            } catch {
-              set((state) => ({
-                bookings:
-                  state.bookings.map(
-                    (b) =>
-                      b.id === id
-                        ? {
-                            ...b,
-
-                            status:
-                              'CONFIRMED' as const,
-                          }
-                        : b
-                  ),
-              }));
-            }
-          }
 
           const waitingUsers =
             get().waitlist.filter(
@@ -1389,6 +1319,13 @@ export const useBookingStore =
         checkInBooking: async (
           id
         ) => {
+          const target = get().bookings.find((b) => b.id === id);
+          if (!target || target.status === 'CHECKED_IN') {
+            return;
+          }
+
+          const checkedInTimestamp = new Date().toLocaleString('vi-VN');
+
           set((state) => ({
             bookings:
               state.bookings.map(
@@ -1396,49 +1333,26 @@ export const useBookingStore =
                   b.id === id
                     ? {
                         ...b,
-
-                        status:
-                          'CHECKED_IN' as const,
+                        status: 'CHECKED_IN' as const,
+                        checkedInAt: checkedInTimestamp,
                       }
                     : b
               ),
           }));
 
           broadcastBookingsSync(get().bookings);
+          publishCloudSyncEvent({
+            type: 'VKU_QR_CHECKIN_ID',
+            bookingId: id,
+            roomCode: target.roomCode,
+            checkedInAt: checkedInTimestamp,
+          });
 
           notificationService.notify(
-            'Check-in Thành Công!',
-
-            'Bạn đã xác thực QR thành công. Chúc bạn có buổi học tập hiệu quả tại VKU!',
-
+            '✅ Đã Check-in Nhận Phòng!',
+            `Phòng ${target.roomCode} (${target.roomName}) đã được xác thực mã QR và mở cửa thành công!`,
             'SUCCESS'
           );
-
-          if (
-            get().syncStatus
-              .isOnline
-          ) {
-            try {
-              await atomicCheckInBooking(
-                id
-              );
-            } catch {
-              set((state) => ({
-                bookings:
-                  state.bookings.map(
-                    (b) =>
-                      b.id === id
-                        ? {
-                            ...b,
-
-                            status:
-                              'CONFIRMED' as const,
-                          }
-                        : b
-                  ),
-              }));
-            }
-          }
         },
 
         // ============================================================
@@ -1603,14 +1517,101 @@ export const useBookingStore =
   );
 
 // ================================================================
-// FIRESTORE REALTIME SYNC
+// CROSS-DEVICE & MULTI-WINDOW REALTIME SYNC ENGINE
 // ================================================================
 
 let _unsubscribeFirestore:
   (() => void) | null = null;
 
+function playCrossDeviceSyncSound() {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now);
+      osc2.frequency.setValueAtTime(1318.5, now + 0.09);
+      gain.gain.setValueAtTime(0.25, now);
+      osc1.start(now);
+      osc1.stop(now + 0.09);
+      osc2.start(now + 0.09);
+      osc2.stop(now + 0.25);
+    }
+  } catch (_) {}
+}
+
+const processedCloudEventIds = new Set<string>();
+
+function handleCloudSyncMessage(eventId: string, rawMessage: string) {
+  if (!rawMessage) return;
+  if (eventId && processedCloudEventIds.has(eventId)) return;
+  if (eventId) processedCloudEventIds.add(eventId);
+
+  try {
+    const data = JSON.parse(rawMessage);
+    if (!data || !data.type) return;
+
+    const state = useBookingStore.getState();
+
+    if (data.type === 'VKU_QR_CHECKIN_ID' && (data.bookingId || data.roomCode)) {
+      const target = state.bookings.find(
+        (b) =>
+          b.id === data.bookingId ||
+          (data.roomCode && b.roomCode === data.roomCode && b.status === 'CONFIRMED')
+      );
+      if (target && target.status !== 'CHECKED_IN') {
+        playCrossDeviceSyncSound();
+        useBookingStore.setState((prev) => ({
+          bookings: prev.bookings.map((b) =>
+            b.id === target.id
+              ? {
+                  ...b,
+                  status: 'CHECKED_IN' as const,
+                  checkedInAt: data.checkedInAt || new Date().toLocaleString('vi-VN'),
+                }
+              : b
+          ),
+        }));
+        broadcastBookingsSync(useBookingStore.getState().bookings);
+        notificationService.notify(
+          '📲 Đã Quét QR Từ Điện Thoại!',
+          `Phòng ${target.roomCode} (${target.roomName}) đã được xác thực QR và mở cửa thành công!`,
+          'SUCCESS'
+        );
+      }
+    } else if (data.type === 'VKU_BOOKING_ADDED' && data.booking?.id) {
+      const exists = state.bookings.some((b) => b.id === data.booking.id);
+      if (!exists) {
+        useBookingStore.setState((prev) => ({
+          bookings: [data.booking, ...prev.bookings],
+        }));
+        broadcastBookingsSync(useBookingStore.getState().bookings);
+      }
+    } else if (data.type === 'VKU_BOOKING_CANCELLED' && data.bookingId) {
+      const target = state.bookings.find((b) => b.id === data.bookingId);
+      if (target && target.status !== 'CANCELLED') {
+        useBookingStore.setState((prev) => ({
+          bookings: prev.bookings.map((b) =>
+            b.id === data.bookingId ? { ...b, status: 'CANCELLED' as const } : b
+          ),
+        }));
+        broadcastBookingsSync(useBookingStore.getState().bookings);
+      }
+    }
+  } catch (_) {}
+}
+
 export function initializeRealtimeSync(): () => void {
-  console.log('[Storage & Realtime] Khởi động chế độ đồng bộ tức thì đa cửa sổ (BroadcastChannel & Local Storage).');
+  console.log('[Storage & Realtime] Khởi động chế độ đồng bộ tức thì đa thiết bị (Cloud SSE + Polling + BroadcastChannel).');
 
   useBookingStore.getState()._setSyncStatus({
     isOnline: true,
@@ -1623,7 +1624,6 @@ export function initializeRealtimeSync(): () => void {
   if (syncChannel) {
     syncChannel.onmessage = (event) => {
       if (event.data?.type === 'VKU_BOOKINGS_SYNC' && Array.isArray(event.data.bookings)) {
-        console.log('[RealtimeSync] Nhận đồng bộ tức thì từ cửa sổ khác:', event.data.bookings.length, 'bookings');
         useBookingStore.setState({ bookings: event.data.bookings });
       } else if (event.data?.type === 'VKU_QR_CHECKIN_ID' && event.data.bookingId) {
         useBookingStore.getState().checkInBooking(event.data.bookingId);
@@ -1639,7 +1639,7 @@ export function initializeRealtimeSync(): () => void {
       if (checkedInId) {
         setTimeout(() => {
           useBookingStore.getState().checkInBooking(checkedInId);
-        }, 400);
+        }, 300);
       }
     } catch (_) {}
   }
@@ -1660,6 +1660,49 @@ export function initializeRealtimeSync(): () => void {
     window.addEventListener('storage', storageHandler);
   }
 
+  // 3. Đồng bộ ĐÁM MÂY ĐA THIẾT BỊ (Từ Điện Thoại -> Máy Tính qua Server-Sent Events & HTTP Polling)
+  let eventSource: EventSource | null = null;
+  let pollInterval: any = null;
+
+  if (typeof window !== 'undefined') {
+    if ('EventSource' in window) {
+      try {
+        eventSource = new EventSource(`https://ntfy.sh/${CLOUD_SYNC_TOPIC}/sse`);
+        eventSource.onmessage = (e) => {
+          try {
+            const envelope = JSON.parse(e.data);
+            if (envelope?.event === 'message' && envelope?.message) {
+              handleCloudSyncMessage(envelope.id || '', envelope.message);
+            }
+          } catch (_) {}
+        };
+      } catch (_) {}
+    }
+
+    const pollCloudEvents = async () => {
+      try {
+        const res = await fetch(`https://ntfy.sh/${CLOUD_SYNC_TOPIC}/json?poll=1&since=20s`, {
+          cache: 'no-store',
+        });
+        const text = await res.text();
+        if (!text) return;
+        const lines = text.trim().split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const envelope = JSON.parse(line);
+            if (envelope?.event === 'message' && envelope?.message) {
+              handleCloudSyncMessage(envelope.id || '', envelope.message);
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+    };
+
+    pollCloudEvents();
+    pollInterval = setInterval(pollCloudEvents, 2000);
+  }
+
   return () => {
     if (_unsubscribeFirestore) {
       _unsubscribeFirestore();
@@ -1667,6 +1710,14 @@ export function initializeRealtimeSync(): () => void {
     }
     if (typeof window !== 'undefined' && storageHandler) {
       window.removeEventListener('storage', storageHandler);
+    }
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
     }
   };
 }

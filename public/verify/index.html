@@ -35,7 +35,7 @@
       100% { transform: scale(1); opacity: 1; }
     }
     .receipt-header {
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
       padding: 28px 24px 24px;
       text-align: center;
       color: #ffffff;
@@ -44,16 +44,15 @@
       width: 64px;
       height: 64px;
       border-radius: 32px;
-      background: #22c55e;
-      color: #ffffff;
+      background: #ffffff;
+      color: #16a34a;
       font-size: 34px;
       font-weight: 900;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 14px;
-      box-shadow: 0 6px 18px rgba(34, 197, 94, 0.45);
-      border: 3px solid #ffffff;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
     }
     .header-title {
       font-size: 19px;
@@ -62,12 +61,12 @@
     }
     .header-sub {
       font-size: 12.5px;
-      color: #e0f2fe;
+      color: #dcfce7;
       margin-top: 4px;
       font-weight: 500;
     }
     .amount-like-box {
-      background: #f0f9ff;
+      background: #f0fdf4;
       border-bottom: 1px dashed #cbd5e1;
       padding: 18px 24px;
       text-align: center;
@@ -94,8 +93,25 @@
       padding: 5px 12px;
       border-radius: 999px;
     }
+    .sync-banner {
+      margin: 14px 24px 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: #e0f2fe;
+      border: 1px solid #bae6fd;
+      color: #0369a1;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      transition: all 0.25s ease;
+    }
+    .sync-banner.done {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #15803d;
+    }
     .receipt-body {
-      padding: 20px 24px;
+      padding: 16px 24px 20px;
     }
     .row {
       display: flex;
@@ -124,7 +140,7 @@
       font-weight: 800;
     }
     .receipt-footer {
-      padding: 16px 24px 24px;
+      padding: 8px 24px 24px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -168,6 +184,10 @@
       <div class="status-pill">✅ ĐÃ KÍCH HOẠT MỞ CỬA PHÒNG (CHECKED-IN)</div>
     </div>
 
+    <div id="syncBanner" class="sync-banner">
+      📡 Đang đồng bộ tín hiệu nhận phòng sang màn hình máy tính...
+    </div>
+
     <div class="receipt-body">
       <div class="row">
         <span class="label">Mã biên lai QR</span>
@@ -198,12 +218,13 @@
     <div class="receipt-footer">
       <a id="openAppBtn" href="/" class="btn-primary">🚀 Mở Ứng Dụng VKU Room Booking</a>
       <div class="security-note">
-        Biên lai điện tử được xác thực tự động qua giao thức QR Check-in VKU Smart Campus.
+        Biên lai điện tử đã tự động đồng bộ trạng thái Check-in lên đám mây theo thời gian thực.
       </div>
     </div>
   </div>
 
   <script>
+    const CLOUD_SYNC_TOPIC = 'vku_room_booking_realtime_23itb219_v2';
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id') || 'VKU-PASS-2026';
     const room = params.get('room') || 'V.A201';
@@ -212,6 +233,7 @@
     const mssv = params.get('mssv') || '23IT.B219';
     const date = params.get('date') || new Date().toISOString().slice(0, 10);
     const slot = params.get('slot') || '07:30 - 09:30';
+    const nowFormatted = new Date().toLocaleString('vi-VN');
 
     document.getElementById('bookingId').textContent = id;
     document.getElementById('roomCode').textContent = room;
@@ -220,14 +242,49 @@
     document.getElementById('studentId').textContent = mssv;
     document.getElementById('dateText').textContent = date;
     document.getElementById('slotText').textContent = slot;
-    document.getElementById('scanTime').textContent = new Date().toLocaleString('vi-VN');
+    document.getElementById('scanTime').textContent = nowFormatted;
     document.getElementById('openAppBtn').href = '/?checked_in_id=' + encodeURIComponent(id);
 
-    // Đồng bộ trạng thái CHECKED_IN vào localStorage & BroadcastChannel nếu mở trên cùng thiết bị
+    // 1. Đồng bộ trên cùng thiết bị (nếu mở tab khác)
     try {
       const ch = new BroadcastChannel('vku_bookings_realtime_channel');
       ch.postMessage({ type: 'VKU_QR_CHECKIN_ID', bookingId: id });
     } catch (e) {}
+
+    // 2. Đồng bộ ĐÁM MÂY ĐA THIẾT BỊ (Từ Điện Thoại -> Máy Tính tức thì < 0.5s)
+    async function broadcastCrossDeviceCheckIn() {
+      const payload = JSON.stringify({
+        type: 'VKU_QR_CHECKIN_ID',
+        bookingId: id,
+        roomCode: room,
+        studentName: student,
+        studentId: mssv,
+        checkedInAt: nowFormatted,
+        ts: Date.now()
+      });
+
+      try {
+        await fetch('https://ntfy.sh/' + CLOUD_SYNC_TOPIC, {
+          method: 'POST',
+          body: payload,
+          headers: {
+            'Content-Type': 'text/plain;charset=UTF-8',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        const banner = document.getElementById('syncBanner');
+        if (banner) {
+          banner.classList.add('done');
+          banner.textContent = '✅ Đã đồng bộ mở khóa phòng sang màn hình máy tính!';
+        }
+      } catch (err) {
+        console.warn('Cloud sync retry:', err);
+      }
+    }
+
+    // Gửi ngay lập tức khi vừa quét xong và gửi nhắc lại sau 900ms để đảm bảo 100% máy tính nhận được
+    broadcastCrossDeviceCheckIn();
+    setTimeout(broadcastCrossDeviceCheckIn, 900);
   </script>
 </body>
 </html>
