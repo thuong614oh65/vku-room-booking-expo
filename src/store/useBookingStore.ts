@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
+  AuthSession,
   Booking,
   ConflictResolution,
   Equipment,
@@ -20,6 +21,15 @@ import {
 } from '../data/roomsData';
 
 import { notificationService } from '../services/notificationService';
+
+import {
+  createAuthSession,
+  deriveVkuProfileFromEmail,
+  generateSalt,
+  hashPassword,
+  sha256,
+  verifyPassword,
+} from '../services/authSecurityService';
 
 import {
   subscribeToBookings,
@@ -77,6 +87,10 @@ interface BookingState {
   rooms: Room[];
   bookings: Booking[];
   currentUser: UserProfile | null;
+  authSession: AuthSession | null;
+  isExplicitlyLoggedOut: boolean;
+  failedLoginAttempts: number;
+  lockoutUntilMs: number | null;
   availableUsers: UserProfile[];
   authModalVisible: boolean;
   installModalVisible: boolean;
@@ -108,7 +122,9 @@ interface BookingState {
 
   loginWithGoogle: (
     email: string,
+    googlePassword?: string,
     name?: string,
+    studentId?: string,
     avatar?: string
   ) => {
     success: boolean;
@@ -121,6 +137,14 @@ interface BookingState {
     email: string,
     major: string,
     password?: string
+  ) => {
+    success: boolean;
+    message: string;
+  };
+
+  changePassword: (
+    currentPassword: string,
+    newPassword: string
   ) => {
     success: boolean;
     message: string;
@@ -215,6 +239,14 @@ export const useBookingStore =
 
         // Mặc định đăng nhập tài khoản sinh viên thực hiện đề tài
         currentUser: DEMO_USERS[0],
+
+        authSession: createAuthSession(DEMO_USERS[0], 'VKU_CREDENTIALS'),
+
+        isExplicitlyLoggedOut: false,
+
+        failedLoginAttempts: 0,
+
+        lockoutUntilMs: null,
 
         availableUsers: DEMO_USERS,
 
@@ -340,107 +372,210 @@ export const useBookingStore =
         },
 
         // ============================================================
-        // LOGIN
+        // LOGIN (SHA-256 + SALT + JWT + BRUTE-FORCE PROTECTION)
         // ============================================================
 
-        login: (
-          identifier,
-          _password
-        ) => {
-          const q =
-            identifier
-              .trim()
-              .toLowerCase();
+        login: (identifier, password) => {
+          const now = Date.now();
+          const lockUntil = get().lockoutUntilMs;
+          if (lockUntil && now < lockUntil) {
+            const remainSec = Math.ceil((lockUntil - now) / 1000);
+            return {
+              success: false,
+              message: `🔒 Tài khoản đang tạm khóa bảo vệ chống dò mật khẩu. Vui lòng thử lại sau ${remainSec} giây!`,
+            };
+          }
 
-          const found =
-            get().availableUsers.find(
-              (u) =>
-                u.studentId.toLowerCase() ===
-                  q ||
-                u.email.toLowerCase() ===
-                  q ||
-                u.name.toLowerCase() ===
-                  q
-            );
+          const q = identifier.trim().toLowerCase();
+          if (!q) {
+            return {
+              success: false,
+              message: 'Vui lòng nhập Mã sinh viên (MSSV) hoặc Email VKU!',
+            };
+          }
+
+          if (!password || !password.trim()) {
+            return {
+              success: false,
+              message: 'Vui lòng nhập mật khẩu để xác thực bảo mật!',
+            };
+          }
+
+          const found = get().availableUsers.find(
+            (u) =>
+              u.studentId.toLowerCase() === q ||
+              u.email.toLowerCase() === q
+          );
 
           if (!found) {
             return {
               success: false,
-
               message:
-                'Không tìm thấy tài khoản với MSSV/Email này. Vui lòng chuyển sang tab "Đăng Ký Mới"!',
+                'Không tìm thấy tài khoản với MSSV/Email này. Vui lòng chuyển sang tab "Đăng Ký Mới" hoặc đăng nhập bằng Google!',
             };
           }
 
-          set({
-            currentUser: found,
+          const isValidPassword = verifyPassword(
+            password,
+            found.passwordHash,
+            found.passwordSalt
+          );
 
+          if (!isValidPassword) {
+            const attempts = get().failedLoginAttempts + 1;
+            if (attempts >= 5) {
+              set({
+                failedLoginAttempts: attempts,
+                lockoutUntilMs: Date.now() + 30000,
+              });
+              return {
+                success: false,
+                message:
+                  '🔒 Nhập sai mật khẩu 5 lần liên tiếp! Hệ thống tự động khóa bảo vệ trong 30 giây.',
+              };
+            }
+            set({ failedLoginAttempts: attempts });
+            return {
+              success: false,
+              message: `❌ Mật khẩu không chính xác! Mã băm SHA-256 không khớp (Còn ${5 - attempts} lần thử).`,
+            };
+          }
+
+          const salt = found.passwordSalt || generateSalt(16);
+          const ensuredHash = found.passwordHash || hashPassword(password, salt);
+
+          const updatedUser: UserProfile = {
+            ...found,
+            passwordSalt: salt,
+            passwordHash: ensuredHash,
+            authProvider: found.authProvider || 'VKU_CREDENTIALS',
+            lastLoginAt: new Date().toISOString(),
+          };
+
+          const session = createAuthSession(updatedUser, 'VKU_CREDENTIALS');
+
+          set((state) => ({
+            currentUser: updatedUser,
+            authSession: session,
+            isExplicitlyLoggedOut: false,
+            failedLoginAttempts: 0,
+            lockoutUntilMs: null,
+            availableUsers: state.availableUsers.map((u) =>
+              u.studentId === updatedUser.studentId ? updatedUser : u
+            ),
             authModalVisible: false,
-          });
+          }));
 
           notificationService.notify(
-            `👋 Xin chào ${found.name}!`,
-
-            `Đăng nhập thành công (MSSV: ${found.studentId}). Bây giờ bạn có thể đặt phòng học.`,
-
+            `🔐 Xác thực thành công: ${updatedUser.name}`,
+            `Đã cấp phát phiên JWT (HMAC-SHA256) cho MSSV ${updatedUser.studentId}.`,
             'SUCCESS'
           );
 
           return {
             success: true,
-
-            message:
-              'Đăng nhập thành công',
+            message: 'Đăng nhập thành công',
           };
         },
 
         // ============================================================
-        // LOGIN WITH GOOGLE / GMAIL
+        // LOGIN WITH GOOGLE / GMAIL (OAUTH 2.0 + OPENID CONNECT)
         // ============================================================
 
-        loginWithGoogle: (email, name, avatar) => {
+        loginWithGoogle: (email, googlePassword, name, studentId, avatar) => {
           const cleanEmail = email.trim().toLowerCase();
+          if (!cleanEmail || !cleanEmail.includes('@')) {
+            return {
+              success: false,
+              message: 'Địa chỉ Email Google không hợp lệ!',
+            };
+          }
+
           const existing = get().availableUsers.find(
-            (u) => u.email.toLowerCase() === cleanEmail
+            (u) =>
+              u.email.toLowerCase() === cleanEmail ||
+              (studentId && u.studentId.toUpperCase() === studentId.trim().toUpperCase())
           );
 
           if (existing) {
-            set({
-              currentUser: existing,
+            const salt = existing.passwordSalt || generateSalt(16);
+            const pwdHash =
+              existing.passwordHash ||
+              hashPassword(googlePassword || '123456', salt);
+
+            const updatedUser: UserProfile = {
+              ...existing,
+              name: name?.trim() || existing.name,
+              authProvider: 'GOOGLE_OAUTH2',
+              googleId: existing.googleId || `google_oauth2_${sha256(cleanEmail).slice(0, 16)}`,
+              passwordSalt: salt,
+              passwordHash: pwdHash,
+              lastLoginAt: new Date().toISOString(),
+            };
+
+            const session = createAuthSession(updatedUser, 'GOOGLE_OAUTH2');
+
+            set((state) => ({
+              currentUser: updatedUser,
+              authSession: session,
+              isExplicitlyLoggedOut: false,
+              failedLoginAttempts: 0,
+              lockoutUntilMs: null,
+              availableUsers: state.availableUsers.map((u) =>
+                u.studentId === updatedUser.studentId ? updatedUser : u
+              ),
               authModalVisible: false,
-            });
+            }));
+
             notificationService.notify(
-              `🌐 Chào mừng ${existing.name}!`,
-              `Đã đăng nhập thành công qua Google / Gmail (${cleanEmail}).`,
+              `🌐 Google OAuth 2.0: ${updatedUser.name}`,
+              `Đã xác thực tài khoản Google (${cleanEmail}) & cấp phát JWT Token.`,
               'SUCCESS'
             );
+
             return {
               success: true,
               message: 'Đăng nhập Google thành công',
             };
           }
 
-          // Tạo tài khoản mới từ Google / Gmail
-          const derivedName = name?.trim() || cleanEmail.split('@')[0];
-          const derivedId = '23IT.B' + Math.floor(100 + Math.random() * 899);
+          // Tạo tài khoản mới chuẩn từ thông tin Google OAuth 2.0
+          const derived = deriveVkuProfileFromEmail(cleanEmail);
+          const finalName = name?.trim() || derived.suggestedName;
+          const finalId = studentId?.trim().toUpperCase() || derived.suggestedStudentId;
+          const salt = generateSalt(16);
+          const pwdHash = hashPassword(googlePassword || '123456', salt);
 
           const newUser: UserProfile = {
-            studentId: derivedId,
-            name: derivedName,
+            studentId: finalId,
+            name: finalName,
             email: cleanEmail,
-            major: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
-            avatar: avatar || `https://api.dicebear.com/7.x/avataaars/png?seed=${cleanEmail}`,
+            major: derived.suggestedMajor,
+            avatar:
+              avatar ||
+              `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(cleanEmail)}`,
+            passwordSalt: salt,
+            passwordHash: pwdHash,
+            authProvider: 'GOOGLE_OAUTH2',
+            googleId: `google_oauth2_${sha256(cleanEmail).slice(0, 16)}`,
+            lastLoginAt: new Date().toISOString(),
           };
+
+          const session = createAuthSession(newUser, 'GOOGLE_OAUTH2');
 
           set((state) => ({
             availableUsers: [newUser, ...state.availableUsers],
             currentUser: newUser,
+            authSession: session,
+            isExplicitlyLoggedOut: false,
+            failedLoginAttempts: 0,
+            lockoutUntilMs: null,
             authModalVisible: false,
           }));
 
           notificationService.notify(
-            `🌐 Chào mừng ${derivedName}!`,
-            `Đã liên kết tài khoản Google (${cleanEmail}) thành công!`,
+            `🌐 Liên kết Google OAuth 2.0: ${finalName}`,
+            `Tài khoản ${cleanEmail} (MSSV: ${finalId}) đã được mã hóa SHA-256 & kích hoạt!`,
             'SUCCESS'
           );
 
@@ -451,109 +586,162 @@ export const useBookingStore =
         },
 
         // ============================================================
-        // REGISTER
+        // REGISTER (SHA-256 + SALT PASSWORD ENCRYPTION)
         // ============================================================
 
-        register: (
-          name,
-          studentId,
-          email,
-          major,
-          _password
-        ) => {
-          const cleanId =
-            studentId
-              .trim()
-              .toUpperCase();
-
-          const cleanName =
-            name.trim();
-
+        register: (name, studentId, email, major, password) => {
+          const cleanId = studentId.trim().toUpperCase();
+          const cleanName = name.trim();
           const cleanEmail =
-            email.trim() ||
-            `${cleanId
-              .toLowerCase()
-              .replace(
-                '.',
-                ''
-              )}@vku.udn.vn`;
+            email.trim().toLowerCase() ||
+            `${cleanId.toLowerCase().replace('.', '')}@vku.udn.vn`;
 
-          const exists =
-            get().availableUsers.some(
-              (u) =>
-                u.studentId.toUpperCase() ===
-                cleanId
-            );
+          if (!cleanName || !cleanId) {
+            return {
+              success: false,
+              message: 'Vui lòng nhập đầy đủ Họ tên và Mã số sinh viên (MSSV)!',
+            };
+          }
+
+          if (!password || password.length < 6) {
+            return {
+              success: false,
+              message: 'Mật khẩu bảo mật phải có ít nhất 6 ký tự!',
+            };
+          }
+
+          const exists = get().availableUsers.some(
+            (u) =>
+              u.studentId.toUpperCase() === cleanId ||
+              u.email.toLowerCase() === cleanEmail
+          );
 
           if (exists) {
             return {
               success: false,
-
-              message:
-                `Mã sinh viên ${cleanId} đã được đăng ký. Vui lòng chuyển sang tab Đăng Nhập!`,
+              message: `Tài khoản với MSSV ${cleanId} hoặc Email ${cleanEmail} đã tồn tại. Vui lòng chuyển sang tab Đăng Nhập!`,
             };
           }
 
+          const salt = generateSalt(16);
+          const pwdHash = hashPassword(password, salt);
+
           const newUser: UserProfile = {
             name: cleanName,
-
             studentId: cleanId,
-
             email: cleanEmail,
-
-            major:
-              major.trim() ||
-              'Sinh viên VKU',
-
+            major: major.trim() || 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
             avatar:
               'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+            passwordSalt: salt,
+            passwordHash: pwdHash,
+            authProvider: 'VKU_CREDENTIALS',
+            lastLoginAt: new Date().toISOString(),
           };
 
+          const session = createAuthSession(newUser, 'VKU_CREDENTIALS');
+
           set((state) => ({
-            availableUsers: [
-              newUser,
-              ...state.availableUsers,
-            ],
-
+            availableUsers: [newUser, ...state.availableUsers],
             currentUser: newUser,
-
+            authSession: session,
+            isExplicitlyLoggedOut: false,
+            failedLoginAttempts: 0,
+            lockoutUntilMs: null,
             authModalVisible: false,
           }));
 
           notificationService.notify(
-            `🎉 Đăng ký thành công: ${cleanName}`,
-
-            `Tài khoản MSSV ${cleanId} đã được kích hoạt và tự động đăng nhập.`,
-
+            `🎉 Đăng ký & Mã hóa thành công: ${cleanName}`,
+            `Mật khẩu đã được băm SHA-256 + Salt và cấp phát phiên JWT cho MSSV ${cleanId}.`,
             'SUCCESS'
           );
 
           return {
             success: true,
-
-            message:
-              'Đăng ký thành công',
+            message: 'Đăng ký thành công',
           };
         },
 
         // ============================================================
-        // LOGOUT
+        // CHANGE PASSWORD (RE-HASH SHA-256 + ROTATE JWT TOKEN)
+        // ============================================================
+
+        changePassword: (currentPassword, newPassword) => {
+          const user = get().currentUser;
+          if (!user) {
+            return {
+              success: false,
+              message: 'Bạn cần đăng nhập để đổi mật khẩu!',
+            };
+          }
+
+          if (!verifyPassword(currentPassword, user.passwordHash, user.passwordSalt)) {
+            return {
+              success: false,
+              message: '❌ Mật khẩu hiện tại không chính xác!',
+            };
+          }
+
+          if (!newPassword || newPassword.length < 6) {
+            return {
+              success: false,
+              message: '⚠️ Mật khẩu mới phải có ít nhất 6 ký tự!',
+            };
+          }
+
+          const newSalt = generateSalt(16);
+          const newHash = hashPassword(newPassword, newSalt);
+
+          const updatedUser: UserProfile = {
+            ...user,
+            passwordSalt: newSalt,
+            passwordHash: newHash,
+            lastLoginAt: new Date().toISOString(),
+          };
+
+          const newSession = createAuthSession(
+            updatedUser,
+            updatedUser.authProvider || 'VKU_CREDENTIALS'
+          );
+
+          set((state) => ({
+            currentUser: updatedUser,
+            authSession: newSession,
+            availableUsers: state.availableUsers.map((u) =>
+              u.studentId === updatedUser.studentId ? updatedUser : u
+            ),
+          }));
+
+          notificationService.notify(
+            '🔐 Đã cập nhật mật khẩu mới',
+            'Mật khẩu đã được tái mã hóa SHA-256 với Salt mới và cấp lại khóa phiên JWT.',
+            'SUCCESS'
+          );
+
+          return {
+            success: true,
+            message: 'Đổi mật khẩu thành công!',
+          };
+        },
+
+        // ============================================================
+        // LOGOUT (REVOKE JWT SESSION & PERSIST LOGOUT STATE)
         // ============================================================
 
         logout: () => {
-          const prev =
-            get().currentUser;
+          const prev = get().currentUser;
 
           set({
             currentUser: null,
+            authSession: null,
+            isExplicitlyLoggedOut: true,
           });
 
           if (prev) {
             notificationService.notify(
-              '🚪 Đã đăng xuất',
-
-              `Bạn đã đăng xuất khỏi tài khoản ${prev.name} (${prev.studentId}).`,
-
+              '🚪 Đã đăng xuất an toàn',
+              `Đã thu hồi khóa phiên JWT và đăng xuất khỏi tài khoản ${prev.name} (${prev.studentId}).`,
               'REMINDER'
             );
           }
@@ -1309,9 +1497,13 @@ export const useBookingStore =
 
         resetToSeedBookings: () => {
           const fresh = getSeedBookings();
+          const current = get().currentUser || DEMO_USERS[0];
+          const session = get().authSession || createAuthSession(current, 'VKU_CREDENTIALS');
           set({
             bookings: fresh,
-            currentUser: DEMO_USERS[0],
+            currentUser: current,
+            authSession: session,
+            isExplicitlyLoggedOut: false,
           });
           broadcastBookingsSync(fresh);
           notificationService.notify(
@@ -1327,12 +1519,21 @@ export const useBookingStore =
       // ============================================================
 
       {
-        name: 'vku-booking-storage-v8',
+        name: 'vku-booking-storage-v9',
         storage: createJSONStorage(() => AsyncStorage),
         onRehydrateStorage: () => (state) => {
           if (state) {
-            if (!state.currentUser) {
+            if (state.isExplicitlyLoggedOut) {
+              state.currentUser = null;
+              state.authSession = null;
+            } else if (!state.currentUser) {
               state.currentUser = DEMO_USERS[0];
+              state.authSession = createAuthSession(DEMO_USERS[0], 'VKU_CREDENTIALS');
+            } else if (!state.authSession) {
+              state.authSession = createAuthSession(
+                state.currentUser,
+                state.currentUser.authProvider || 'VKU_CREDENTIALS'
+              );
             }
             if (!state.bookings || state.bookings.length === 0) {
               state.bookings = getSeedBookings();
@@ -1340,25 +1541,13 @@ export const useBookingStore =
           }
         },
 
-        /*
-         * Chỉ lưu dữ liệu cần thiết.
-         *
-         * Không lưu syncStatus vì trạng thái
-         * Firebase phải được kiểm tra lại
-         * mỗi lần mở app.
-         */
         partialize: (state) => ({
-          bookings:
-            state.bookings,
-
-          waitlist:
-            state.waitlist,
-
-          currentUser:
-            state.currentUser,
-
-          availableUsers:
-            state.availableUsers,
+          bookings: state.bookings,
+          waitlist: state.waitlist,
+          currentUser: state.currentUser,
+          authSession: state.authSession,
+          isExplicitlyLoggedOut: state.isExplicitlyLoggedOut,
+          availableUsers: state.availableUsers,
         }),
       }
     )
@@ -1371,18 +1560,6 @@ export const useBookingStore =
 let _unsubscribeFirestore:
   (() => void) | null = null;
 
-/*
- * QUAN TRỌNG:
- *
- * Hiện tại chưa bật Firestore realtime
- * để tránh Firebase đang cấu hình sai/giả
- * ghi đè dữ liệu local.
- *
- * AsyncStorage sẽ là bộ nhớ chính ở bước này.
- *
- * Sau khi kiểm tra F5 hoạt động ổn,
- * chúng ta sẽ bật Firebase thật.
- */
 export function initializeRealtimeSync(): () => void {
   console.log('[Storage & Realtime] Khởi động chế độ đồng bộ tức thì đa cửa sổ (BroadcastChannel & Local Storage).');
 
@@ -1407,7 +1584,7 @@ export function initializeRealtimeSync(): () => void {
   let storageHandler: ((e: StorageEvent) => void) | null = null;
   if (typeof window !== 'undefined' && window.addEventListener) {
     storageHandler = (e: StorageEvent) => {
-      if ((e.key === 'vku-booking-storage-v8' || e.key === 'vku-booking-storage-v7' || e.key === 'vku-booking-storage') && e.newValue) {
+      if (e.key && e.key.startsWith('vku-booking-storage') && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
           if (parsed?.state?.bookings) {

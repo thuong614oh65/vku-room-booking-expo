@@ -63,10 +63,28 @@ export interface FilterState {
   slotId: string | null;
 }
 
+export type AuthProviderType = 'VKU_CREDENTIALS' | 'GOOGLE_OAUTH2';
+
+export interface AuthSession {
+  jwtToken: string;
+  refreshToken: string;
+  provider: AuthProviderType;
+  issuedAt: string;
+  expiresAt: string;
+  sessionId: string;
+  ipHash: string;
+}
+
 export interface UserProfile {
   name: string;
   studentId: string;
   email: string;
   major: string;
   avatar: string;
+  passwordHash?: string;
+  passwordSalt?: string;
+  authProvider?: AuthProviderType;
+  googleId?: string;
+  lastLoginAt?: string;
 }
+
