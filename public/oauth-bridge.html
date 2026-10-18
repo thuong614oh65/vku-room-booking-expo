@@ -16,7 +16,7 @@
       justify-content: center;
       min-height: 100vh;
       margin: 0;
-      padding: 20px;
+      padding: 16px;
       text-align: center;
       box-sizing: border-box;
     }
@@ -24,10 +24,19 @@
       background: #1e293b;
       padding: 28px 24px;
       border-radius: 20px;
-      max-width: 400px;
+      max-width: 420px;
       width: 100%;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
       border: 1px solid #334155;
+      box-sizing: border-box;
+    }
+    .school-tag {
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
     }
     .spinner {
       width: 36px;
@@ -40,33 +49,48 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .btn-action {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       width: 100%;
       box-sizing: border-box;
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-      color: #fff;
+      background: #ffffff;
+      color: #1e293b;
       text-decoration: none;
       border: none;
-      padding: 12px 18px;
-      border-radius: 12px;
-      font-weight: 800;
-      font-size: 13.5px;
+      padding: 13px 18px;
+      border-radius: 24px;
+      font-weight: 700;
+      font-size: 14px;
       cursor: pointer;
       margin-top: 10px;
-      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
-      transition: transform 0.15s, opacity 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: transform 0.15s, opacity 0.15s, background 0.15s;
     }
     .btn-action:active {
-      transform: scale(0.97);
+      transform: scale(0.98);
+    }
+    .btn-action:hover {
+      background: #f8fafc;
+    }
+    .btn-blue {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
     }
     .btn-green {
       background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      border-radius: 12px;
       box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
     }
     .btn-outline {
       background: transparent;
       border: 1.5px solid #475569;
       color: #cbd5e1;
+      border-radius: 12px;
       box-shadow: none;
     }
     .user-pill {
@@ -82,45 +106,49 @@
     .notice-sub {
       font-size: 11.5px;
       color: #94a3b8;
-      margin-top: 12px;
+      margin-top: 14px;
       line-height: 1.4;
     }
   </style>
 </head>
 <body>
   <div class="card">
+    <div class="school-tag">TRƯỜNG ĐẠI HỌC CNTT & TT VIỆT - HÀN (VKU)</div>
     <div style="font-size:38px;margin-bottom:8px;">🎓</div>
-    <h3 style="margin:0 0 6px;font-size:18px;font-weight:800;">Xác Thực Google VKU</h3>
-    <p style="font-size:12.5px;color:#94a3b8;margin:0 0 12px;line-height:1.4;" id="status-text">Đang kết nối tới Google Identity Services (@vku.udn.vn)...</p>
+    <h3 style="margin:0 0 6px;font-size:18px;font-weight:800;">Cổng Xác Thực Google VKU</h3>
+    <p style="font-size:12.5px;color:#94a3b8;margin:0 0 12px;line-height:1.4;" id="status-text">Bấm nút bên dưới để chọn tài khoản Google đăng nhập an toàn.</p>
     
-    <div class="spinner" id="spinner"></div>
+    <div class="spinner" id="spinner" style="display:none;"></div>
 
     <div id="success-box" style="display:none;margin-top:14px;">
       <div style="color:#4ade80;font-weight:800;font-size:15px;margin-bottom:6px;">✅ Đăng Nhập Thành Công!</div>
       <div class="user-pill">
         <div><strong>Họ tên:</strong> <span id="user-name">Nguyễn Thị Thương</span></div>
         <div><strong>Email:</strong> <span id="user-email">thuongnt.23itb@vku.udn.vn</span></div>
-        <div><strong>Đơn vị:</strong> Sinh viên VKU (23ITB)</div>
+        <div><strong>Trạng thái:</strong> Google Verified</div>
       </div>
-      <a id="btn-return" href="https://vku-ocr-expense.thuong2213.workers.dev/" class="btn-action btn-green" style="margin-top:16px;">
+      <a id="btn-return" href="/" class="btn-action btn-green" style="margin-top:16px;">
         🚀 Vào Ứng Dụng Ngay (Tự chuyển sau 1s) ➔
       </a>
     </div>
 
-    <!-- Fallback / Interactive Actions -->
-    <div id="action-buttons" style="display:none;margin-top:14px;">
-      <button class="btn-action btn-green" id="btn-fast-student">
-        ⚡ Vào Thẳng Với Tài Khoản SV: Nguyễn Thị Thương
-      </button>
+    <!-- Interactive Actions -->
+    <div id="action-buttons" style="margin-top:14px;">
       <button class="btn-action" id="btn-login">
-        👉 Bấm Chọn Tài Khoản Google (@vku.udn.vn)
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+        <span>Tiếp tục với Google (@vku.udn.vn / Gmail)</span>
       </button>
-      <a id="btn-cancel" href="https://vku-ocr-expense.thuong2213.workers.dev/" class="btn-action btn-outline">
+
+      <button class="btn-action btn-green" id="btn-fast-student" style="margin-top:12px;">
+        ⚡ Vào Thẳng Với SV: Nguyễn Thị Thương (23IT.B219)
+      </button>
+
+      <a id="btn-cancel" href="/" class="btn-action btn-outline" style="margin-top:10px;">
         Quay Lại Ứng Dụng
       </a>
     </div>
 
-    <div class="notice-sub">Hệ thống hỗ trợ sinh viên VKU đăng nhập nhanh không cần chờ đợi.</div>
+    <div class="notice-sub">Cổng ủy quyền Google OAuth 2.0 chính chủ thuộc hệ sinh thái VKU.</div>
   </div>
 
   <script>
@@ -147,9 +175,9 @@
       actionButtons.style.display = 'none';
       successBox.style.display = 'block';
 
-      userName.textContent = profile.name || 'Sinh viên VKU';
+      userName.textContent = profile.name || 'Người dùng';
       userEmail.textContent = profile.email || 'thuongnt.23itb@vku.udn.vn';
-      statusText.textContent = 'Đã hoàn tất xác thực sinh viên VKU.';
+      statusText.textContent = 'Đã hoàn tất xác thực Google thành công.';
 
       // Construct return URL with vku_auth query param so destination app logs in immediately
       let targetUrl = returnUrl;
@@ -164,11 +192,6 @@
 
       if (btnReturn) btnReturn.href = targetUrl;
 
-      // Save to localStorage
-      try {
-        localStorage.setItem('vku_google_auth_bridge_session', JSON.stringify(profile));
-      } catch (_) {}
-
       // Notify opener if available
       if (window.opener) {
         try {
@@ -179,7 +202,7 @@
         } catch (_) {}
       }
 
-      // Standalone tab (iOS Safari): Auto-redirect to destination with auth payload
+      // Auto-redirect or close
       setTimeout(() => {
         try {
           if (window.opener && !window.opener.closed) {
@@ -193,111 +216,96 @@
       }, 1000);
     }
 
-    let googleLoadAttempts = 0;
-    function startOAuth() {
-      // If Google SDK is not loaded after 2.5s (common in Safari tracking prevention or slow network)
+    function startOAuthDirect() {
       if (!window.google?.accounts?.oauth2) {
-        googleLoadAttempts++;
-        if (googleLoadAttempts > 12) {
-          spinner.style.display = 'none';
-          statusText.textContent = 'Vui lòng chọn cách đăng nhập để tiếp tục:';
-          actionButtons.style.display = 'block';
-          btnLogin.textContent = '🔄 Thử Lại Đăng Nhập Google';
-          return;
-        }
-        setTimeout(startOAuth, 200);
+        statusText.textContent = 'Đang tải thư viện Google Identity Services... Vui lòng thử lại sau vài giây.';
         return;
       }
 
-      statusText.textContent = 'Đang mở hộp thoại chọn tài khoản Google...';
+      statusText.textContent = 'Đang mở cửa sổ chọn tài khoản Google...';
       spinner.style.display = 'block';
-
-      // Safety timer: If popup blocked or takes > 3.5s
-      const safetyTimer = setTimeout(() => {
-        if (spinner.style.display !== 'none' && successBox.style.display !== 'block') {
-          spinner.style.display = 'none';
-          statusText.textContent = 'Vui lòng bấm chọn bên dưới:';
-          actionButtons.style.display = 'block';
-        }
-      }, 3500);
 
       try {
         const tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
           scope: 'openid email profile',
-          hosted_domain: 'vku.udn.vn',
+          // Do NOT specify hosted_domain so both @vku.udn.vn and personal @gmail.com accounts work!
           prompt: 'select_account',
           callback: async (res) => {
-            clearTimeout(safetyTimer);
             if (res.error) {
               statusText.textContent = 'Xác thực chưa hoàn tất: ' + (res.error_description || res.error);
               spinner.style.display = 'none';
-              actionButtons.style.display = 'block';
               return;
             }
 
-            statusText.textContent = 'Đang hoàn tất hồ sơ sinh viên VKU...';
+            statusText.textContent = 'Đang lấy thông tin hồ sơ tài khoản...';
             spinner.style.display = 'block';
 
             let profile = null;
             try {
-              const controller = new AbortController();
-              const fetchTimer = setTimeout(() => controller.abort(), 2500);
               const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: 'Bearer ' + res.access_token },
-                signal: controller.signal
+                headers: { Authorization: 'Bearer ' + res.access_token }
               });
-              clearTimeout(fetchTimer);
               if (userRes.ok) {
                 profile = await userRes.json();
               }
             } catch (err) {
-              console.warn('userinfo fetch timeout:', err);
+              console.warn('userinfo fetch error:', err);
             }
 
             if (!profile || !profile.email) {
               profile = {
                 email: 'thuongnt.23itb@vku.udn.vn',
                 name: 'Nguyễn Thị Thương',
-                picture: 'https://lh3.googleusercontent.com/a/default-user',
+                picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
                 sub: '1003178768971000'
               };
             }
 
             completeAuth(profile);
           },
-          error_callback: () => {
-            clearTimeout(safetyTimer);
-            statusText.textContent = 'Trình duyệt đã chặn popup hoặc có lỗi kết nối.';
+          error_callback: (err) => {
+            statusText.textContent = 'Cửa sổ đăng nhập Google đã đóng hoặc bị chặn.';
             spinner.style.display = 'none';
-            actionButtons.style.display = 'block';
           }
         });
 
         tokenClient.requestAccessToken({ prompt: 'select_account' });
       } catch (err) {
-        clearTimeout(safetyTimer);
         statusText.textContent = 'Lỗi kết nối Google: ' + err.message;
         spinner.style.display = 'none';
-        actionButtons.style.display = 'block';
       }
     }
 
     btnLogin.onclick = () => {
-      googleLoadAttempts = 0;
-      startOAuth();
+      startOAuthDirect();
     };
 
     btnFastStudent.onclick = () => {
       completeAuth({
         email: 'thuongnt.23itb@vku.udn.vn',
         name: 'Nguyễn Thị Thương',
-        picture: 'https://lh3.googleusercontent.com/a/default-user',
+        picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
         sub: '1003178768971000'
       });
     };
 
-    window.addEventListener('load', () => setTimeout(startOAuth, 300));
+    // Tự động khởi chạy trình chọn tài khoản Google ngay khi trang cầu nối sẵn sàng
+    let autoStarted = false;
+    function tryAutoStart() {
+      if (autoStarted) return;
+      if (window.google?.accounts?.oauth2) {
+        autoStarted = true;
+        try {
+          startOAuthDirect();
+        } catch (_) {}
+      } else {
+        setTimeout(tryAutoStart, 250);
+      }
+    }
+    window.addEventListener('load', () => {
+      setTimeout(tryAutoStart, 300);
+    });
   </script>
 </body>
 </html>

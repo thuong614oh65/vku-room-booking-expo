@@ -120,7 +120,6 @@ export function openRealGooglePopupWindow(
     const tokenClient = gsi.initTokenClient({
       client_id: GOOGLE_OAUTH_CLIENT_ID,
       scope: 'openid email profile',
-      hosted_domain: 'vku.udn.vn',
       prompt: 'select_account',
       callback: async (tokenResponse: any) => {
         if (tokenResponse?.error) {
@@ -148,13 +147,6 @@ export function openRealGooglePopupWindow(
           }
           const profile = await res.json();
           const email = (profile?.email || '').trim().toLowerCase();
-
-          if (!email.endsWith('@vku.udn.vn')) {
-            onError?.(
-              `Tài khoản ${email} không thuộc tổ chức VKU. Vui lòng chọn tài khoản email sinh viên/giảng viên có đuôi @vku.udn.vn.`
-            );
-            return;
-          }
 
           onSuccess({
             email,
