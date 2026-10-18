@@ -139,7 +139,25 @@
         <span>Tiếp tục với Google (@vku.udn.vn / Gmail)</span>
       </button>
 
-      <button class="btn-action btn-green" id="btn-fast-student" style="margin-top:12px;">
+      <button class="btn-action btn-outline" id="btn-switch-account" style="margin-top:10px;">
+        🔄 Chọn / Đổi Tài Khoản Google Khác
+      </button>
+
+      <!-- Direct switch to any email -->
+      <div style="margin: 16px 0 12px; border-top: 1px solid #334155; padding-top: 14px; text-align: left;">
+        <label style="font-size: 11.5px; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">
+          💡 Hoặc gõ trực tiếp Email bạn muốn đổi tài khoản:
+        </label>
+        <div style="display: flex; gap: 8px;">
+          <input type="email" id="input-custom-email" placeholder="vd: thanhnga01012011@gmail.com" 
+            style="flex: 1; padding: 9px 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 13px; outline: none; min-width: 0;">
+          <button type="button" id="btn-custom-email" class="btn-action btn-blue" style="width: auto; margin: 0; padding: 9px 14px; white-space: nowrap; font-size: 13px;">
+            Đổi Ngay ➔
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-action btn-green" id="btn-fast-student" style="margin-top:10px;">
         ⚡ Vào Thẳng Với SV: Nguyễn Thị Thương (23IT.B219)
       </button>
 
@@ -277,9 +295,43 @@
       }
     }
 
+    const btnSwitchAccount = document.getElementById('btn-switch-account');
+    const inputCustomEmail = document.getElementById('input-custom-email');
+    const btnCustomEmail = document.getElementById('btn-custom-email');
+
     btnLogin.onclick = () => {
       startOAuthDirect();
     };
+
+    if (btnSwitchAccount) {
+      btnSwitchAccount.onclick = () => {
+        startOAuthDirect();
+      };
+    }
+
+    const handleCustomEmailSubmit = () => {
+      const email = (inputCustomEmail?.value || '').trim().toLowerCase();
+      if (!email || !email.includes('@')) {
+        alert('Vui lòng nhập địa chỉ email hợp lệ (vd: thanhnga01012011@gmail.com hoặc sinhvien.xxit@vku.udn.vn)');
+        return;
+      }
+      const local = email.split('@')[0];
+      completeAuth({
+        email: email,
+        name: local.replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        picture: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(email)}`,
+        sub: 'custom_' + Date.now()
+      });
+    };
+
+    if (btnCustomEmail) {
+      btnCustomEmail.onclick = handleCustomEmailSubmit;
+    }
+    if (inputCustomEmail) {
+      inputCustomEmail.onkeydown = (e) => {
+        if (e.key === 'Enter') handleCustomEmailSubmit();
+      };
+    }
 
     btnFastStudent.onclick = () => {
       completeAuth({
