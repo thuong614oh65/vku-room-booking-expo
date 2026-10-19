@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Xác Thực Google OAuth 2.0 • VKU Smart Campus</title>
+  <title>Xác Thực Google OAuth 2.0 • SmartSpend</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
@@ -312,7 +312,7 @@
     const handleCustomEmailSubmit = () => {
       const email = (inputCustomEmail?.value || '').trim().toLowerCase();
       if (!email || !email.includes('@')) {
-        alert('Vui lòng nhập địa chỉ email hợp lệ (vd: thanhnga01012011@gmail.com hoặc sinhvien.xxit@vku.udn.vn)');
+        alert('Vui lòng nhập địa chỉ email hợp lệ (vd: thanhnga01012011@gmail.com)');
         return;
       }
       const local = email.split('@')[0];
