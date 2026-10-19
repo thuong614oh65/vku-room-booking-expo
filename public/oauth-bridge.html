@@ -139,10 +139,6 @@
         <span>Tiếp tục với Google</span>
       </button>
 
-      <button class="btn-action btn-outline" id="btn-switch-account" style="margin-top:10px;">
-        🔄 Chọn / Đổi Tài Khoản Google Khác
-      </button>
-
       <a id="btn-cancel" href="/" class="btn-action btn-outline" style="margin-top:10px;">
         Quay Lại Ứng Dụng
       </a>
@@ -276,17 +272,9 @@
       }
     }
 
-    const btnSwitchAccount = document.getElementById('btn-switch-account');
-
     btnLogin.onclick = () => {
       startOAuthDirect();
     };
-
-    if (btnSwitchAccount) {
-      btnSwitchAccount.onclick = () => {
-        startOAuthDirect();
-      };
-    }
 
     // Tự động khởi chạy trình chọn tài khoản Google ngay khi trang cầu nối sẵn sàng
     let autoStarted = false;
